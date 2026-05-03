@@ -1,9 +1,13 @@
-// Pull display names from a QQ group via NapCat HTTP API.
+// Pull display names from a QQ group via NapCat (OneBot 11).
 // Output: scripts/.cache/qq-names.json
 //
+// Supports both HTTP and WebSocket NapCat endpoints. Set NAPCAT_WS_URL to use
+// WebSocket (matches QQ-Group-Bot's existing config), or NAPCAT_HTTP_URL for HTTP.
+//
 // Env vars:
-//   NAPCAT_HTTP_URL  e.g. http://localhost:3000
-//   NAPCAT_TOKEN     (optional; if your NapCat instance has access_token configured)
+//   NAPCAT_WS_URL    e.g. ws://127.0.0.1:3001    (preferred — reuses QQ-Bot's connection)
+//   NAPCAT_HTTP_URL  e.g. http://localhost:3000  (alternative — HTTP server)
+//   NAPCAT_TOKEN     access token if NapCat has one configured
 //   QQ_GROUP_ID      target group number
 //
 // We DO NOT export QQ numbers, sex, level, or any account identifier.
@@ -12,24 +16,24 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-const NAPCAT = process.env.NAPCAT_HTTP_URL
+const WS_URL = process.env.NAPCAT_WS_URL
+const HTTP_URL = process.env.NAPCAT_HTTP_URL
 const TOKEN = process.env.NAPCAT_TOKEN || ''
 const GROUP = process.env.QQ_GROUP_ID
 
-if (!NAPCAT || !GROUP) {
+if (!GROUP || (!WS_URL && !HTTP_URL)) {
   console.error(
-    'Missing NAPCAT_HTTP_URL or QQ_GROUP_ID env var. Set them and retry.',
+    'Missing env vars. Set QQ_GROUP_ID and either NAPCAT_WS_URL or NAPCAT_HTTP_URL.',
   )
   process.exit(1)
 }
 
-const headers = {
-  'Content-Type': 'application/json',
-  ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
-}
-
-try {
-  const res = await fetch(NAPCAT.replace(/\/$/, '') + '/get_group_member_list', {
+async function fetchViaHttp() {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
+  }
+  const res = await fetch(HTTP_URL.replace(/\/$/, '') + '/get_group_member_list', {
     method: 'POST',
     headers,
     body: JSON.stringify({ group_id: Number(GROUP), no_cache: true }),
@@ -41,7 +45,63 @@ try {
   if (json.status !== 'ok' && !Array.isArray(json.data)) {
     throw new Error('NapCat returned: ' + JSON.stringify(json))
   }
-  const members = Array.isArray(json.data) ? json.data : json
+  return Array.isArray(json.data) ? json.data : json
+}
+
+function fetchViaWs() {
+  return new Promise((resolve, reject) => {
+    if (typeof WebSocket === 'undefined') {
+      reject(
+        new Error(
+          'WebSocket not available. Use Node 22+ (current: ' + process.version + ')',
+        ),
+      )
+      return
+    }
+    const url =
+      WS_URL + (TOKEN ? (WS_URL.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(TOKEN) : '')
+    const ws = new WebSocket(url)
+    const echo = 'pull-qq-names-' + Date.now()
+    const timeout = setTimeout(() => {
+      ws.close()
+      reject(new Error('WebSocket timeout after 15s'))
+    }, 15000)
+
+    ws.addEventListener('open', () => {
+      ws.send(
+        JSON.stringify({
+          action: 'get_group_member_list',
+          params: { group_id: Number(GROUP), no_cache: true },
+          echo,
+        }),
+      )
+    })
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(typeof ev.data === 'string' ? ev.data : ev.data.toString())
+        if (msg.echo !== echo) return
+        clearTimeout(timeout)
+        ws.close()
+        if (msg.status !== 'ok' || !Array.isArray(msg.data)) {
+          reject(new Error('NapCat WS returned: ' + JSON.stringify(msg)))
+          return
+        }
+        resolve(msg.data)
+      } catch (err) {
+        clearTimeout(timeout)
+        ws.close()
+        reject(err)
+      }
+    })
+    ws.addEventListener('error', (ev) => {
+      clearTimeout(timeout)
+      reject(new Error('WebSocket error: ' + (ev.message || 'connection failed')))
+    })
+  })
+}
+
+try {
+  const members = WS_URL ? await fetchViaWs() : await fetchViaHttp()
   const out = members
     .map((m) => {
       const card = typeof m.card === 'string' ? m.card.trim() : ''
