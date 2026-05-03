@@ -105,7 +105,7 @@ export default function AdminAssetUploader({
 
       {value && (
         <div className="admin-asset-preview">
-          <img src={`${value}?v=${Date.now()}`} alt={field?.label ?? 'Preview'} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img src={value} alt={field?.label ?? 'Preview'} onError={(e) => { e.currentTarget.style.display = 'none' }} />
         </div>
       )}
 

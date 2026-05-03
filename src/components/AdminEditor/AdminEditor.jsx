@@ -86,7 +86,11 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
 
   useEffect(() => {
     if (!schema || !token) return
-    load()
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) load()
+    })
+    return () => { cancelled = true }
   }, [schema, token, load])
 
   const errors = useMemo(() => {

@@ -222,24 +222,79 @@ describe('boolean field validation', () => {
     const errs = validateItem('social', { platform: 'discord', label: 'D', enabled: false })
     expect(errs.find((e) => e.fieldKey === 'enabled')).toBeUndefined()
   })
-})
 
-describe('email type validation (covers default branch)', () => {
-  it('rejects invalid email', () => {
-    // Use a manual schema check: we don't have an email field in current schemas,
-    // so synthesize via validateItem with a custom schema-style call.
-    // Instead, rely on the URL field test for full branch coverage. (Skip — synth not possible.)
-    expect(true).toBe(true)
+  it('rejects non-boolean value on boolean field', () => {
+    const errs = validateItem('social', { platform: 'discord', label: 'D', enabled: 'maybe' })
+    expect(errs.some((e) => e.fieldKey === 'enabled' && /true or false/i.test(e.message))).toBe(true)
   })
 })
 
-describe('number field validation (covers branch)', () => {
-  // No number fields in current schemas, but the validator branch must remain covered
-  // via direct testing of the dispatch — verified via boolean false test above which
-  // exercises the empty-skip path for non-required fields.
-  it('all schemas pass shape sanity', () => {
+describe('asset field validation', () => {
+  it('required asset empty string returns error', () => {
+    // posts.image is required
+    const errs = validateItem('posts', { id: 'p1', image: '', datePosted: '2025-01-01' })
+    expect(errs.some((e) => e.fieldKey === 'image')).toBe(true)
+  })
+
+  it('non-string truthy value on required asset still flags required-empty', () => {
+    const errs = validateItem('posts', { id: 'p1', image: 123, datePosted: '2025-01-01' })
+    expect(errs.some((e) => e.fieldKey === 'image')).toBe(true)
+  })
+
+  it('non-required asset empty is fine', () => {
+    const errs = validateItem('events', { id: 'e1', title: 'X', date: '2025-09-15T19:00', type: 'concert', image: '' })
+    expect(errs.find((e) => e.fieldKey === 'image')).toBeUndefined()
+  })
+})
+
+describe('all schemas pass shape sanity', () => {
+  it('every schema has fields array', () => {
     for (const schema of Object.values(adminSchemas)) {
       expect(schema.fields.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('sortFn invocation per schema (coverage)', () => {
+  it('events sortFn sorts by date desc', () => {
+    const items = [{ date: '2025-01-01' }, { date: '2026-01-01' }]
+    const sorted = adminSchemas.events.sortFn(items)
+    expect(sorted[0].date).toBe('2026-01-01')
+  })
+
+  it('events sortFn handles missing date', () => {
+    const items = [{}, { date: '2025-01-01' }]
+    const sorted = adminSchemas.events.sortFn(items)
+    expect(sorted.length).toBe(2)
+  })
+
+  it('members sortFn sorts by name asc', () => {
+    const items = [{ name: 'Bob' }, { name: 'Alice' }]
+    const sorted = adminSchemas.members.sortFn(items)
+    expect(sorted[0].name).toBe('Alice')
+  })
+
+  it('members sortFn handles missing name', () => {
+    const items = [{}, { name: 'Alice' }]
+    const sorted = adminSchemas.members.sortFn(items)
+    expect(sorted.length).toBe(2)
+  })
+
+  it('news sortFn sorts by date desc', () => {
+    const items = [{ date: '2025-01-01' }, { date: '2026-01-01' }]
+    expect(adminSchemas.news.sortFn(items)[0].date).toBe('2026-01-01')
+  })
+
+  it('news sortFn handles missing date', () => {
+    expect(adminSchemas.news.sortFn([{}, {}]).length).toBe(2)
+  })
+
+  it('posts sortFn sorts by datePosted desc', () => {
+    const items = [{ datePosted: '2025-01-01' }, { datePosted: '2026-01-01' }]
+    expect(adminSchemas.posts.sortFn(items)[0].datePosted).toBe('2026-01-01')
+  })
+
+  it('posts sortFn handles missing datePosted', () => {
+    expect(adminSchemas.posts.sortFn([{}, {}]).length).toBe(2)
   })
 })
