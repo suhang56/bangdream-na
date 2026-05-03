@@ -1,3 +1,8 @@
+.home-carousel-section {
+  padding: 4rem 0 2.5rem;
+  background: var(--color-bg);
+}
+
 .home-stat-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
