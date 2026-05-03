@@ -23,20 +23,6 @@
   grid-template-columns: 1fr min(78vw, 1080px) 1fr;
   align-items: center;
   gap: 0;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
 }
 
 .hero-peek__slot {
