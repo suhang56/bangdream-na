@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Coverage
+coverage
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+
+# Claude Code (NEVER push)
+.claude/
+
+# Vitest temp
+*.tsbuildinfo
+.vitest-cache
