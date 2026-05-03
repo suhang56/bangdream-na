@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import AdminLogin, { TOKEN_STORAGE_KEY } from '../components/AdminLogin/AdminLogin.jsx'
+import AdminNav from '../components/AdminNav/AdminNav.jsx'
+import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
+import { listSchemaKeys } from '../lib/adminSchemas.js'
 import './Admin.css'
+
+const DEFAULT_VIEW = 'events'
 
 export default function Admin() {
   const [token, setToken] = useState(() => {
@@ -11,6 +16,8 @@ export default function Admin() {
     }
   })
   const [expiredBanner, setExpiredBanner] = useState(false)
+  const [activeKey, setActiveKey] = useState(DEFAULT_VIEW)
+  const [openPR, setOpenPR] = useState(null)
 
   useEffect(() => {
     if (!token) return
@@ -23,26 +30,46 @@ export default function Admin() {
     return () => window.removeEventListener('storage', onStorage)
   }, [token])
 
+  function handleLogin(t) {
+    setExpiredBanner(false)
+    setToken(t)
+  }
+
+  function handleLogout() {
+    try { window.sessionStorage.removeItem(TOKEN_STORAGE_KEY) } catch { /* ignore */ }
+    setToken('')
+    setOpenPR(null)
+    setActiveKey(DEFAULT_VIEW)
+  }
+
+  function handleSelect(key) {
+    if (listSchemaKeys().includes(key)) setActiveKey(key)
+  }
+
+  function handleSavedPR(pr) {
+    if (pr) setOpenPR({ number: pr.number, htmlUrl: pr.htmlUrl })
+  }
+
   if (!token) {
-    return <AdminLogin onLogin={(t) => { setExpiredBanner(false); setToken(t) }} expiredBanner={expiredBanner} />
+    return <AdminLogin onLogin={handleLogin} expiredBanner={expiredBanner} />
   }
 
   return (
     <div className="admin-shell">
-      <main className="admin-content">
-        <h1>Admin Panel</h1>
-        <p>Setup pending — components wired in next commit batch.</p>
-        <button
-          type="button"
-          className="admin-shell-logout"
-          onClick={() => {
-            window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-            setToken('')
-          }}
-        >
-          Sign out
-        </button>
+      <AdminNav
+        activeKey={activeKey}
+        onSelect={handleSelect}
+        onLogout={handleLogout}
+        openPR={openPR}
+      />
+      <main className="admin-content" key={activeKey}>
+        <AdminEditor
+          schemaKey={activeKey}
+          token={token}
+          onSavedPR={handleSavedPR}
+        />
       </main>
     </div>
   )
 }
+
