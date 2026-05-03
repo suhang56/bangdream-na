@@ -1,15 +1,19 @@
 import { useSyncExternalStore, useMemo } from 'react'
 import Hero from '../components/Hero/Hero.jsx'
-import HeroCarousel from '../components/HeroCarousel/HeroCarousel.jsx'
+import HeroPeekCarousel from '../components/HeroPeekCarousel/HeroPeekCarousel.jsx'
+import PlatformTileRow from '../components/PlatformTileRow/PlatformTileRow.jsx'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../lib/uiLanguage.js'
 import { groupEventsByTime } from '../lib/events.js'
+import { pickFeaturedPosts } from '../lib/posts.js'
 import site from '../data/site.json'
 import events from '../data/events.json'
 import members from '../data/members.json'
+import posts from '../data/posts.json'
+import social from '../data/social.json'
 import './Home.css'
 
 function subscribe(cb) {
@@ -22,8 +26,9 @@ function getSnapshot() {
 export default function Home() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const now = useMemo(() => new Date(), [])
-  const { upcoming, past } = groupEventsByTime(events, now)
-  const hasUpcoming = upcoming.length > 0
+  const { past } = groupEventsByTime(events, now)
+  const featured = useMemo(() => pickFeaturedPosts(posts, 6, now), [now])
+  const hasPosts = featured.length > 0
 
   return (
     <main>
@@ -33,8 +38,8 @@ export default function Home() {
         communityNameJp={site.communityNameJp}
         tagline={t('tagline')}
       >
-        {hasUpcoming ? (
-          <HeroCarousel events={events} max={5} now={now} />
+        {hasPosts ? (
+          <HeroPeekCarousel posts={featured} />
         ) : (
           <div className="home-stat-tiles">
             <div className="home-stat-tile">
@@ -50,6 +55,7 @@ export default function Home() {
           </div>
         )}
       </Hero>
+      <PlatformTileRow social={social} />
     </main>
   )
 }
