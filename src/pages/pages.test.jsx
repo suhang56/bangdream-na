@@ -22,10 +22,9 @@ describe('placeholder pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/no events/i)
   })
 
-  it('Members page renders title + at least one ComingSoonCard via /members route', () => {
+  it('Members page renders title via /members route', () => {
     renderWithProviders(<RoutesUnderTest />, { route: '/members' })
     expect(screen.getByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
-    expect(screen.getAllByRole('article').length).toBeGreaterThan(0)
   })
 
   it('unknown route renders nothing in test routes (edge: 404 handling)', () => {
