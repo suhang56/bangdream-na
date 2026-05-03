@@ -1,7 +1,30 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { t } from '../../lib/uiLanguage.js'
-import { PLATFORM_ICONS } from './icons.jsx'
+import {
+  DiscordSvg,
+  QQSvg,
+  XiaohongshuSvg,
+  XSvg,
+  WechatSvg,
+} from './icons.jsx'
 import './PlatformIcon.css'
+
+function PlatformGlyph({ platform }) {
+  switch (platform) {
+    case 'discord':
+      return <DiscordSvg />
+    case 'qq':
+      return <QQSvg />
+    case 'xiaohongshu':
+      return <XiaohongshuSvg />
+    case 'x':
+      return <XSvg />
+    case 'wechat':
+      return <WechatSvg />
+    default:
+      return null
+  }
+}
 
 function isHttpsUrl(url) {
   return typeof url === 'string' && /^https:\/\//i.test(url.trim())
@@ -18,7 +41,6 @@ export default function PlatformIcon({
   const triggerRef = useRef(null)
   const popoverRef = useRef(null)
   const popoverId = useId()
-  const Icon = PLATFORM_ICONS[platform]
 
   const hasUrl = isHttpsUrl(url)
   const hasQr = typeof qrImage === 'string' && qrImage.length > 0
@@ -54,7 +76,6 @@ export default function PlatformIcon({
     }
   }, [open])
 
-  const iconNode = Icon ? <Icon /> : null
   const safeLabel = typeof label === 'string' ? label : platform || ''
 
   if (isActive) {
@@ -67,7 +88,7 @@ export default function PlatformIcon({
         aria-label={safeLabel}
         data-platform={platform}
       >
-        {iconNode}
+        <PlatformGlyph platform={platform} />
         <span className="platform-icon-label">{safeLabel}</span>
       </a>
     )
@@ -87,7 +108,7 @@ export default function PlatformIcon({
           data-platform={platform}
           onClick={() => setOpen((prev) => !prev)}
         >
-          {iconNode}
+          <PlatformGlyph platform={platform} />
           <span className="platform-icon-label">{safeLabel}</span>
         </button>
         {open ? (
@@ -121,7 +142,7 @@ export default function PlatformIcon({
       title={t('btn.comingSoon')}
       data-platform={platform}
     >
-      {iconNode}
+      <PlatformGlyph platform={platform} />
       <span className="platform-icon-label">{safeLabel}</span>
     </span>
   )

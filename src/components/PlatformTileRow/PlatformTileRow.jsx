@@ -1,7 +1,32 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getPlatformLabel, t } from '../../lib/uiLanguage.js'
-import { PLATFORM_ICONS } from '../PlatformIcon/icons.jsx'
+import {
+  DiscordSvg,
+  QQSvg,
+  XiaohongshuSvg,
+  XSvg,
+  WechatSvg,
+} from '../PlatformIcon/icons.jsx'
 import './PlatformTileRow.css'
+
+const TILE_ICON_PROPS = { size: 28, className: 'platform-tile__icon' }
+
+function PlatformTileGlyph({ platform }) {
+  switch (platform) {
+    case 'discord':
+      return <DiscordSvg {...TILE_ICON_PROPS} />
+    case 'qq':
+      return <QQSvg {...TILE_ICON_PROPS} />
+    case 'xiaohongshu':
+      return <XiaohongshuSvg {...TILE_ICON_PROPS} />
+    case 'x':
+      return <XSvg {...TILE_ICON_PROPS} />
+    case 'wechat':
+      return <WechatSvg {...TILE_ICON_PROPS} />
+    default:
+      return null
+  }
+}
 
 function isHttpsUrl(url) {
   return typeof url === 'string' && /^https:\/\//i.test(url.trim())
@@ -15,7 +40,6 @@ function PlatformTile({ entry }) {
 
   const platform = entry.platform
   const label = getPlatformLabel(platform, entry.label)
-  const Icon = PLATFORM_ICONS[platform]
   const hasUrl = isHttpsUrl(entry.url)
   const hasQr = typeof entry.qrImage === 'string' && entry.qrImage.length > 0
   const isActive = entry.enabled === true && hasUrl
@@ -49,8 +73,6 @@ function PlatformTile({ entry }) {
     }
   }, [open])
 
-  const iconNode = Icon ? <Icon size={28} className="platform-tile__icon" /> : null
-
   if (isActive) {
     return (
       <a
@@ -61,7 +83,7 @@ function PlatformTile({ entry }) {
         rel="noopener noreferrer"
         aria-label={label}
       >
-        {iconNode}
+        <PlatformTileGlyph platform={platform} />
         <span className="platform-tile__label">{label}</span>
       </a>
     )
@@ -81,7 +103,7 @@ function PlatformTile({ entry }) {
           aria-label={label}
           onClick={() => setOpen((prev) => !prev)}
         >
-          {iconNode}
+          <PlatformTileGlyph platform={platform} />
           <span className="platform-tile__label">{label}</span>
         </button>
         {open ? (
@@ -115,7 +137,7 @@ function PlatformTile({ entry }) {
       aria-disabled="true"
       title={t('btn.comingSoon')}
     >
-      {iconNode}
+      <PlatformTileGlyph platform={platform} />
       <span className="platform-tile__label">{label}</span>
     </span>
   )

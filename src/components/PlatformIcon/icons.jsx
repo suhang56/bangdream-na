@@ -104,10 +104,3 @@ export function WechatSvg({ size = 18, className = 'platform-icon-svg' } = {}) {
   )
 }
 
-export const PLATFORM_ICONS = {
-  discord: DiscordSvg,
-  qq: QQSvg,
-  xiaohongshu: XiaohongshuSvg,
-  x: XSvg,
-  wechat: WechatSvg,
-}
