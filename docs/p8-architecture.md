@@ -188,19 +188,21 @@ P4 admin CSS references `var(--color-surface, #fff)` — but `--color-surface` i
 Admin chrome strings are **written directly into JSX/CSS as Chinese characters**. No `t()` call, no `i18n.json` key, no helper indirection. Examples:
 
 ```jsx
-// src/components/AdminLogin/AdminLogin.jsx
-<h1 className="admin-login-title">后台面板</h1>
-<p className="admin-login-sub">请输入 GitHub Personal Access Token 继续。</p>
+// src/components/AdminLogin/AdminLogin.jsx (per Designer §9)
+<h1 className="admin-login-title">BD!NA 后台</h1>
+<p className="admin-login-sub">输入 GitHub Personal Access Token 以继续</p>
 <button type="submit" className="admin-login-button">登录</button>
 ```
 
 ```jsx
-// src/components/AdminEditor/AdminEditor.jsx
-<button onClick={...}>+ 新建</button>
+// src/components/AdminEditor/AdminEditor.jsx (per Designer §9)
+<button onClick={...}>+ 新建{schema.titleZh}</button>   {/* "+ 新建活动", etc. */}
 <button onClick={...}>编辑</button>
 <button onClick={...}>取消</button>
-<button onClick={...}>{saving ? '保存中…' : '保存（提交 + PR）'}</button>
+<button onClick={...}>{saving ? '保存中…' : '保存（提交 PR）'}</button>
 ```
+
+**Canonical strings**: every operator-visible string is sourced from Designer's `docs/p8-design.md` §9 table (the binding spec). Architect's earlier draft strings (e.g., `'后台面板'`, `'保存（提交 + PR）'`) are superseded; Developer copies from Designer's table verbatim.
 
 ### 3.2 Schema-defined strings (in `adminSchemas.js`)
 
@@ -230,37 +232,108 @@ const EVENT_TYPE_LABEL_ZH = {
 
 Inline tables of ~5 entries per schema-with-enums (`events.type`, `members.role`, `news.tag`, `social.platform`) — mechanical, no abstraction needed. Total ~25 enum-label pairs across all schemas.
 
-### 3.4 Strings that stay English in admin
+### 3.4 Strings that stay English in admin (Designer §9 binding whitelist)
 
-- Field **keys** (`id`, `title`, `date`, `image`, `bands`, etc.) shown in the list view's column headers. These are technical column identifiers — operator (西瓜) understands them. (If Designer prefers translated headers, AdminTable can accept an optional `column.label` Chinese override; default falls back to the field key string. See §6.)
-- GitHub-related branded text: `GitHub`, `PAT`, `Personal Access Token`, `ghp_xxx`, `repo` (the OAuth scope name), `PR #N`. These are GitHub vocabulary — translating breaks operator's mental model.
-- File extensions, ISO 8601 sample dates, JSON key examples in `field.help` snippets.
-- Conventional commit message bodies (`chore(content): update events.json — add 春日聚会`) — author + summary in Chinese, but the conventional-commit prefix stays English since GitHub tooling parses it.
-- `bangdream-na` (the brand subtitle).
+Designer locked the visible-chrome whitelist to a tight 6-token set:
+
+- `BD!NA` (brand acronym shown in login + sidebar subline)
+- `PR` (always paired with `#N`)
+- `GitHub`
+- `Token`
+- `PAT`
+- `JSON`
+
+Other English strings that appear in admin DOM are technical/non-chrome and are **not** counted as chrome leakage:
+
+- **Field keys** (`id`, `title`, `date`, `image`, etc.) when rendered as table column headers. These are JSON identifiers; AdminTable's `columns` prop carries them through unchanged. The English-leakage scan (§9.3) **excludes** column-header text from the scan because Designer treats column headers as data identifiers, not chrome.
+- **Enum option tokens** (`concert`, `fanmeet`, etc.) when persisted in JSON. AdminForm renders Chinese display labels via `*_LABEL_ZH` lookups (§3.3); the underlying option `value` is English but the visible `<option>` text is Chinese.
+- **`ghp_xxx` placeholder text** in login input.
+- **ISO 8601 sample dates** and **JSON key examples** inside `field.helpZh` snippets when illustrating format.
+- **`bangdream-na`** (repo name, appears in footer/console-only, not chrome).
 
 ### 3.5 Reviewer's English-leakage scan
 
-The Reviewer runs a DOM-text scan against rendered admin chrome — for each rendered admin view, `document.body.textContent` is searched for English-letter-only words ≥3 chars; matches are flagged unless they are on the whitelist (the items in §3.4: `GitHub`, `PAT`, `Token`, `JSON`, `URL`, `bangdream-na`, etc.). See §9.3 for implementation; this is the policy Reviewer enforces.
+The Reviewer runs a DOM-text scan against rendered admin chrome — for each rendered admin view, `document.body.textContent` is searched for English-letter-only words ≥3 chars; matches are flagged unless they are on the **6-token Designer whitelist** above (`BD!NA`, `PR`, `GitHub`, `Token`, `PAT`, `JSON`). See §9.3 for implementation. Column headers and enum tokens are excluded by **scoping** (the scan inspects breadcrumb / nav / button labels / status pill / toast / form labels / empty-state copy, **not** `<th>` content or `<option value="...">` value attributes).
 
 ---
 
-## 4. `adminSchemas.js` translation pass — concrete delta
+## 4. `adminSchemas.js` translation pass — `labelZh` parallel fields
 
-This file changes shape minimally. Schema keys, field keys, types, options, validation rules, asset constraints all stay byte-identical. Only **operator-visible strings** are rewritten in place. Specifically:
+Per Designer §9 (revised policy), schemas grow **parallel `*Zh` sibling fields** instead of overwriting English. Schema keys, field keys, types, options, validation rules, asset constraints all stay byte-identical. Existing `label` / `help` / `title` are kept for code-readability; new `labelZh` / `helpZh` / `titleZh` are what JSX renders.
 
-| What changes | Examples |
+Concrete shape after P8.2:
+
+```js
+events: {
+  key: 'events',
+  title: 'Events',                                 // KEPT (code readability)
+  titleZh: '活动',                                 // ← NEW; JSX renders this
+  file: 'src/data/events.json',
+  shape: 'array',
+  listKey: 'id',
+  listColumns: ['id', 'title', 'date', 'type'],   // English column keys; AdminTable optionally maps to Chinese display via columnLabelsZh
+  columnLabelsZh: {                                // ← NEW (optional per schema)
+    id: 'ID',
+    title: '标题',
+    date: '日期',
+    type: '类型',
+  },
+  fields: [
+    {
+      key: 'title',
+      type: 'text',
+      label: 'Title',                              // KEPT
+      labelZh: '标题',                             // ← NEW
+      help: 'Plain text title',                    // KEPT (may already be empty)
+      helpZh: '纯文本标题',                        // ← NEW (omit if no help text)
+      required: true,
+    },
+    // ...
+  ],
+}
+```
+
+### 4.1 Per-schema `titleZh` (Designer §9 canonical)
+
+| Schema key | `titleZh` |
 |---|---|
-| `schema.title` | `'Events'` → `'活动'`; `'Members'` → `'成员'`; `'News'` → `'资讯'`; `'Posts (home carousel)'` → `'动态（首页滚动）'`; `'Social links'` → `'社交链接'`; `'Site identity'` → `'站点信息'`; `'About page'` → `'关于页'` |
-| `field.label` | `'Title'` → `'标题'`; `'Date / time'` → `'日期 / 时间'`; `'Type'` → `'类型'`; `'Location'` → `'地点'`; `'Description'` → `'描述'`; `'Banner image'` → `'横幅图片'`; `'Ticket URL'` → `'购票链接'` (etc., all 7 schemas) |
-| `field.help` | `'ISO 8601, e.g. 2025-09-15T19:00:00-07:00'` → `'ISO 8601 格式，例如 2025-09-15T19:00:00-07:00'`; `'Auto-generated from title; lowercase + dashes'` → `'根据标题自动生成；小写字母 + 横线'` |
-| `validateItem` error strings | Inline Chinese: `'标题不能为空'`, `'URL 必须以 https:// 开头'`, `'日期无效'`, `'必须为以下之一：{options}'` (`{options}` interpolated by simple template literal at error-emit time), `'ID 重复：{id}'`, `'无效 JSON：{message}'`, `'资源路径必须以 public/ 开头'` |
-| `validateItem` return shape | **Unchanged** from P4: `{ fieldKey, message }` — no `messageKey` indirection (since there's no second language). |
+| `events` | `活动` |
+| `members` | `成员` |
+| `news` | `公告` |
+| `posts` | `首页轮播` |
+| `social` | `社交平台` |
+| `site` | `站点信息` |
+| `about` | `关于页` |
 
-**Why no `messageKey` indirection**: P4's `validateItem` returns `{ fieldKey, message }` with English inline. P8 keeps the same shape but with Chinese strings. No breaking change to consumer code (`AdminForm.jsx`, `AdminEditor.jsx`) — they just render `error.message` directly.
+### 4.2 Per-field `labelZh` / `helpZh`
 
-### 4.1 Test impact
+Designer's table doesn't enumerate every per-field Chinese label. Architect's call: **Developer writes natural Chinese** for each field's `labelZh` (e.g., `'Title' → labelZh: '标题'`, `'Date / time' → labelZh: '日期 / 时间'`, `'Banner image' → labelZh: '横幅图片'`). `helpZh` is optional — present only when the English `help` is non-empty. Reviewer's English-leakage scan (§9.3) catches anything missed.
 
-`src/lib/adminSchemas.test.js` has assertions like `expect(errors[0].message).toMatch(/required/i)`. These get rewritten to match the Chinese strings: `expect(errors[0].message).toMatch(/不能为空/)` etc. Mechanical 1:1 update; no logic change.
+If Developer is unsure about specific Chinese wording for a label, they use the closest natural translation; Designer can patch `docs/p8-design.md` §9 with binding overrides if any specific wording matters for UX.
+
+### 4.3 `validateItem` error strings
+
+Inline Chinese strings interpolating `{labelZh}` (not `{label}`):
+
+- `'{labelZh} 不能为空'` (required-empty)
+- `'URL 必须以 https:// 开头'`
+- `'日期无效'`
+- `'必须为以下之一：{options}'` (`{options}` is the English option list)
+- `'ID 重复：{id}'`
+- `'无效 JSON：{message}'`
+- `'资源路径必须以 public/ 开头'`
+
+`validateItem` return shape unchanged from P4: `{ fieldKey, message: '<Chinese inline>' }`. No `messageKey` indirection.
+
+### 4.4 Test impact
+
+`src/lib/adminSchemas.test.js` updates:
+
+1. Assertions on `schema.title` (English) keep passing — that field is **not** removed.
+2. New assertions on `schema.titleZh` for each of the 7 schemas matching the §4.1 canonical table.
+3. New assertion: every `field` in every schema has a `labelZh` of type `string` and non-empty (one-line `forEach`-style check covers all schemas at once).
+4. New assertion: `field.helpZh` is absent OR a non-empty string (forbids accidental empty-string regression).
+5. Existing `validateItem` assertions matching English error strings (e.g., `/required/i`) get rewritten to match Chinese (`/不能为空/` etc.).
 
 ---
 
@@ -273,10 +346,10 @@ This file changes shape minimally. Schema keys, field keys, types, options, vali
  * @typedef {Object} AdminTopBarProps
  * @property {string} schemaKey - active schema, used for breadcrumb derivation
  * @property {object|null} editing - null when in list view; the item being edited (or { __new: true }) when in edit/create view
- * @property {{ status: 'idle' | 'saving' | 'saved' | 'error', prNumber?: number, prUrl?: string, errorMessage?: string }} saveStatus
+ * @property {{ status: 'idle' | 'unsaved' | 'saving' | 'saved' | 'error', prNumber?: number, prUrl?: string, errorMessage?: string }} saveStatus
  * @property {{ number: number, htmlUrl: string } | null} openPR
- * @property {() => void} onSignOut
  */
+// Note: AdminTopBar does NOT take onSignOut — sign-out lives in sidebar (Designer §3.3).
 ```
 
 ### 5.2 Breadcrumb derivation (Tier A pure helper)
@@ -316,16 +389,17 @@ The helper carries a small inline noun-map (`events: '活动'`, `members: '成�
 /**
  * Localized label + visual variant for the save-status pill.
  *
- * @param {{ status: 'idle' | 'saving' | 'saved' | 'error', prNumber?: number }} state
- * @returns {{ label: string, variant: 'idle'|'saving'|'saved'|'error', a11yLive: 'polite'|'off' }}
+ * @param {{ status: 'idle' | 'unsaved' | 'saving' | 'saved' | 'error', prNumber?: number }} state
+ * @returns {{ label: string, variant: 'idle'|'unsaved'|'saving'|'saved'|'error', a11yLive: 'polite'|'off' }}
  *
- * Label mapping:
- *   idle   → '已保存'
- *   saving → '保存中…'
- *   saved  → '已保存 · PR #{n}' (interpolates prNumber)
- *   error  → '保存失败'
+ * Label mapping (Designer §9 canonical):
+ *   idle    → ''                       (hidden in pill)
+ *   unsaved → '有未保存的修改'
+ *   saving  → '保存中…'
+ *   saved   → '✓ 已保存'                (PR number lives in the toast, not the pill)
+ *   error   → '✗ 保存失败'
  *
- * a11yLive='polite' for saving/saved/error (announced); 'off' for idle.
+ * a11yLive='polite' for saving/saved/error (announced); 'off' for idle/unsaved.
  */
 export function deriveSaveStatusLabel(state) {}
 ```
@@ -522,7 +596,7 @@ The 9 illustration JSX modules (`events.jsx`, `members.jsx`, `news.jsx`, `posts.
 | File | Helpers covered | Edges |
 |---|---|---|
 | `src/components/AdminTopBar/breadcrumb.test.js` | `deriveBreadcrumb` | (a) list view single-segment; (b) edit view 3 segments; (c) `__new:true` edge; (d) item missing title falls back to listKey; (e) singleton schema (site/about) — 2 segments only; (f) unknown schemaKey returns just `[{label:'后台'}]` |
-| `src/components/AdminTopBar/saveStatus.test.js` | `deriveSaveStatusLabel` | (a) idle → hidden (label = '', a11yLive='off'); (b) unsaved → '● 未保存', a11yLive='off' (informational, not a status update); (c) saving → '保存中…', polite; (d) saved with prNumber → '✓ 已保存 · PR #N', polite; (e) saved missing prNumber → defensive label `'✓ 已保存'`; (f) error → '✗ 保存失败', polite; (g) unknown status → falls back to idle defaults |
+| `src/components/AdminTopBar/saveStatus.test.js` | `deriveSaveStatusLabel` | Per Designer §9 canonical strings: (a) idle → hidden (label = '', a11yLive='off'); (b) unsaved → '有未保存的修改', a11yLive='off'; (c) saving → '保存中…', polite; (d) saved → '✓ 已保存', polite (PR number is shown in the **toast**, not in the pill — Designer §9 row "Top bar: save status — saved" = `✓ 已保存`); (e) error → '✗ 保存失败', polite; (f) unknown status → falls back to idle defaults |
 
 ### 9.2 Tier B new components (≥80% branch + function)
 
@@ -576,7 +650,7 @@ grep -nE '"admin\\.' src/data/i18n.json || true
 
 ### 9.5 On-device verification (Reviewer)
 
-`npm run dev` → log in → switch theme via the public site's `<ThemeSwitcher>` → return to `/admin` → confirm admin chrome (sidebar active state, save button, top bar pill) all retint to the active band theme. Save a real edit → confirm the save-status pill animates `idle → saving → saved` and `已保存 · PR #N` link points at the right PR. Confirm every visible chrome string is Chinese (no English chrome leakage outside the whitelist).
+`npm run dev` → log in → switch theme via the public site's `<ThemeSwitcher>` → return to `/admin` → confirm admin chrome (sidebar active state, save button, top bar pill) all retint to the active band theme. Save a real edit → confirm the save-status pill animates `idle → unsaved → saving → ✓ 已保存` (auto-clears 3 s) and the bottom-right toast shows `查看 PR #N →` link pointing at the right PR. Confirm every visible chrome string is Chinese (no English chrome leakage outside the 6-token whitelist `BD!NA / PR / GitHub / Token / PAT / JSON`).
 
 ### 9.6 Coverage targets
 

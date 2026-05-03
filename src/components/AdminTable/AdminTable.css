@@ -1,0 +1,133 @@
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9375rem;
+}
+
+.admin-table-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-table thead {
+  background: color-mix(in srgb, var(--color-bg) 60%, var(--color-bg-card) 40%);
+  border-bottom: 2px solid var(--color-border);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-table thead {
+    background: var(--color-bg);
+  }
+}
+
+.admin-table th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  padding: 0.625rem 1rem;
+  text-align: left;
+}
+
+.admin-table .admin-table-actions-col {
+  width: 120px;
+  text-align: right;
+}
+
+.admin-table tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-table tbody tr:hover {
+    background: var(--color-bg);
+  }
+}
+
+.admin-table td {
+  padding: 0.75rem 1rem;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.admin-table-id-cell {
+  font-weight: 600;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.admin-table-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-table-btn {
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  margin-left: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border-radius: 4px;
+}
+
+.admin-table-btn-edit {
+  color: var(--color-primary);
+}
+
+.admin-table-btn-edit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-table-btn-edit:hover:not(:disabled) {
+    background: var(--color-bg);
+  }
+}
+
+.admin-table-btn-delete {
+  color: var(--color-text-muted);
+}
+
+.admin-table-btn-delete:hover:not(:disabled) {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-table-btn-delete:hover:not(:disabled) {
+    background: var(--color-bg);
+  }
+}
+
+.admin-table-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-table-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
