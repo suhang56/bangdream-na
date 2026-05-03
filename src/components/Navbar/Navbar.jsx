@@ -18,6 +18,16 @@ const NAV_LINKS = [
   { to: '/', key: 'nav.home', end: true },
   { to: '/news', key: 'nav.news' },
   { to: '/events', key: 'nav.events' },
+  {
+    to: 'https://docs.qq.com/sheet/DQ3JJdGN6anNyQVhV?tab=BB08J2',
+    key: 'nav.tickets',
+    external: true,
+  },
+  {
+    to: 'https://arisa114514.feishu.cn/wiki/QCNOwAGPxiAE1Ak39BIcRlGbnjh',
+    key: 'nav.guide',
+    external: true,
+  },
   { to: '/members', key: 'nav.members' },
   { to: '/about', key: 'nav.about' },
   { to: 'https://forum.bangdream.org', key: 'nav.forum', external: true },
