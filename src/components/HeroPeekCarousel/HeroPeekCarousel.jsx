@@ -11,7 +11,7 @@ import {
 import PostCard from '../PostCard/PostCard.jsx'
 import './HeroPeekCarousel.css'
 
-const DEFAULT_INTERVAL_MS = 4500
+const DEFAULT_INTERVAL_MS = 300
 
 function subscribe(cb) {
   return subscribeLanguage(cb)

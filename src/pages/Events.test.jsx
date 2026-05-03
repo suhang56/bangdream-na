@@ -10,6 +10,11 @@ describe('<Events /> — production empty path (real events.json)', () => {
     window.localStorage.clear()
     setLanguage('en')
     vi.resetModules()
+    vi.doMock('../data/events.json', () => ({ default: [] }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/events.json')
   })
 
   it('mounts with empty events.json and shows empty state', async () => {
