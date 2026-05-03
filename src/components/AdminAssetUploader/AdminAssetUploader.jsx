@@ -15,6 +15,8 @@ function deriveSlug({ slugBase, file }) {
   return slugify(file.name.replace(/\.[^.]+$/, ''))
 }
 
+const AUTH_EXPIRED_PATTERN = /unauthorized — token|forbidden — token/i
+
 export default function AdminAssetUploader({
   field,
   value,
@@ -24,6 +26,7 @@ export default function AdminAssetUploader({
   qrSuffix = false,
   onChange,
   onError,
+  onAuthExpired,
 }) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -58,6 +61,11 @@ export default function AdminAssetUploader({
       const sitePath = '/' + repoPath.replace(/^public\//, '')
       onChange?.(sitePath)
     } catch (e) {
+      if (typeof e?.message === 'string' && AUTH_EXPIRED_PATTERN.test(e.message)) {
+        setUploading(false)
+        onAuthExpired?.()
+        return
+      }
       onError?.(e.message)
       setLocalError(e.message)
     } finally {

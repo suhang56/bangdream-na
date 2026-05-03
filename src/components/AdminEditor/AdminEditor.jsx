@@ -15,6 +15,12 @@ import './AdminEditor.css'
 const BRANCH = 'content-updates'
 const BASE = 'main'
 
+const AUTH_EXPIRED_PATTERN = /unauthorized — token|forbidden — token/i
+
+function isAuthExpiredError(err) {
+  return !!err && typeof err.message === 'string' && AUTH_EXPIRED_PATTERN.test(err.message)
+}
+
 function emptyItem(schema) {
   const item = {}
   for (const f of schema.fields) {
@@ -52,7 +58,7 @@ function composeMessage(schema, action, item) {
   }
 }
 
-export default function AdminEditor({ schemaKey, token, onSavedPR }) {
+export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired }) {
   const schema = useMemo(() => getSchema(schemaKey), [schemaKey])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -78,11 +84,16 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
       })
       setData(r.content)
     } catch (e) {
+      if (isAuthExpiredError(e)) {
+        setLoading(false)
+        onAuthExpired?.()
+        return
+      }
       setLoadError(e.message)
     } finally {
       setLoading(false)
     }
-  }, [token, schema])
+  }, [token, schema, onAuthExpired])
 
   useEffect(() => {
     if (!schema || !token) return
@@ -132,6 +143,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
           errors={errors}
           token={token}
           branch={BRANCH}
+          onAuthExpired={onAuthExpired}
         />
         <div className="admin-editor-actions">
           <button
@@ -151,6 +163,11 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
                 setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
                 onSavedPR?.(r.pr)
               } catch (e) {
+                if (isAuthExpiredError(e)) {
+                  setSaving(false)
+                  onAuthExpired?.()
+                  return
+                }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
                 setSaveError(e.message)
               } finally {
@@ -190,6 +207,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
           errors={errors}
           token={token}
           branch={BRANCH}
+          onAuthExpired={onAuthExpired}
         />
         <div className="admin-editor-actions">
           <button
@@ -220,6 +238,11 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
                 setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
                 onSavedPR?.(r.pr)
               } catch (e) {
+                if (isAuthExpiredError(e)) {
+                  setSaving(false)
+                  onAuthExpired?.()
+                  return
+                }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
                 setSaveError(e.message)
               } finally {
@@ -258,6 +281,11 @@ export default function AdminEditor({ schemaKey, token, onSavedPR }) {
       setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
       onSavedPR?.(r.pr)
     } catch (e) {
+      if (isAuthExpiredError(e)) {
+        setSaving(false)
+        onAuthExpired?.()
+        return
+      }
       setSaveError(e.message)
     } finally {
       setSaving(false)

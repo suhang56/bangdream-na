@@ -166,4 +166,27 @@ describe('<AdminAssetUploader />', () => {
     await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
     expect(uploadSpy.mock.calls[0][1]).toBe('public/events/ev.webp')
   })
+
+  it('uploadAsset 401 calls onAuthExpired (S11) and skips onError + onChange', async () => {
+    uploadSpy.mockRejectedValueOnce(new Error('Unauthorized — token expired or revoked.'))
+    const onChange = vi.fn()
+    const onError = vi.fn()
+    const onAuthExpired = vi.fn()
+    render(
+      <AdminAssetUploader
+        field={FIELD}
+        value=""
+        token="ghp_X"
+        slugBase="ev"
+        onChange={onChange}
+        onError={onError}
+        onAuthExpired={onAuthExpired}
+      />,
+    )
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onError).not.toHaveBeenCalled()
+  })
 })

@@ -42,6 +42,14 @@ export default function Admin() {
     setActiveKey(DEFAULT_VIEW)
   }
 
+  function handleAuthExpired() {
+    try { window.sessionStorage.removeItem(TOKEN_STORAGE_KEY) } catch { /* ignore */ }
+    setToken('')
+    setOpenPR(null)
+    setActiveKey(DEFAULT_VIEW)
+    setExpiredBanner(true)
+  }
+
   function handleSelect(key) {
     if (listSchemaKeys().includes(key)) setActiveKey(key)
   }
@@ -67,6 +75,7 @@ export default function Admin() {
           schemaKey={activeKey}
           token={token}
           onSavedPR={handleSavedPR}
+          onAuthExpired={handleAuthExpired}
         />
       </main>
     </div>

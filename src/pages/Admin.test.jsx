@@ -46,4 +46,31 @@ describe('<Admin />', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_TEST')
   })
+
+  it('S11/S12: 401-style ghGet error auto-logs out, clears sessionStorage, shows expired banner', async () => {
+    githubApi.ghGet.mockReset().mockRejectedValue(new Error('Unauthorized — token expired or revoked.'))
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_stale')
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument())
+    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
+    expect(screen.getByText(/expired or was revoked/i)).toBeInTheDocument()
+  })
+
+  it('S12: 403 forbidden-token error also auto-logs out', async () => {
+    githubApi.ghGet.mockReset().mockRejectedValue(new Error('Forbidden — token lacks required scope.'))
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_weak')
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument())
+    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
+    expect(screen.getByText(/expired or was revoked/i)).toBeInTheDocument()
+  })
+
+  it('non-auth error keeps user logged in and shows error banner (not auto-logout)', async () => {
+    githubApi.ghGet.mockReset().mockRejectedValue(new Error('GitHub server error (502).'))
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_good')
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByText(/server error/i)).toBeInTheDocument())
+    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_good')
+    expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull()
+  })
 })

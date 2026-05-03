@@ -261,4 +261,47 @@ describe('<AdminEditor /> additional branches', () => {
     await waitFor(() => expect(screen.getByText('discord')).toBeInTheDocument())
     expect(screen.getByText('✓')).toBeInTheDocument()
   })
+
+  it('load 401 calls onAuthExpired (S11) and skips loadError', async () => {
+    githubApi.ghGet.mockReset().mockRejectedValue(new Error('Unauthorized — token expired or revoked.'))
+    const onAuthExpired = vi.fn()
+    render(<AdminEditor schemaKey="events" token="ghp_X" onAuthExpired={onAuthExpired} />)
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+  })
+
+  it('collection save 401 calls onAuthExpired', async () => {
+    githubApi.commitContentChange.mockRejectedValueOnce(new Error('Unauthorized — token expired or revoked.'))
+    const onAuthExpired = vi.fn()
+    render(<AdminEditor schemaKey="events" token="ghp_X" onAuthExpired={onAuthExpired} />)
+    await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+  })
+
+  it('delete 403-bad-credentials calls onAuthExpired (S12)', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    githubApi.commitContentChange.mockRejectedValueOnce(new Error('Forbidden — token lacks required scope.'))
+    const onAuthExpired = vi.fn()
+    render(<AdminEditor schemaKey="events" token="ghp_X" onAuthExpired={onAuthExpired} />)
+    await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: '✕' }))
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+  })
+
+  it('singleton save 401 calls onAuthExpired', async () => {
+    githubApi.ghGet.mockReset().mockResolvedValue({
+      content: { discordInvite: 'https://x.com', communityName: 'A', communityNameZh: 'B', communityNameJp: 'C' },
+      sha: 'sha',
+      raw: '{}',
+    })
+    githubApi.commitContentChange.mockRejectedValueOnce(new Error('Unauthorized — token expired or revoked.'))
+    const onAuthExpired = vi.fn()
+    render(<AdminEditor schemaKey="site" token="ghp_X" onAuthExpired={onAuthExpired} />)
+    await waitFor(() => expect(screen.getByLabelText(/Discord invite URL/)).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText(/Discord invite URL/), { target: { value: 'https://discord.gg/y' } })
+    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+  })
 })

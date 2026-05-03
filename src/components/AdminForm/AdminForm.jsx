@@ -23,7 +23,7 @@ function FieldHelp({ id, help, error }) {
   return null
 }
 
-export default function AdminForm({ schema, item, onChange, errors = [], token, branch }) {
+export default function AdminForm({ schema, item, onChange, errors = [], token, branch, onAuthExpired }) {
   function setField(key, val) {
     onChange?.({ ...item, [key]: val })
   }
@@ -46,13 +46,14 @@ export default function AdminForm({ schema, item, onChange, errors = [], token, 
           token={token}
           branch={branch}
           schema={schema}
+          onAuthExpired={onAuthExpired}
         />
       ))}
     </div>
   )
 }
 
-function FormField({ field, item, value, onChange, error, token, branch, schema }) {
+function FormField({ field, item, value, onChange, error, token, branch, schema, onAuthExpired }) {
   const id = useId()
   const helpId = useId()
 
@@ -177,6 +178,7 @@ function FormField({ field, item, value, onChange, error, token, branch, schema 
           qrSuffix={field.key === 'qrImage'}
           onChange={onChange}
           onError={() => {}}
+          onAuthExpired={onAuthExpired}
         />
       )
       break
