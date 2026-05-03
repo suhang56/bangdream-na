@@ -135,5 +135,95 @@ describe('<Navbar />', () => {
     expect(iconLink.getAttribute('rel')).toBe('noopener noreferrer')
     expect(iconLink.querySelector('svg')).not.toBeNull()
   })
+
+  // ---- M4-Navbar: drawer close-on-link-click bug fix ----
+  describe('drawer close-on-link-click (M4-Navbar bug fix)', () => {
+    it('same-route tap closes drawer (edge — pathname unchanged)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/news' })
+      const hamburger = container.querySelector('.navbar-hamburger')
+      await user.click(hamburger)
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      // Tap the SAME route the user is currently on — pathname unchanged,
+      // so the existing pathname-effect would NOT close. The onClick MUST.
+      const dialog = screen.getByRole('dialog')
+      const newsLink = Array.from(dialog.querySelectorAll('a')).find(
+        (a) => a.textContent === 'News',
+      )
+      expect(newsLink).toBeDefined()
+      await user.click(newsLink)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('different-route tap closes drawer (regression — still closes)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      const dialog = screen.getByRole('dialog')
+      const eventsLink = Array.from(dialog.querySelectorAll('a')).find(
+        (a) => a.textContent === 'Events',
+      )
+      await user.click(eventsLink)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('external target=_blank link tap closes drawer (edge — external link)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      const dialog = screen.getByRole('dialog')
+      // Forum is external (target=_blank); tapping it must close drawer
+      // even though no route change occurs.
+      const forumLink = Array.from(dialog.querySelectorAll('a')).find(
+        (a) =>
+          a.textContent === 'Forum' && a.getAttribute('target') === '_blank',
+      )
+      expect(forumLink).toBeDefined()
+      await user.click(forumLink)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('brand logo tap in drawer header closes drawer (edge — same-route home)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      const dialog = screen.getByRole('dialog')
+      // The drawer header's brand <Link to="/"> when on '/' = same route.
+      const drawerBrand = dialog.querySelector('.navbar-brand')
+      expect(drawerBrand).not.toBeNull()
+      await user.click(drawerBrand)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('close button still works (regression)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      await user.click(
+        screen.getByRole('button', { name: /close menu/i }),
+      )
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('backdrop click still works (regression)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      const backdrop = container.querySelector('.mobile-drawer-backdrop')
+      await user.click(backdrop)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('Escape key still closes drawer (regression)', async () => {
+      const user = userEvent.setup()
+      const { container } = renderWithProviders(<Navbar />, { route: '/' })
+      await user.click(container.querySelector('.navbar-hamburger'))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+  })
 })
 

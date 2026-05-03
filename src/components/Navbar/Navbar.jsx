@@ -184,7 +184,11 @@ export default function Navbar() {
         returnFocusRef={triggerRef}
       >
         <div className="mobile-drawer-header">
-          <Link to="/" className="navbar-brand">
+          <Link
+            to="/"
+            className="navbar-brand"
+            onClick={() => setDrawerOpen(false)}
+          >
             <img src="/logo.png" alt="" width="24" height="24" />
             <span className="navbar-brand-text" lang="zh">北美炸梦同好会</span>
           </Link>
@@ -206,6 +210,7 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mobile-drawer-link"
+                  onClick={() => setDrawerOpen(false)}
                 >
                   {t(link.key)}
                 </a>
@@ -217,6 +222,7 @@ export default function Navbar() {
                     'mobile-drawer-link' +
                     (isActive ? ' mobile-drawer-link--active' : '')
                   }
+                  onClick={() => setDrawerOpen(false)}
                 >
                   {t(link.key)}
                 </NavLink>
