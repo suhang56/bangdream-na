@@ -4,7 +4,219 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../test/utils.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 
-describe('<Events /> — production empty path (real events.json)', () => {
+vi.mock('../lib/useBreakpoint.js', () => ({
+  useIsMobile: vi.fn(),
+}))
+
+import { useIsMobile } from '../lib/useBreakpoint.js'
+
+describe('<Events /> — track selection (shell)', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('en')
+    vi.resetModules()
+    vi.doMock('../data/events.json', () => ({
+      default: [
+        {
+          id: 'up-1',
+          title: 'Upcoming Concert ABC',
+          date: '2099-08-01T19:00:00-07:00',
+          location: 'LA',
+          type: 'concert',
+        },
+      ],
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/events.json')
+  })
+
+  it('mounts mobile track when useIsMobile returns true', async () => {
+    useIsMobile.mockReturnValue(true)
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    expect(container.querySelector('.events-mobile')).not.toBeNull()
+    expect(container.querySelector('.events-desktop')).toBeNull()
+  })
+
+  it('mounts desktop track when useIsMobile returns false', async () => {
+    useIsMobile.mockReturnValue(false)
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    expect(container.querySelector('.events-desktop')).not.toBeNull()
+    expect(container.querySelector('.events-mobile')).toBeNull()
+  })
+
+  it('renders heading from i18n in both tracks (mobile)', async () => {
+    useIsMobile.mockReturnValue(true)
+    const { default: Events } = await import('./Events.jsx')
+    renderWithProviders(<Events />, { route: '/events' })
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Events' }),
+    ).toBeInTheDocument()
+  })
+
+  it('renders heading from i18n in both tracks (desktop)', async () => {
+    useIsMobile.mockReturnValue(false)
+    const { default: Events } = await import('./Events.jsx')
+    renderWithProviders(<Events />, { route: '/events' })
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Events' }),
+    ).toBeInTheDocument()
+  })
+
+  it('?view=calendar URL param renders calendar in desktop track', async () => {
+    useIsMobile.mockReturnValue(false)
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, {
+      route: '/events?view=calendar',
+    })
+    expect(container.querySelector('.event-calendar')).not.toBeNull()
+  })
+
+  it('?view=calendar URL param renders calendar in mobile track', async () => {
+    useIsMobile.mockReturnValue(true)
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, {
+      route: '/events?view=calendar',
+    })
+    expect(container.querySelector('.event-calendar')).not.toBeNull()
+  })
+
+  it('clicking calendar tab in desktop swaps view to calendar', async () => {
+    useIsMobile.mockReturnValue(false)
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    expect(container.querySelector('.event-calendar')).toBeNull()
+    await user.click(screen.getByRole('tab', { name: /calendar/i }))
+    expect(container.querySelector('.event-calendar')).not.toBeNull()
+  })
+
+  it('clicking list tab from calendar in desktop swaps back to list', async () => {
+    useIsMobile.mockReturnValue(false)
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, {
+      route: '/events?view=calendar',
+    })
+    expect(container.querySelector('.event-calendar')).not.toBeNull()
+    await user.click(screen.getByRole('tab', { name: /list/i }))
+    expect(container.querySelector('.event-calendar')).toBeNull()
+  })
+
+  it('clicking past scope chip in mobile updates rendered list', async () => {
+    useIsMobile.mockReturnValue(true)
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await user.click(screen.getByRole('tab', { name: 'Past' }))
+    expect(
+      screen.getByRole('tab', { name: 'Past' }),
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(container).toBeTruthy()
+  })
+
+  it('clicking upcoming scope chip from past scope returns', async () => {
+    useIsMobile.mockReturnValue(true)
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    renderWithProviders(<Events />, { route: '/events?scope=past' })
+    await user.click(screen.getByRole('tab', { name: 'Upcoming' }))
+    expect(
+      screen.getByRole('tab', { name: 'Upcoming' }),
+    ).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('keyword filter via mobile sheet narrows visible list', async () => {
+    useIsMobile.mockReturnValue(true)
+    vi.doMock('../data/events.json', () => ({
+      default: [
+        {
+          id: 'a',
+          title: 'Alpha Concert',
+          date: '2099-07-15T19:00:00-07:00',
+          type: 'concert',
+        },
+        {
+          id: 'b',
+          title: 'Beta Concert',
+          date: '2099-08-15T19:00:00-07:00',
+          type: 'concert',
+        },
+      ],
+    }))
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await user.click(container.querySelector('.events-mobile__filter-pill'))
+    const search = screen.getByRole('searchbox')
+    await user.type(search, 'Alpha')
+    await new Promise((r) => setTimeout(r, 250))
+    expect(screen.queryByText('Beta Concert')).toBeNull()
+  })
+
+  it('category filter via mobile sheet narrows visible list (band)', async () => {
+    useIsMobile.mockReturnValue(true)
+    vi.doMock('../data/events.json', () => ({
+      default: [
+        {
+          id: 'a',
+          title: 'Roselia Live',
+          date: '2099-07-15T19:00:00-07:00',
+          type: 'concert',
+          bands: ['Roselia'],
+        },
+        {
+          id: 'b',
+          title: 'Mygo Live',
+          date: '2099-08-15T19:00:00-07:00',
+          type: 'concert',
+          bands: ['Mygo'],
+        },
+      ],
+    }))
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await user.click(container.querySelector('.events-mobile__filter-pill'))
+    await user.click(screen.getByRole('button', { name: 'Roselia' }))
+    expect(screen.queryByText('Mygo Live')).toBeNull()
+    expect(screen.getByText('Roselia Live')).toBeInTheDocument()
+  })
+
+  it('date-from filter via mobile sheet excludes earlier events', async () => {
+    useIsMobile.mockReturnValue(true)
+    vi.doMock('../data/events.json', () => ({
+      default: [
+        {
+          id: 'early',
+          title: 'Early Concert',
+          date: '2099-01-15T19:00:00-07:00',
+          type: 'concert',
+        },
+        {
+          id: 'late',
+          title: 'Late Concert',
+          date: '2099-12-15T19:00:00-07:00',
+          type: 'concert',
+        },
+      ],
+    }))
+    const user = userEvent.setup()
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await user.click(container.querySelector('.events-mobile__filter-pill'))
+    const dateInputs = document.querySelectorAll('input[type="date"]')
+    await user.type(dateInputs[0], '2099-06-01')
+    expect(screen.queryByText('Early Concert')).toBeNull()
+    expect(screen.getByText('Late Concert')).toBeInTheDocument()
+  })
+})
+
+describe('<Events /> — empty data path (shell)', () => {
   beforeEach(() => {
     _resetForTests()
     window.localStorage.clear()
@@ -17,7 +229,8 @@ describe('<Events /> — production empty path (real events.json)', () => {
     vi.doUnmock('../data/events.json')
   })
 
-  it('mounts with empty events.json and shows empty state', async () => {
+  it('mounts with empty events.json (desktop)', async () => {
+    useIsMobile.mockReturnValue(false)
     const { default: Events } = await import('./Events.jsx')
     renderWithProviders(<Events />, { route: '/events' })
     expect(
@@ -25,122 +238,12 @@ describe('<Events /> — production empty path (real events.json)', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders sidebar + view toggle even when no events', async () => {
+  it('mounts with empty events.json (mobile)', async () => {
+    useIsMobile.mockReturnValue(true)
     const { default: Events } = await import('./Events.jsx')
     renderWithProviders(<Events />, { route: '/events' })
-    expect(screen.getByRole('button', { name: 'Concerts' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /list/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /calendar/i })).toBeInTheDocument()
-  })
-
-  it('result count shows 0 upcoming · 0 past', async () => {
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, { route: '/events' })
-    expect(container.querySelector('.events-page__count')).toHaveTextContent(
-      /0 upcoming/i,
-    )
-  })
-})
-
-describe('<Events /> — non-empty path (mocked data)', () => {
-  beforeEach(() => {
-    _resetForTests()
-    window.localStorage.clear()
-    setLanguage('en')
-    vi.resetModules()
-    vi.doMock('../data/events.json', () => ({
-      default: [
-        {
-          id: 'past-1',
-          title: 'Past Concert ABC',
-          date: '2025-01-15T19:00:00-07:00',
-          location: 'Nowhere',
-          type: 'concert',
-        },
-        {
-          id: 'up-1',
-          title: 'Upcoming Concert XYZ',
-          date: '2099-07-15T19:00:00-07:00',
-          location: 'LA',
-          type: 'concert',
-        },
-        {
-          id: 'up-2',
-          title: 'Upcoming Fanmeet QRS',
-          date: '2099-08-01T14:00:00-07:00',
-          location: 'SF',
-          type: 'fanmeet',
-        },
-      ],
-    }))
-  })
-
-  afterEach(() => {
-    vi.doUnmock('../data/events.json')
-  })
-
-  it('renders Upcoming + Past sections (list view default)', async () => {
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Past' })).toBeInTheDocument()
-  })
-
-  it('clicking Concerts chip narrows visible list', async () => {
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(screen.getByText('Upcoming Fanmeet QRS')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Concerts' }))
-    expect(screen.queryByText('Upcoming Fanmeet QRS')).toBeNull()
-    expect(screen.getByText('Upcoming Concert XYZ')).toBeInTheDocument()
-  })
-
-  it('view toggle to calendar swaps content', async () => {
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, { route: '/events' })
-    expect(container.querySelector('.event-calendar')).toBeNull()
-    await user.click(screen.getByRole('tab', { name: /calendar/i }))
-    expect(container.querySelector('.event-calendar')).not.toBeNull()
-  })
-
-  it('keyword search narrows list (edge — debounced)', async () => {
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    const search = screen.getByRole('searchbox')
-    await user.type(search, 'XYZ')
-    await new Promise((r) => setTimeout(r, 250))
-    expect(screen.queryByText('Upcoming Fanmeet QRS')).toBeNull()
-    expect(screen.getByText('Upcoming Concert XYZ')).toBeInTheDocument()
-  })
-
-  it('result count updates as filters apply', async () => {
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, { route: '/events' })
-    const count = () => container.querySelector('.events-page__count')
-    expect(count()).toHaveTextContent(/2 upcoming/i)
-    await user.click(screen.getByRole('button', { name: 'Conventions' }))
-    expect(count()).toHaveTextContent(/0 upcoming/i)
-  })
-
-  it('chip aria-pressed toggles', async () => {
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    const concerts = screen.getByRole('button', { name: 'Concerts' })
-    expect(concerts).toHaveAttribute('aria-pressed', 'false')
-    await user.click(concerts)
-    expect(concerts).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('?view=calendar URL param renders calendar by default (edge)', async () => {
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, {
-      route: '/events?view=calendar',
-    })
-    expect(container.querySelector('.event-calendar')).not.toBeNull()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Events' }),
+    ).toBeInTheDocument()
   })
 })

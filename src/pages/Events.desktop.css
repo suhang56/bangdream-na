@@ -1,4 +1,4 @@
-.events-page__view-toggle {
+.events-desktop__view-toggle {
   display: inline-flex;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -8,7 +8,7 @@
   margin-bottom: 1rem;
 }
 
-.events-page__view-btn {
+.events-desktop__view-btn {
   appearance: none;
   background: transparent;
   border: none;
@@ -22,38 +22,32 @@
   transition: background 150ms ease, color 150ms ease;
 }
 
-.events-page__view-btn:hover {
+.events-desktop__view-btn:hover {
   color: var(--color-text);
 }
 
-.events-page__view-btn--active {
+.events-desktop__view-btn--active {
   background: var(--color-primary);
   color: var(--color-on-primary, #fff);
 }
 
-.events-page__view-btn:focus-visible {
+.events-desktop__view-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.events-page__count {
+.events-desktop__count {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   margin: 0 0 1.25rem;
 }
 
-.events-page__layout {
+.events-desktop__layout {
   display: grid;
-  gap: 1.25rem;
+  grid-template-columns: 260px 1fr;
+  gap: 2.5rem;
 }
 
-.events-page__content {
+.events-desktop__content {
   min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .events-page__layout {
-    grid-template-columns: 260px 1fr;
-    gap: 2.5rem;
-  }
 }
