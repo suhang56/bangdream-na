@@ -111,4 +111,122 @@ describe('<EventCalendar />', () => {
     const labels = container.querySelectorAll('.event-calendar__weekday')
     expect(labels.length).toBe(7)
   })
+
+  describe('keyboard day navigation (roving tabindex)', () => {
+    function focusedCell(container) {
+      return container.querySelector('.event-calendar__cell[tabindex="0"]')
+    }
+
+    it('today cell starts as the roving-tabindex anchor', () => {
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      const focused = focusedCell(container)
+      expect(focused).not.toBeNull()
+      expect(focused.getAttribute('data-ymd')).toBe('2026-04-15')
+    })
+
+    it('ArrowRight moves focus +1 day', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{ArrowRight}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-16')
+    })
+
+    it('ArrowLeft moves focus −1 day', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{ArrowLeft}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-14')
+    })
+
+    it('ArrowUp moves focus −7 days', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{ArrowUp}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-08')
+    })
+
+    it('ArrowDown moves focus +7 days', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{ArrowDown}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-22')
+    })
+
+    it('Home jumps to first day of focused week (Sunday)', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      // 2026-04-15 is Wednesday → Sunday is 2026-04-12
+      focusedCell(container).focus()
+      await user.keyboard('{Home}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-12')
+    })
+
+    it('End jumps to last day of focused week (Saturday)', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{End}')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-18')
+    })
+
+    it('PageDown rolls focus to next month', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{PageDown}')
+      expect(screen.getByRole('heading', { level: 2, name: /may 2026/i })).toBeInTheDocument()
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-05-15')
+    })
+
+    it('PageUp rolls focus to previous month', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{PageUp}')
+      expect(screen.getByRole('heading', { level: 2, name: /march 2026/i })).toBeInTheDocument()
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-03-15')
+    })
+
+    it('ArrowLeft from day 1 crosses month boundary (edge)', async () => {
+      const apr1 = new Date(Date.UTC(2026, 3, 1))
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={[]} now={apr1} />)
+      focusedCell(container).focus()
+      await user.keyboard('{ArrowLeft}')
+      expect(screen.getByRole('heading', { level: 2, name: /march 2026/i })).toBeInTheDocument()
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-03-31')
+    })
+
+    it('Enter on focused day toggles expansion panel', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('{Enter}')
+      expect(container.querySelector('.event-calendar__expansion')).not.toBeNull()
+      await user.keyboard('{Enter}')
+      expect(container.querySelector('.event-calendar__expansion')).toBeNull()
+    })
+
+    it('PageDown from Jan 31 clamps to Feb 28 in non-leap year (edge)', async () => {
+      const jan31 = new Date(Date.UTC(2025, 0, 31))
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={[]} now={jan31} />)
+      focusedCell(container).focus()
+      await user.keyboard('{PageDown}')
+      expect(screen.getByRole('heading', { level: 2, name: /february 2025/i })).toBeInTheDocument()
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2025-02-28')
+    })
+
+    it('non-arrow keys are not consumed (edge)', async () => {
+      const user = userEvent.setup()
+      const { container } = render(<EventCalendar events={events} now={NOW} />)
+      focusedCell(container).focus()
+      await user.keyboard('a')
+      expect(focusedCell(container).getAttribute('data-ymd')).toBe('2026-04-15')
+    })
+  })
 })

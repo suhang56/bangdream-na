@@ -114,6 +114,66 @@ describe('<EventSidebar />', () => {
     ).toHaveAttribute('aria-pressed', 'false')
   })
 
+  it('toggling a band chip calls onChange immutably', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <EventSidebar
+        filterState={empty}
+        onChange={onChange}
+        availableBands={['Roselia', 'Mygo']}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Roselia' }))
+    const next = onChange.mock.calls[0][0]
+    expect(next.bands).toBeInstanceOf(Set)
+    expect(next.bands.has('Roselia')).toBe(true)
+    expect(empty.bands.size).toBe(0)
+  })
+
+  it('toggling band chip twice removes it (edge)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const state = { ...empty, bands: new Set(['Roselia']) }
+    render(
+      <EventSidebar
+        filterState={state}
+        onChange={onChange}
+        availableBands={['Roselia']}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Roselia' }))
+    const next = onChange.mock.calls.at(-1)[0]
+    expect(next.bands.has('Roselia')).toBe(false)
+  })
+
+  it('changing date-to input fires onChange with updated to', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<EventSidebar filterState={empty} onChange={onChange} />)
+    const dateInputs = document.querySelectorAll('input[type="date"]')
+    // dateInputs[0] = from, dateInputs[1] = to
+    await user.type(dateInputs[1], '2026-12-31')
+    const toCall = onChange.mock.calls.find(
+      (c) => c[0].to && c[0].to.length > 0,
+    )
+    expect(toCall).toBeTruthy()
+    expect(toCall[0].to).toContain('2026')
+  })
+
+  it('mobile-toggle button toggles aria-expanded', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <EventSidebar filterState={empty} onChange={() => {}} />,
+    )
+    const toggle = container.querySelector('.event-sidebar__toggle')
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('all-filters set does not crash (edge)', () => {
     const state = {
       types: new Set(['concert', 'fanmeet', 'con', 'online']),

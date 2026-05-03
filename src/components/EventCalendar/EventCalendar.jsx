@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
   buildMonthGrid,
   eventsForDay,
@@ -15,6 +15,7 @@ import EventCard from '../EventCard/EventCard.jsx'
 import './EventCalendar.css'
 
 const DOT_LIMIT = 4
+const MS_PER_DAY = 86_400_000
 
 const TYPE_DOT_CLASS = {
   concert: 'event-calendar__dot--concert',
@@ -40,11 +41,57 @@ function getSnapshot() {
   return getLanguage()
 }
 
+function pad(n) {
+  return n < 10 ? '0' + n : '' + n
+}
+
 function isoOf(d) {
-  const y = d.getUTCFullYear()
-  const m = (d.getUTCMonth() + 1).toString().padStart(2, '0')
-  const day = d.getUTCDate().toString().padStart(2, '0')
-  return y + '-' + m + '-' + day
+  return (
+    d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate())
+  )
+}
+
+function ymdToParts(ymd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
+  if (!m) return null
+  return {
+    year: Number(m[1]),
+    month: Number(m[2]) - 1,
+    day: Number(m[3]),
+  }
+}
+
+function shiftDays(ymd, deltaDays) {
+  const p = ymdToParts(ymd)
+  if (!p) return ymd
+  const ts = Date.UTC(p.year, p.month, p.day) + deltaDays * MS_PER_DAY
+  return isoOf(new Date(ts))
+}
+
+function shiftMonths(ymd, deltaMonths) {
+  const p = ymdToParts(ymd)
+  if (!p) return ymd
+  const target = new Date(Date.UTC(p.year, p.month + deltaMonths, 1))
+  // clamp day to last day of target month
+  const targetMonthLastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate()
+  const day = Math.min(p.day, targetMonthLastDay)
+  return isoOf(
+    new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), day)),
+  )
+}
+
+function startOfWeek(ymd) {
+  const p = ymdToParts(ymd)
+  if (!p) return ymd
+  const d = new Date(Date.UTC(p.year, p.month, p.day))
+  const dow = d.getUTCDay()
+  return shiftDays(ymd, -dow)
+}
+
+function endOfWeek(ymd) {
+  return shiftDays(startOfWeek(ymd), 6)
 }
 
 function monthLabel(year, month, lang) {
@@ -65,10 +112,13 @@ export default function EventCalendar({ events, now }) {
   const [year, setYear] = useState(stableNow.getUTCFullYear())
   const [month, setMonth] = useState(stableNow.getUTCMonth())
   const [selected, setSelected] = useState(null)
+  const todayYmd = isoOf(stableNow)
+  const [focusedYmd, setFocusedYmd] = useState(todayYmd)
+  const [pendingFocus, setPendingFocus] = useState(false)
+  const gridRef = useRef(null)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
 
-  const todayYmd = isoOf(stableNow)
   const monthEvents = useMemo(() => {
     if (!Array.isArray(events)) return []
     const startMs = Date.UTC(year, month, 1)
@@ -88,6 +138,53 @@ export default function EventCalendar({ events, now }) {
     setYear(out.year)
     setMonth(out.month)
     setSelected(null)
+  }
+
+  // Move focus into a roving day cell after focus state changes via keyboard
+  useEffect(() => {
+    if (!pendingFocus) return
+    if (!gridRef.current) return
+    const el = gridRef.current.querySelector(
+      '[data-ymd="' + focusedYmd + '"]',
+    )
+    if (el && typeof el.focus === 'function') el.focus()
+    setPendingFocus(false)
+  }, [pendingFocus, focusedYmd])
+
+  function focusYmd(nextYmd) {
+    const p = ymdToParts(nextYmd)
+    if (!p) return
+    setFocusedYmd(nextYmd)
+    if (p.year !== year || p.month !== month) {
+      setYear(p.year)
+      setMonth(p.month)
+    }
+    setPendingFocus(true)
+  }
+
+  function onGridKeyDown(e) {
+    const key = e.key
+    let nextYmd = null
+    let consumed = true
+    if (key === 'ArrowLeft') nextYmd = shiftDays(focusedYmd, -1)
+    else if (key === 'ArrowRight') nextYmd = shiftDays(focusedYmd, 1)
+    else if (key === 'ArrowUp') nextYmd = shiftDays(focusedYmd, -7)
+    else if (key === 'ArrowDown') nextYmd = shiftDays(focusedYmd, 7)
+    else if (key === 'Home') nextYmd = startOfWeek(focusedYmd)
+    else if (key === 'End') nextYmd = endOfWeek(focusedYmd)
+    else if (key === 'PageUp') nextYmd = shiftMonths(focusedYmd, -1)
+    else if (key === 'PageDown') nextYmd = shiftMonths(focusedYmd, 1)
+    else if (key === 'Enter' || key === ' ') {
+      e.preventDefault()
+      setSelected(focusedYmd === selected ? null : focusedYmd)
+      return
+    } else {
+      consumed = false
+    }
+    if (consumed && nextYmd) {
+      e.preventDefault()
+      focusYmd(nextYmd)
+    }
   }
 
   const selectedEvents = selected ? eventsForDay(events, selected) : []
@@ -119,9 +216,11 @@ export default function EventCalendar({ events, now }) {
         <p className="event-calendar__empty">{t('empty.calendarEmptyMonth')}</p>
       ) : null}
       <div
+        ref={gridRef}
         className="event-calendar__grid"
         role="grid"
         aria-label={monthLabelText}
+        onKeyDown={onGridKeyDown}
       >
         {WEEKDAY_KEYS.map((k) => (
           <div key={k} className="event-calendar__weekday" role="columnheader">
@@ -132,6 +231,7 @@ export default function EventCalendar({ events, now }) {
           const dayEvents = eventsForDay(events, cell.ymd)
           const isToday = cell.ymd === todayYmd
           const isSelected = cell.ymd === selected
+          const isFocused = cell.ymd === focusedYmd
           const cls =
             'event-calendar__cell' +
             (cell.isOffMonth ? ' event-calendar__cell--off' : '') +
@@ -145,7 +245,13 @@ export default function EventCalendar({ events, now }) {
               role="gridcell"
               aria-selected={isSelected}
               aria-label={cell.ymd + (dayEvents.length > 0 ? ', ' + dayEvents.length + ' events' : '')}
-              onClick={() => setSelected(isSelected ? null : cell.ymd)}
+              data-ymd={cell.ymd}
+              tabIndex={isFocused ? 0 : -1}
+              onClick={() => {
+                setFocusedYmd(cell.ymd)
+                setSelected(isSelected ? null : cell.ymd)
+              }}
+              onFocus={() => setFocusedYmd(cell.ymd)}
             >
               <span className="event-calendar__day">
                 {cell.date.getUTCDate()}
