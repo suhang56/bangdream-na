@@ -34,12 +34,6 @@
   margin: 0.5rem 0 0;
 }
 
-@media (max-width: 540px) {
-  .home-stat-tiles {
-    grid-template-columns: 1fr;
-  }
-}
-
 .home-section {
   max-width: 1200px;
   margin: 0 auto;
@@ -122,20 +116,4 @@
   font-size: 0.9375rem;
   border: 1px dashed var(--color-border);
   border-radius: 12px;
-}
-
-@media (max-width: 880px) {
-  .home-section__grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .home-section__grid {
-    grid-template-columns: 1fr;
-  }
-  .home-section__title {
-    flex-wrap: wrap;
-    gap: 0.375rem;
-  }
 }
