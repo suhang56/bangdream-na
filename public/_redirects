@@ -8,5 +8,17 @@ https://xn--6oqz0h9uah3nn8uf8kujz.org/*           https://bangdream.org/:splat  
 https://www.xn--6oqz0h9uah3nn8uf8kujz.org/*       https://bangdream.org/:splat  301
 https://www.bangdream.org/*                        https://bangdream.org/:splat  301
 
-# 2) SPA fallback — every non-asset path → index.html (200, NOT 301)
+# 2) Asset directories — explicit 404 on miss, NEVER fall through to SPA fallback.
+# Without this, deploy-race fetches (Discord/Telegram link previews, admin self-verify,
+# search crawlers hitting a URL while CF Pages is mid-build) get rewritten to index.html,
+# cached as text/html on edge under /news/<file>.png keys, then persist up to 24h per
+# /*.png cache-control rule. Returning a clean 404 keeps the cache uncontaminated; the
+# next fetch after deploy completes resolves to the real file.
+/news/*       /news/:splat       404
+/events/*     /events/:splat     404
+/posts/*      /posts/:splat      404
+/members/*    /members/:splat    404
+/assets/*     /assets/:splat     404
+
+# 3) SPA fallback — every other non-asset path → index.html (200, NOT 301)
 /*    /index.html   200

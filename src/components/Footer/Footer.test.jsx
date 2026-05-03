@@ -62,7 +62,7 @@ describe('<Footer />', () => {
     expect(links.length).toBe(5)
   })
 
-  it('Communities column shows 4 enabled platforms by default (forum disabled, wechat disabled)', () => {
+  it('Communities column shows 5 enabled platforms by default (wechat disabled)', () => {
     renderWithProviders(<Footer />, { route: '/' })
     const communitiesHeading = screen.getByRole('heading', {
       level: 3,
@@ -71,13 +71,13 @@ describe('<Footer />', () => {
     const column = communitiesHeading.closest('.footer-column')
     expect(column).not.toBeNull()
     const links = column.querySelectorAll('a')
-    expect(links.length).toBe(4)
+    expect(links.length).toBe(5)
     const labels = Array.from(links).map((a) => a.textContent)
     expect(labels).toContain('Discord')
     expect(labels).toContain('QQ')
     expect(labels).toContain('Xiaohongshu')
     expect(labels).toContain('X')
-    expect(labels).not.toContain('Forum')
+    expect(labels).toContain('Forum')
     expect(labels).not.toContain('WeChat')
   })
 
@@ -96,9 +96,9 @@ describe('<Footer />', () => {
     })
   })
 
-  it('Communities column hides forum link when forum.enabled === false (default ship)', () => {
+  it('Communities column shows forum link when forum.enabled === true (default ship)', () => {
     renderWithProviders(<Footer />, { route: '/' })
-    expect(screen.queryByRole('link', { name: 'Forum' })).toBeNull()
+    expect(screen.getAllByRole('link', { name: 'Forum' }).length).toBeGreaterThan(0)
   })
 
   it('LangToggle re-render: ZH switches headings', () => {

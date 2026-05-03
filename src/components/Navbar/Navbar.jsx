@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher.jsx'
 import LangToggle from '../LangToggle/LangToggle.jsx'
 import MobileDrawer from '../MobileDrawer/MobileDrawer.jsx'
+import { ForumSvg } from '../PlatformIcon/icons.jsx'
 import {
   getLanguage,
   subscribeLanguage,
@@ -135,6 +136,18 @@ export default function Navbar() {
             ))}
           </ul>
           <div className="navbar-tail">
+            {isForumEnabled(socialData) ? (
+              <a
+                href="https://forum.bangdream.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="navbar-forum-icon"
+                aria-label={t('nav.forum')}
+                title={t('nav.forum')}
+              >
+                <ForumSvg size={20} className="navbar-forum-icon__svg" />
+              </a>
+            ) : null}
             <LangToggle />
             <ThemeSwitcher />
           </div>
