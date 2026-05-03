@@ -1,0 +1,88 @@
+.platform-icon-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.platform-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  height: 36px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+  font-family: inherit;
+}
+
+.platform-icon-svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.platform-icon-label {
+  white-space: nowrap;
+}
+
+.platform-icon--active:hover,
+.platform-icon--qr:hover {
+  background: var(--color-bg-card);
+  border-color: var(--color-primary);
+}
+
+.platform-icon--active:focus-visible,
+.platform-icon--qr:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.platform-icon--disabled {
+  color: var(--color-text-muted);
+  border-style: dashed;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.platform-icon--disabled .platform-icon-svg {
+  opacity: 0.5;
+}
+
+.platform-icon-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  max-width: min(280px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.platform-icon-qr-img {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  background: #fff;
+  display: block;
+}
+
+.platform-icon-qr-caption {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}

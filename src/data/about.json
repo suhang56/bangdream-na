@@ -1,0 +1,12 @@
+{
+  "mission": "BanG Dream North America Chinese Community (北美炸梦同好会 / バンドリ北米華人コミュニティ) is a North America-based fan community for BanG Dream! and its bands. We organize meetups, share concert info, and welcome new fans across LA, NYC, SF, Seattle, Toronto, and beyond.",
+  "history": "Founded in 2024 by fans across LA, NYC, SF, Seattle, and Toronto. Started as a Discord group, grew into local cover bands and event meetups. The tri-lingual name reflects our core membership — Chinese-speaking BanG Dream fans living in North America who connect across English, Chinese, and Japanese.",
+  "faq": [
+    { "q": "How do I join?", "a": "Click the Discord button anywhere on the site to join our Discord server." },
+    { "q": "Do I need to speak Chinese or Japanese?", "a": "No — English, Chinese (中文), and Japanese (日本語) are all welcome. Most channels run in Chinese and English; Japanese is welcome too." },
+    { "q": "Are there local chapters?", "a": "Informal city groups exist within Discord. Check the #regions channels for LA, NYC, SF, Seattle, Toronto, and more." },
+    { "q": "Can I bring my cover band?", "a": "Yes! Cover bands are a core part of the community. Reach out in #cover-bands on Discord." }
+  ],
+  "coc": "Be respectful. No harassment, no doxxing, no NSFW content. English, Chinese, and Japanese all welcome — please be patient with translation. Idol/band-bashing toward other Bushiroad properties is not allowed. Concert spoilers should be tagged. Treat everyone the way you'd want to be treated at a concert.",
+  "joinInstructions": "1. Join Discord via the button anywhere on this site.\n\n2. Read #rules and the Code of Conduct.\n\n3. Introduce yourself in #intros — share your oshi band and your city.\n\n4. Pick city / oshi / interest roles in #role-picker.\n\n5. Watch #events for upcoming meetups in your area."
+}

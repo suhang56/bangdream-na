@@ -1,0 +1,37 @@
+[
+  {
+    "platform": "discord",
+    "label": "Discord",
+    "url": "https://discord.gg/WfMBKaW8Br",
+    "qrImage": null,
+    "enabled": true
+  },
+  {
+    "platform": "qq",
+    "label": "QQ群",
+    "url": "",
+    "qrImage": "/social/qq-qr.png",
+    "enabled": false
+  },
+  {
+    "platform": "xiaohongshu",
+    "label": "小红书",
+    "url": "",
+    "qrImage": null,
+    "enabled": false
+  },
+  {
+    "platform": "x",
+    "label": "X (Twitter)",
+    "url": "",
+    "qrImage": null,
+    "enabled": false
+  },
+  {
+    "platform": "wechat",
+    "label": "微信",
+    "url": "",
+    "qrImage": null,
+    "enabled": false
+  }
+]

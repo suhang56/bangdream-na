@@ -20,3 +20,24 @@ body {
   color: var(--color-text);
   transition: background 200ms ease, color 200ms ease;
 }
+
+/* Shared 16:9 thumbnail box (EventCard, NewsCard, HeroCarousel slide).
+   Reserves the box pre-image-load to eliminate layout shift.
+   MemberCard avatars stay 1:1 — do NOT apply this class to avatars. */
+.card-thumb-16-9 {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  background-color: var(--color-border);
+  display: block;
+}
+
+.card-thumb-16-9 > img,
+.card-thumb-16-9 > picture > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}

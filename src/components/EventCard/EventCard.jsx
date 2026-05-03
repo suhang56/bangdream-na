@@ -17,24 +17,12 @@
  * Schema details: see docs/p2-architecture.md §3.
  */
 import { parseEventDate } from '../../lib/events.js'
+import { formatDate } from '../../lib/dateFormat.js'
 import TypeBadge from '../TypeBadge/TypeBadge.jsx'
 import './EventCard.css'
 
-const ABS_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-})
 const REL_FORMATTER = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 const MS_PER_DAY = 86_400_000
-
-function formatAbsolute(date) {
-  if (!date) return ''
-  try {
-    return ABS_FORMATTER.format(date)
-  } catch {
-    return ''
-  }
-}
 
 function formatRelative(date, now) {
   if (!date) return null
@@ -52,7 +40,7 @@ function formatRelative(date, now) {
 export default function EventCard({ event, now = new Date() }) {
   const date = parseEventDate(event.date)
   const isPast = date !== null && date.getTime() < now.getTime()
-  const formatted = formatAbsolute(date)
+  const formatted = formatDate(event.date)
   const relative = !isPast ? formatRelative(date, now) : null
   const hasImage = typeof event.image === 'string' && event.image.length > 0
   const hasLinks = Array.isArray(event.links) && event.links.length > 0
@@ -65,7 +53,7 @@ export default function EventCard({ event, now = new Date() }) {
       aria-label={ariaLabel}
     >
       <div
-        className="event-card__image"
+        className="event-card__image card-thumb-16-9"
         aria-hidden="true"
         style={hasImage ? { backgroundImage: `url(${event.image})` } : undefined}
       />

@@ -1,0 +1,50 @@
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-card);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.lang-toggle-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  transition: background 150ms ease, color 150ms ease;
+  min-width: 2rem;
+}
+
+.lang-toggle-btn:hover {
+  color: var(--color-text);
+}
+
+.lang-toggle-btn--active {
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+}
+
+.lang-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.lang-toggle--inline {
+  width: 100%;
+  justify-content: center;
+}
+
+.lang-toggle--inline .lang-toggle-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+}

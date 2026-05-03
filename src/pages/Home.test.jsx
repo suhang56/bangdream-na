@@ -1,22 +1,35 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import Home from './Home.jsx'
 import site from '../data/site.json'
+import events from '../data/events.json'
+import members from '../data/members.json'
+import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
+import { groupEventsByTime } from '../lib/events.js'
 
 describe('<Home />', () => {
-  it('renders hero with community name from site.json', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('en')
+  })
+
+  it('renders Chinese H1 (canonical)', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
-      screen.getByRole('heading', { level: 1, name: site.communityName }),
+      screen.getByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
   })
 
-  it('renders Chinese community name when present', () => {
+  it('renders Japanese name', () => {
     renderWithProviders(<Home />, { route: '/' })
-    if (site.communityNameZh) {
-      expect(screen.getByText(site.communityNameZh)).toBeInTheDocument()
-    }
+    expect(screen.getByText(site.communityNameJp)).toBeInTheDocument()
+  })
+
+  it('renders English name as sister line', () => {
+    renderWithProviders(<Home />, { route: '/' })
+    expect(screen.getByText(site.communityName)).toBeInTheDocument()
   })
 
   it('renders tagline', () => {
@@ -24,20 +37,30 @@ describe('<Home />', () => {
     expect(screen.getByText(site.tagline)).toBeInTheDocument()
   })
 
-  it('renders Discord CTA in disabled state when site.discordInvite is empty', () => {
-    expect(site.discordInvite).toBe('')
+  it('renders active Discord CTA', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
-      screen.getByRole('button', { name: /discord coming soon/i }),
-    ).toBeDisabled()
+      screen.getByRole('link', { name: /join discord/i }),
+    ).toBeInTheDocument()
   })
 
-  it('renders Coming Soon section with Events + Members cards', () => {
-    renderWithProviders(<Home />, { route: '/' })
-    expect(
-      screen.getByRole('heading', { level: 2, name: /coming soon/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'Events' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'Members' })).toBeInTheDocument()
+  it('all three lang attributes (ja|zh|en) present', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    expect(container.querySelector('[lang="ja"]')).not.toBeNull()
+    expect(container.querySelector('[lang="zh"]')).not.toBeNull()
+    expect(container.querySelector('[lang="en"]')).not.toBeNull()
+  })
+
+  it('renders HeroCarousel when upcoming events exist, else stat tiles', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    const { upcoming } = groupEventsByTime(events, new Date())
+    if (upcoming.length > 0) {
+      expect(container.querySelector('.hero-carousel')).not.toBeNull()
+    } else {
+      expect(container.querySelector('.home-stat-tiles')).not.toBeNull()
+      const tiles = container.querySelectorAll('.home-stat-tile__num')
+      expect(tiles.length).toBe(2)
+      expect(tiles[0].textContent).toBe(String(members.length))
+    }
   })
 })
