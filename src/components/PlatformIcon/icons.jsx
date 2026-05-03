@@ -104,3 +104,25 @@ export function WechatSvg({ size = 18, className = 'platform-icon-svg' } = {}) {
   )
 }
 
+export function ForumSvg({ size = 18, className = 'platform-icon-svg' } = {}) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 4h14a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-9l-4 3.5V17H5a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 5 4z" />
+      <circle cx="8.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="10.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+

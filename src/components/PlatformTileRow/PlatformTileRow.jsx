@@ -6,6 +6,7 @@ import {
   XiaohongshuSvg,
   XSvg,
   WechatSvg,
+  ForumSvg,
 } from '../PlatformIcon/icons.jsx'
 import './PlatformTileRow.css'
 
@@ -23,6 +24,8 @@ function PlatformTileGlyph({ platform }) {
       return <XSvg {...TILE_ICON_PROPS} />
     case 'wechat':
       return <WechatSvg {...TILE_ICON_PROPS} />
+    case 'forum':
+      return <ForumSvg {...TILE_ICON_PROPS} />
     default:
       return null
   }

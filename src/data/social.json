@@ -33,5 +33,12 @@
     "url": "",
     "qrImage": null,
     "enabled": false
+  },
+  {
+    "platform": "forum",
+    "label": "论坛",
+    "url": "https://forum.bangdream.org",
+    "qrImage": null,
+    "enabled": false
   }
 ]

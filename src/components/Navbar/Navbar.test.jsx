@@ -113,4 +113,17 @@ describe('<Navbar />', () => {
     // first link re-renders to ZH
     expect(screen.getAllByRole('link', { name: '首页' }).length).toBeGreaterThan(0)
   })
+
+  it('forum nav entry hidden when social.json forum.enabled === false (default ship)', () => {
+    renderWithProviders(<Navbar />, { route: '/' })
+    expect(screen.queryByRole('link', { name: 'Forum' })).toBeNull()
+  })
+
+  it('forum nav entry hidden when social.json forum.enabled === false in mobile drawer too', async () => {
+    const user = userEvent.setup()
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    await user.click(container.querySelector('.navbar-hamburger'))
+    expect(screen.queryByRole('link', { name: 'Forum' })).toBeNull()
+  })
 })
+
