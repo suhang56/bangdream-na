@@ -3,10 +3,9 @@ import { screen } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import Home from './Home.jsx'
 import site from '../data/site.json'
-import events from '../data/events.json'
 import members from '../data/members.json'
-import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
-import { groupEventsByTime } from '../lib/events.js'
+import posts from '../data/posts.json'
+import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
 
 describe('<Home />', () => {
   beforeEach(() => {
@@ -32,16 +31,22 @@ describe('<Home />', () => {
     expect(screen.getByText(site.communityName)).toBeInTheDocument()
   })
 
-  it('renders tagline', () => {
+  it('renders tagline from i18n (en)', () => {
     renderWithProviders(<Home />, { route: '/' })
-    expect(screen.getByText(site.tagline)).toBeInTheDocument()
+    expect(screen.getByText(t('tagline'))).toBeInTheDocument()
   })
 
-  it('renders active Discord CTA', () => {
+  it('tagline switches with language (zh)', () => {
+    setLanguage('zh')
     renderWithProviders(<Home />, { route: '/' })
-    expect(
-      screen.getByRole('link', { name: /join discord/i }),
-    ).toBeInTheDocument()
+    expect(screen.getByText(t('tagline'))).toBeInTheDocument()
+  })
+
+  it('does NOT render Discord CTA inside Hero (P6 — moved to PlatformTileRow)', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    const hero = container.querySelector('.hero')
+    expect(hero).not.toBeNull()
+    expect(hero.querySelector('a[href*="discord"]')).toBeNull()
   })
 
   it('all three lang attributes (ja|zh|en) present', () => {
@@ -51,16 +56,22 @@ describe('<Home />', () => {
     expect(container.querySelector('[lang="en"]')).not.toBeNull()
   })
 
-  it('renders HeroCarousel when upcoming events exist, else stat tiles', () => {
+  it('renders HeroPeekCarousel when posts present, else stat tiles', () => {
     const { container } = renderWithProviders(<Home />, { route: '/' })
-    const { upcoming } = groupEventsByTime(events, new Date())
-    if (upcoming.length > 0) {
-      expect(container.querySelector('.hero-carousel')).not.toBeNull()
+    if (Array.isArray(posts) && posts.length > 0) {
+      expect(container.querySelector('.hero-peek')).not.toBeNull()
     } else {
       expect(container.querySelector('.home-stat-tiles')).not.toBeNull()
       const tiles = container.querySelectorAll('.home-stat-tile__num')
       expect(tiles.length).toBe(2)
       expect(tiles[0].textContent).toBe(String(members.length))
     }
+  })
+
+  it('renders PlatformTileRow at home bottom (always)', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    expect(container.querySelector('.platform-tile-row')).not.toBeNull()
+    // 5 platforms from social.json
+    expect(container.querySelectorAll('.platform-tile').length).toBe(5)
   })
 })

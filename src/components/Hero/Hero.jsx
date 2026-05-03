@@ -1,4 +1,3 @@
-import DiscordCTA from '../DiscordCTA/DiscordCTA.jsx'
 import './Hero.css'
 
 export default function Hero({
@@ -6,7 +5,6 @@ export default function Hero({
   communityNameZh,
   communityNameJp,
   tagline,
-  discordUrl,
   children,
 }) {
   const hasJp =
@@ -48,9 +46,6 @@ export default function Hero({
           </p>
         ) : null}
         {tagline ? <p className="hero-tagline">{tagline}</p> : null}
-        <div className="hero-cta">
-          <DiscordCTA url={discordUrl} size="lg" />
-        </div>
         {children ? <div className="hero-extra">{children}</div> : null}
       </div>
     </section>

@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import RoleBadge from './RoleBadge.jsx'
+import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
 
 describe('RoleBadge', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('en')
+  })
+
   it('renders "Organizer" for role=organizer', () => {
     const { container } = render(<RoleBadge role="organizer" />)
     expect(screen.getByText('Organizer')).toBeInTheDocument()
@@ -57,5 +64,18 @@ describe('RoleBadge', () => {
   it('exposes role label via aria-label for screen readers', () => {
     render(<RoleBadge role="organizer" />)
     expect(screen.getByLabelText('Role: Organizer')).toBeInTheDocument()
+  })
+
+  it('renders ZH role label and aria when uiLanguage=zh (edge — i18n)', () => {
+    setLanguage('zh')
+    render(<RoleBadge role="organizer" />)
+    expect(screen.getByText('组织者')).toBeInTheDocument()
+    expect(screen.getByLabelText('角色：组织者')).toBeInTheDocument()
+  })
+
+  it('cover-band-lead role resolves to ZH "翻唱乐队主理" (edge — kebab→key map)', () => {
+    setLanguage('zh')
+    render(<RoleBadge role="cover-band-lead" />)
+    expect(screen.getByText('翻唱乐队主理')).toBeInTheDocument()
   })
 })

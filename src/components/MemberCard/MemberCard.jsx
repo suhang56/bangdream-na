@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import RoleBadge from '../RoleBadge/RoleBadge.jsx'
 import { getInitials } from '../../lib/members.js'
+import { t } from '../../lib/uiLanguage.js'
 import './MemberCard.css'
 
 /**
@@ -48,14 +49,14 @@ function renderSocials(socials, name) {
   if (entries.length === 0) return null
 
   return (
-    <ul className="member-card-socials" aria-label="Social links">
+    <ul className="member-card-socials" aria-label={t('memberCard.socialLinks')}>
       {entries.map(([platform, value]) => {
         if (platform === 'discord') {
           return (
             <li key={platform}>
               <span
                 className="member-card-social member-card-social--discord"
-                title={`Discord username: ${value}`}
+                title={t('memberCard.discordUsername', { value })}
               >
                 Discord · {value}
               </span>

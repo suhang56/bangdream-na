@@ -11,32 +11,29 @@ describe('<Footer />', () => {
     setLanguage('en')
   })
 
-  it('renders 3 column headings', () => {
-    renderWithProviders(<Footer />, { route: '/' })
+  it('renders exactly 2 column headings (Quick Links + About & Legal)', () => {
+    const { container } = renderWithProviders(<Footer />, { route: '/' })
+    const headings = container.querySelectorAll('.footer-heading')
+    expect(headings.length).toBe(2)
     expect(
       screen.getByRole('heading', { level: 3, name: /quick links/i }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { level: 3, name: /communities/i }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { level: 3, name: /about & legal/i }),
     ).toBeInTheDocument()
   })
 
-  it('renders 5 platform pills (one per social.json entry)', () => {
-    const { container } = renderWithProviders(<Footer />, { route: '/' })
-    const pills = container.querySelectorAll(
-      '.footer-platform-list .platform-icon',
-    )
-    expect(pills.length).toBe(5)
+  it('does NOT render Communities heading (P6 — moved to PlatformTileRow)', () => {
+    renderWithProviders(<Footer />, { route: '/' })
+    expect(
+      screen.queryByRole('heading', { level: 3, name: /communities/i }),
+    ).toBeNull()
   })
 
-  it('Discord pill is the active link (enabled+url)', () => {
-    renderWithProviders(<Footer />, { route: '/' })
-    const link = screen.getByRole('link', { name: 'Discord' })
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  it('does NOT render PlatformIcon list inside footer (P6)', () => {
+    const { container } = renderWithProviders(<Footer />, { route: '/' })
+    expect(container.querySelector('.footer-platform-list')).toBeNull()
+    expect(container.querySelector('.platform-icon')).toBeNull()
   })
 
   it('renders tri-lingual brand line with lang attrs', () => {
@@ -68,7 +65,7 @@ describe('<Footer />', () => {
     expect(links.length).toBe(5)
   })
 
-  it('LangToggle re-render: ZH switches headings', async () => {
+  it('LangToggle re-render: ZH switches headings', () => {
     setLanguage('zh')
     renderWithProviders(<Footer />, { route: '/' })
     expect(

@@ -28,6 +28,61 @@ describe('<Navbar />', () => {
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument()
   })
 
+  it('renders Chinese brand wordmark in desktop header', () => {
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    const brandText = container.querySelector('.navbar-brand-text')
+    expect(brandText).not.toBeNull()
+    expect(brandText.textContent).toBe('北美炸梦同好会')
+    expect(brandText.getAttribute('lang')).toBe('zh')
+  })
+
+  it('renders Chinese brand wordmark in mobile drawer header when open', async () => {
+    const user = userEvent.setup()
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    await user.click(container.querySelector('.navbar-hamburger'))
+    const brandTexts = container.querySelectorAll('.navbar-brand-text')
+    expect(brandTexts.length).toBe(2)
+    brandTexts.forEach((node) => {
+      expect(node.textContent).toBe('北美炸梦同好会')
+      expect(node.getAttribute('lang')).toBe('zh')
+    })
+  })
+
+  it('Chinese brand wordmark stays Chinese after switching languages (locked brand)', () => {
+    setLanguage('zh')
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    expect(container.querySelector('.navbar-brand-text').textContent).toBe(
+      '北美炸梦同好会',
+    )
+    setLanguage('en')
+    expect(container.querySelector('.navbar-brand-text').textContent).toBe(
+      '北美炸梦同好会',
+    )
+  })
+
+  it('navbar-tail contains LangToggle + ThemeSwitcher only (no Discord pill)', () => {
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    const tail = container.querySelector('.navbar-tail')
+    expect(tail).not.toBeNull()
+    // 2 controls: LangToggle group + ThemeSwitcher group; no Discord link
+    const discordLinks = tail.querySelectorAll('a[href*="discord"]')
+    expect(discordLinks.length).toBe(0)
+    const discordButtons = Array.from(tail.querySelectorAll('button')).filter(
+      (b) => /discord/i.test(b.textContent || ''),
+    )
+    expect(discordButtons.length).toBe(0)
+  })
+
+  it('mobile drawer has no Discord CTA block', async () => {
+    const user = userEvent.setup()
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    await user.click(container.querySelector('.navbar-hamburger'))
+    expect(container.querySelector('.mobile-drawer-cta')).toBeNull()
+    const dialog = screen.getByRole('dialog')
+    const discordLinks = dialog.querySelectorAll('a[href*="discord"]')
+    expect(discordLinks.length).toBe(0)
+  })
+
   it('marks active route with --active modifier', () => {
     renderWithProviders(<Navbar />, { route: '/events' })
     const events = screen.getAllByRole('link', { name: 'Events' })

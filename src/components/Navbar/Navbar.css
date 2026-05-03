@@ -26,7 +26,7 @@
 .navbar-brand {
   font-weight: 800;
   font-size: 1.0625rem;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   color: var(--color-primary);
   text-decoration: none;
   display: inline-flex;
@@ -35,12 +35,25 @@
   flex-shrink: 0;
 }
 
+.navbar-brand-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .navbar-brand-text {
+    font-size: 1rem;
+  }
+}
+
 .navbar-logo {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   display: block;
   flex-shrink: 0;
+  background: white;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .navbar-brand:focus-visible {
@@ -203,12 +216,3 @@
   color: var(--color-text-muted);
 }
 
-.mobile-drawer-cta {
-  margin-top: auto;
-  display: flex;
-}
-
-.mobile-drawer-cta > * {
-  flex: 1;
-  justify-content: center;
-}

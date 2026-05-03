@@ -109,7 +109,7 @@ export default function Events() {
   return (
     <main className="events-page section">
       <div className="section-inner">
-        <h1 className="section-title">Events</h1>
+        <h1 className="section-title">{t('nav.events')}</h1>
         <div className="events-page__view-toggle" role="tablist">
           <button
             type="button"

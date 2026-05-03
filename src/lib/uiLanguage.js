@@ -127,6 +127,26 @@ export function t(key, params) {
   return value
 }
 
+/**
+ * Resolve a platform's display label in the active UI language.
+ * Looks up `platforms.{platform}` in i18n; returns the resolved value
+ * when the key exists, otherwise falls back to the provided string
+ * (typically `social.json` row's `label`).
+ *
+ * @param {string} platform — e.g. 'discord', 'qq', 'xiaohongshu', 'x', 'wechat'
+ * @param {string|null|undefined} fallbackLabel
+ * @returns {string}
+ */
+export function getPlatformLabel(platform, fallbackLabel) {
+  if (typeof platform !== 'string' || platform.length === 0) {
+    return typeof fallbackLabel === 'string' ? fallbackLabel : ''
+  }
+  const key = 'platforms.' + platform
+  const resolved = t(key)
+  if (resolved !== key) return resolved
+  return typeof fallbackLabel === 'string' ? fallbackLabel : ''
+}
+
 // test-only reset
 export function _resetForTests() {
   subscribers.clear()
