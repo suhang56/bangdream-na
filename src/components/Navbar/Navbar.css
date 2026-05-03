@@ -26,13 +26,23 @@
 .navbar-brand {
   font-weight: 800;
   font-size: 1.0625rem;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   color: var(--color-primary);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.navbar-brand-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .navbar-brand-text {
+    font-size: 1rem;
+  }
 }
 
 .navbar-logo {
@@ -206,12 +216,3 @@
   color: var(--color-text-muted);
 }
 
-.mobile-drawer-cta {
-  margin-top: auto;
-  display: flex;
-}
-
-.mobile-drawer-cta > * {
-  flex: 1;
-  justify-content: center;
-}

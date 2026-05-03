@@ -3,7 +3,6 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher.jsx'
 import LangToggle from '../LangToggle/LangToggle.jsx'
 import MobileDrawer from '../MobileDrawer/MobileDrawer.jsx'
-import DiscordCTA from '../DiscordCTA/DiscordCTA.jsx'
 import {
   getLanguage,
   subscribeLanguage,
@@ -100,7 +99,7 @@ export default function Navbar() {
               width="32"
               height="32"
             />
-            <span className="navbar-brand-text">BD!NA</span>
+            <span className="navbar-brand-text" lang="zh">北美炸梦同好会</span>
           </Link>
           <ul className="navbar-links">
             {NAV_LINKS.map((link) => (
@@ -120,7 +119,6 @@ export default function Navbar() {
           <div className="navbar-tail">
             <LangToggle />
             <ThemeSwitcher />
-            <DiscordCTA url={site.discordInvite} size="sm" />
           </div>
           <button
             ref={triggerRef}
@@ -146,7 +144,7 @@ export default function Navbar() {
         <div className="mobile-drawer-header">
           <Link to="/" className="navbar-brand">
             <img src="/logo.png" alt="" width="24" height="24" />
-            <span className="navbar-brand-text">BD!NA</span>
+            <span className="navbar-brand-text" lang="zh">北美炸梦同好会</span>
           </Link>
           <button
             type="button"
@@ -180,9 +178,6 @@ export default function Navbar() {
         </div>
         <div className="mobile-drawer-controls">
           <ThemeSwitcher />
-        </div>
-        <div className="mobile-drawer-cta">
-          <DiscordCTA url={site.discordInvite} size="md" />
         </div>
       </MobileDrawer>
     </>
