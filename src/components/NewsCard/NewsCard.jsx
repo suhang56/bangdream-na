@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { formatDate } from '../../lib/dateFormat.js'
 import './NewsCard.css'
 
@@ -12,25 +13,30 @@ function excerpt(body) {
   if (typeof body !== 'string') return ''
   const trimmed = body.trim()
   const firstPara = trimmed.split(/\n\n/)[0] || ''
-  return firstPara.length > 220 ? firstPara.slice(0, 217) + '…' : firstPara
+  const oneLine = firstPara.replace(/\n+/g, ' ')
+  return oneLine.length > 90 ? oneLine.slice(0, 87) + '…' : oneLine
 }
 
 export default function NewsCard({ news }) {
   const date = formatDate(news?.date)
   const hasImage =
     typeof news?.image === 'string' && news.image.length > 0
+  const rawCategory = news?.category ?? news?.tag
   const categoryKey = Object.prototype.hasOwnProperty.call(
     CATEGORY_LABELS,
-    news?.category,
+    rawCategory,
   )
-    ? news.category
+    ? rawCategory
     : 'announcement'
   const categoryLabel = CATEGORY_LABELS[categoryKey] ?? 'Announcement'
   const ariaLabel = date
     ? `${news?.title ?? ''}, ${date}`
     : news?.title ?? ''
 
-  return (
+  const id = typeof news?.id === 'string' ? news.id : ''
+  const linkable = id.length > 0
+
+  const cardInner = (
     <article className="news-card" aria-label={ariaLabel}>
       <div
         className="news-card__thumb card-thumb-16-9"
@@ -58,4 +64,13 @@ export default function NewsCard({ news }) {
       </div>
     </article>
   )
+
+  if (linkable) {
+    return (
+      <Link to={`/news/${encodeURIComponent(id)}`} className="news-card-link">
+        {cardInner}
+      </Link>
+    )
+  }
+  return cardInner
 }
