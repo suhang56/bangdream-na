@@ -72,9 +72,9 @@ describe('<Navbar /> with forum enabled (vi.mock social.json)', () => {
     expect(screen.getAllByRole('link', { name: '论坛' }).length).toBeGreaterThan(0)
   })
 
-  it('renders 6 desktop nav links when forum enabled (5 internal + 1 external)', () => {
+  it('renders 8 desktop nav links when forum enabled (5 internal + 3 external: tickets/guide/forum)', () => {
     const { container } = renderWithProviders(<Navbar />, { route: '/' })
     const desktopList = container.querySelector('.navbar-links')
-    expect(desktopList.querySelectorAll('a').length).toBe(6)
+    expect(desktopList.querySelectorAll('a').length).toBe(8)
   })
 })
