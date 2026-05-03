@@ -1,0 +1,190 @@
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.platform-tile-row {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.platform-tile-row__track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+  justify-content: center;
+}
+
+.platform-tile-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.platform-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  width: 280px;
+  height: 96px;
+  border-radius: 12px;
+  padding: 0 1.5rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: white;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    filter 200ms ease;
+}
+
+.platform-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.08);
+}
+
+.platform-tile:active {
+  transform: translateY(-2px);
+}
+
+.platform-tile:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 3px;
+}
+
+.platform-tile__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.platform-tile__label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* Brand colors — theme-agnostic, locked. */
+.platform-tile[data-platform="discord"] {
+  background: #5865f2;
+}
+
+.platform-tile[data-platform="qq"] {
+  background: #12b7f5;
+}
+
+.platform-tile[data-platform="xiaohongshu"] {
+  background: #fe2c55;
+}
+
+.platform-tile[data-platform="x"] {
+  background: #000000;
+}
+
+.platform-tile[data-platform="wechat"] {
+  background: #07c160;
+}
+
+/* Disabled state overrides brand color and uses theme-tinted muted look. */
+.platform-tile--disabled,
+.platform-tile--disabled[data-platform] {
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  filter: none;
+  opacity: 0.6;
+}
+
+.platform-tile--disabled:hover {
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.platform-tile--disabled .platform-tile__label {
+  color: var(--color-text-muted);
+  text-shadow: none;
+}
+
+.platform-tile__popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 0.75rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 220px;
+}
+
+.platform-tile__qr-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  border-radius: 6px;
+}
+
+.platform-tile__qr-caption {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 540px) {
+  .platform-tile-row__track {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .platform-tile {
+    width: 100%;
+    height: 64px;
+    padding: 0 1rem;
+  }
+
+  .platform-tile__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .platform-tile__label {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .platform-tile {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-tile,
+  .platform-tile:hover,
+  .platform-tile:active {
+    transform: none;
+    transition: none;
+  }
+}
