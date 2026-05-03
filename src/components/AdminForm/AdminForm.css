@@ -13,37 +13,40 @@
 
 .admin-form-label {
   font-size: 0.92rem;
-  color: var(--color-text, #222);
-  font-weight: 500;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .admin-form-required {
-  color: var(--color-error, #d33);
+  color: var(--color-error);
+  font-weight: 700;
 }
 
 .admin-form-input,
 .admin-form-textarea {
   width: 100%;
   padding: 0.55rem 0.75rem;
-  border: 1px solid var(--color-border, #d4d4d4);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #111);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-size: 0.95rem;
   font-family: inherit;
   box-sizing: border-box;
 }
 
 .admin-form-input.readonly {
-  background: var(--color-bg, #f5f5f5);
-  color: var(--color-text-muted, #666);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .admin-form-input:focus,
 .admin-form-textarea:focus {
-  outline: 2px solid var(--color-primary, #6366f1);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+  border-color: var(--color-primary);
 }
 
 .admin-form-textarea {
@@ -55,22 +58,23 @@
 .admin-form-checkbox {
   width: 1.05rem;
   height: 1.05rem;
+  accent-color: var(--color-primary);
 }
 
 .admin-form-help {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--color-text-muted, #777);
+  color: var(--color-text-muted);
 }
 
 .admin-form-error {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--color-error, #d33);
+  color: var(--color-error);
 }
 
 .admin-form-row.has-error .admin-form-input,
 .admin-form-row.has-error .admin-form-textarea {
-  border-color: var(--color-error, #d33);
+  border-color: var(--color-error);
   border-width: 2px;
 }

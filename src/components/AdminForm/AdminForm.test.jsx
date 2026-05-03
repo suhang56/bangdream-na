@@ -40,7 +40,7 @@ describe('<AdminForm />', () => {
   it('Edge 5: asset field passes uploadDir to AdminAssetUploader', () => {
     render(<AdminForm schema={eventsSchema} item={{ id: 'evt' }} onChange={() => {}} token="ghp_X" branch="content-updates" />)
     // The dropzone is a button labeled "Drag image..."
-    expect(screen.getByRole('button', { name: /drag image/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeInTheDocument()
   })
 
   it('Edge 6: complex object field renders AdminJsonFallback', () => {

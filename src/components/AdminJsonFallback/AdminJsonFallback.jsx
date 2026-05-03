@@ -84,10 +84,10 @@ export default function AdminJsonFallback({ field, value, onChange, error: exter
       />
       {showError ? (
         <p className="admin-json-status error" id={errorId} role="alert" aria-live="polite">
-          Invalid JSON: {showError}
+          ✗ 无效 JSON：{showError}
         </p>
       ) : valid ? (
-        <p className="admin-json-status ok">Valid JSON</p>
+        <p className="admin-json-status ok">✓ JSON 格式正确</p>
       ) : null}
       {field?.help && !showError && (
         <p className="admin-json-help" id={helpId}>{field.help}</p>
