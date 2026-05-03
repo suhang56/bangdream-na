@@ -191,11 +191,13 @@ describe('<EventsMobile />', () => {
   it('clicking filter pill opens the bottom-sheet', async () => {
     const user = userEvent.setup()
     const { container } = render(<EventsMobile {...baseProps} />)
-    expect(container.querySelector('.event-filter-sheet')).toBeNull()
+    const dialog = container.querySelector('dialog.event-filter-sheet')
+    expect(dialog).not.toBeNull()
+    expect(dialog.hasAttribute('open')).toBe(false)
     await user.click(
       container.querySelector('.events-mobile__filter-pill'),
     )
-    expect(container.querySelector('.event-filter-sheet')).not.toBeNull()
+    expect(dialog.hasAttribute('open')).toBe(true)
   })
 
   it('aria-selected reflects current view tab', () => {
