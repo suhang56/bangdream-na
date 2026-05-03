@@ -13,7 +13,7 @@ describe('<Admin />', () => {
 
   it('renders login screen when no token', () => {
     render(<Admin />)
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument()
   })
 
   it('renders shell + sidebar + default Events view when token present', async () => {
@@ -36,13 +36,13 @@ describe('<Admin />', () => {
     render(<Admin />)
     fireEvent.click(screen.getByRole('button', { name: '登出' }))
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument()
   })
 
   it('login then submit sets token and shows shell', async () => {
     render(<Admin />)
     fireEvent.change(screen.getByLabelText(/personal access token/i), { target: { value: 'ghp_TEST' } })
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    fireEvent.click(screen.getByRole('button', { name: '登录' }))
     await waitFor(() => expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_TEST')
   })
@@ -51,18 +51,18 @@ describe('<Admin />', () => {
     githubApi.ghGet.mockReset().mockRejectedValue(new Error('Unauthorized — token expired or revoked.'))
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_stale')
     render(<Admin />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByText(/expired or was revoked/i)).toBeInTheDocument()
+    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
   })
 
   it('S12: 403 forbidden-token error also auto-logs out', async () => {
     githubApi.ghGet.mockReset().mockRejectedValue(new Error('Forbidden — token lacks required scope.'))
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_weak')
     render(<Admin />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByText(/expired or was revoked/i)).toBeInTheDocument()
+    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
   })
 
   it('non-auth error keeps user logged in and shows error banner (not auto-logout)', async () => {
@@ -71,7 +71,7 @@ describe('<Admin />', () => {
     render(<Admin />)
     await waitFor(() => expect(screen.getByText(/server error/i)).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_good')
-    expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: '登录' })).toBeNull()
   })
 
   it('renders AdminTopBar with breadcrumb 后台 / 活动 by default', async () => {

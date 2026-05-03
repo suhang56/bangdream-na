@@ -13,14 +13,14 @@ export default function AdminLogin({ onLogin, expiredBanner }) {
     e?.preventDefault?.()
     const trimmed = value.trim()
     if (!trimmed) {
-      setError('Please paste a Personal Access Token.')
+      setError('请粘贴 Personal Access Token。')
       return
     }
     setError('')
     try {
       window.sessionStorage.setItem(TOKEN_STORAGE_KEY, trimmed)
     } catch {
-      setError('Could not store token in this browser.')
+      setError('无法在当前浏览器存储 Token。')
       return
     }
     setValue('')
@@ -30,12 +30,12 @@ export default function AdminLogin({ onLogin, expiredBanner }) {
   return (
     <div className="admin-login">
       <div className="admin-login-box">
-        <h1 className="admin-login-title">Admin Panel</h1>
-        <p className="admin-login-sub">Enter your GitHub Personal Access Token to continue.</p>
+        <h1 className="admin-login-title">BD!NA 后台</h1>
+        <p className="admin-login-sub">输入 GitHub Personal Access Token 以继续。</p>
 
         {expiredBanner && (
           <div className="admin-login-banner" role="status" aria-live="polite">
-            Your token expired or was revoked. Please sign in again.
+            Token 已过期或被撤销，请重新登录。
           </div>
         )}
 
@@ -63,23 +63,23 @@ export default function AdminLogin({ onLogin, expiredBanner }) {
             aria-describedby={error ? errorId : undefined}
             autoFocus
           />
-          <button type="submit" className="admin-login-button">Sign In</button>
+          <button type="submit" className="admin-login-button">登录</button>
         </form>
 
         <details className="admin-login-help">
-          <summary>How to get a token?</summary>
+          <summary>如何获取 Token？</summary>
           <ol>
-            <li>Go to GitHub &rarr; Settings &rarr; Developer settings.</li>
-            <li>Personal access tokens (classic) &rarr; Generate new token.</li>
+            <li>进入 GitHub &rarr; Settings &rarr; Developer settings。</li>
+            <li>选择 Personal access tokens (classic) &rarr; Generate new token。</li>
             <li>
-              Check the <strong>repo</strong> scope (full control of private repos &mdash;
-              required because the admin commits and uploads files).
+              勾选 <strong>repo</strong> 权限范围（完整的私有仓库访问权限 &mdash;
+              后台需要提交内容并上传文件）。
             </li>
-            <li>Copy the token (starts with <code>ghp_</code>) and paste it above.</li>
-            <li>The token is stored in your browser&apos;s sessionStorage and cleared when you close the tab.</li>
+            <li>复制 Token（以 <code>ghp_</code> 开头）并粘贴到上方输入框。</li>
+            <li>Token 仅保存在当前浏览器的 sessionStorage 中，关闭标签页后清除。</li>
             <li>
-              Rotate immediately if exposed: GitHub Settings &rarr; Developer settings &rarr; Tokens
-              &rarr; Delete.
+              如发现泄露请立即在 GitHub Settings &rarr; Developer settings &rarr; Tokens
+              中删除并重新生成。
             </li>
           </ol>
           <a
@@ -88,7 +88,7 @@ export default function AdminLogin({ onLogin, expiredBanner }) {
             rel="noopener noreferrer"
             className="admin-login-link"
           >
-            Open GitHub Tokens page
+            打开 GitHub Tokens 页面 ↗
           </a>
         </details>
       </div>

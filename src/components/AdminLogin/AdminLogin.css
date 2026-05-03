@@ -2,103 +2,125 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: var(--color-bg, #fafafa);
+  background: var(--color-bg);
   padding: 2rem 1rem;
+  color: var(--color-text);
 }
 
 .admin-login-box {
   width: 100%;
   max-width: 420px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e5e5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 2rem 1.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .admin-login-title {
   margin: 0 0 0.5rem;
   font-size: 1.5rem;
-  color: var(--color-text, #111);
+  color: var(--color-text);
+  font-weight: 700;
 }
 
 .admin-login-sub {
   margin: 0 0 1.25rem;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted);
   font-size: 0.95rem;
 }
 
 .admin-login-banner {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
-  border: 1px solid var(--color-primary, #6366f1);
-  color: var(--color-text, #111);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid var(--color-primary);
+  color: var(--color-text);
   padding: 0.6rem 0.8rem;
   border-radius: 8px;
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
 
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-login-banner {
+    background: var(--color-bg);
+  }
+}
+
 .admin-login-error {
-  background: color-mix(in srgb, #d33 10%, transparent);
-  border: 1px solid #d33;
-  color: #a00;
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
   padding: 0.6rem 0.8rem;
   border-radius: 8px;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-login-error {
+    background: var(--color-bg);
+  }
 }
 
 .admin-login-label {
   display: block;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-muted);
   margin-bottom: 0.4rem;
 }
 
 .admin-login-input {
   width: 100%;
   padding: 0.7rem 0.8rem;
-  border: 1px solid var(--color-border, #d4d4d4);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 1rem;
-  background: var(--color-bg, #fff);
-  color: var(--color-text, #111);
-  font-family: ui-monospace, "JetBrains Mono", monospace;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
   margin-bottom: 1rem;
   box-sizing: border-box;
 }
 
 .admin-login-input:focus {
-  outline: 2px solid var(--color-primary, #6366f1);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+  border-color: var(--color-primary);
 }
 
 .admin-login-button {
   width: 100%;
-  background: var(--color-primary, #6366f1);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
   border-radius: 8px;
   padding: 0.7rem 1rem;
   font-size: 1rem;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: inherit;
 }
 
 .admin-login-button:hover {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 85%, black);
+  filter: brightness(1.1);
+}
+
+.admin-login-button:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .admin-login-help {
   margin-top: 1.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-muted);
 }
 
 .admin-login-help summary {
   cursor: pointer;
   padding: 0.4rem 0;
   user-select: none;
+  color: var(--color-text);
 }
 
 .admin-login-help ol {
@@ -111,13 +133,27 @@
   margin-bottom: 0.35rem;
 }
 
+.admin-login-help code {
+  background: var(--color-bg);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  color: var(--color-text);
+}
+
 .admin-login-link {
   display: inline-block;
   margin-top: 0.5rem;
-  color: var(--color-primary, #6366f1);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
 .admin-login-link:hover {
   text-decoration: underline;
+}
+
+.admin-login-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

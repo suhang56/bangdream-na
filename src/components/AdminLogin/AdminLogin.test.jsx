@@ -21,10 +21,10 @@ describe('<AdminLogin />', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn()
     render(<AdminLogin onLogin={onLogin} />)
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    await user.click(screen.getByRole('button', { name: '登录' }))
     expect(onLogin).not.toHaveBeenCalled()
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByRole('alert')).toHaveTextContent(/paste/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/请粘贴/)
   })
 
   it('submit with token writes sessionStorage and calls onLogin', async () => {
@@ -32,7 +32,7 @@ describe('<AdminLogin />', () => {
     const onLogin = vi.fn()
     render(<AdminLogin onLogin={onLogin} />)
     await user.type(screen.getByLabelText(/personal access token/i), 'ghp_AAA111')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    await user.click(screen.getByRole('button', { name: '登录' }))
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_AAA111')
     expect(onLogin).toHaveBeenCalledWith('ghp_AAA111')
   })
@@ -48,12 +48,12 @@ describe('<AdminLogin />', () => {
 
   it('shows expired-token banner when prop is set', () => {
     render(<AdminLogin expiredBanner />)
-    expect(screen.getByText(/expired or was revoked/i)).toBeInTheDocument()
+    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
   })
 
   it('renders PAT scope guidance with target=_blank rel=noopener noreferrer (S16)', () => {
     render(<AdminLogin />)
-    const link = screen.getByRole('link', { name: /github tokens page/i })
+    const link = screen.getByRole('link', { name: /GitHub Tokens 页面/ })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
@@ -63,7 +63,7 @@ describe('<AdminLogin />', () => {
     const user = userEvent.setup()
     render(<AdminLogin onLogin={() => {}} />)
     await user.type(screen.getByLabelText(/personal access token/i), 'ghp_SECRET')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    await user.click(screen.getByRole('button', { name: '登录' }))
     for (const call of spy.mock.calls) {
       for (const arg of call) {
         if (typeof arg === 'string') expect(arg).not.toContain('ghp_SECRET')
@@ -76,8 +76,8 @@ describe('<AdminLogin />', () => {
     render(<AdminLogin onLogin={() => {}} />)
     const input = screen.getByLabelText(/personal access token/i)
     fireEvent.change(input, { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/paste/i)
+    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+    expect(screen.getByRole('alert')).toHaveTextContent(/请粘贴/)
   })
 
   it('clears input value after successful submit', async () => {
@@ -85,7 +85,7 @@ describe('<AdminLogin />', () => {
     render(<AdminLogin onLogin={() => {}} />)
     const input = screen.getByLabelText(/personal access token/i)
     await user.type(input, 'ghp_X')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    await user.click(screen.getByRole('button', { name: '登录' }))
     expect(input).toHaveValue('')
   })
 })
