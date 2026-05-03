@@ -15,10 +15,11 @@ function RoutesUnderTest() {
 }
 
 describe('placeholder pages', () => {
-  it('Events page renders title + at least one ComingSoonCard via /events route', () => {
+  it('Events page renders title + filter + empty state via /events route', () => {
     renderWithProviders(<RoutesUnderTest />, { route: '/events' })
     expect(screen.getByRole('heading', { level: 1, name: 'Events' })).toBeInTheDocument()
-    expect(screen.getAllByRole('article').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Concerts' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/no events/i)
   })
 
   it('Members page renders title + at least one ComingSoonCard via /members route', () => {
