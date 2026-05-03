@@ -1,0 +1,22 @@
+/*
+ * theme.css — base CSS that consumes theme custom properties.
+ * Theme tokens are set imperatively on :root by ThemeProvider.
+ * Components reference var(--color-*) only; never hard-coded hex.
+ */
+
+:root {
+  --color-bg: #0f0f19;
+  --color-bg-card: #16161f;
+  --color-text: #f1f1f3;
+  --color-text-muted: #8b8b9e;
+  --color-primary: #6366f1;
+  --color-accent: #a78bfa;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --gradient-hero: linear-gradient(135deg, #6366f1, #a78bfa);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 200ms ease, color 200ms ease;
+}
