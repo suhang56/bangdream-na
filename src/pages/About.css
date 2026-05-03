@@ -126,3 +126,31 @@
     margin-top: 2.5rem;
   }
 }
+
+
+/* Join CTA — pink pill button linking to QQ group */
+.about-join-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.25rem;
+  padding: 0.875rem 2rem;
+  background: #f31864;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.about-join-cta:hover {
+  background: #fe4988;
+  transform: translateY(-1px);
+}
+
+.about-join-cta:focus-visible {
+  outline: 2px solid #f31864;
+  outline-offset: 3px;
+}

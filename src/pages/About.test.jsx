@@ -31,11 +31,11 @@ describe('<About />', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders Mission/History/Join sections', () => {
+  it('renders Mission/Join sections (history removed)', () => {
     renderWithProviders(<About />, { route: '/about' })
     expect(screen.getByRole('heading', { level: 2, name: /mission/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: /history/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /how to join/i })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2, name: /history/i })).toBeNull()
   })
 
   it('renders FAQ accordion', () => {
@@ -62,8 +62,8 @@ describe('<About />', () => {
     expect(container.querySelector('#faq')).not.toBeNull()
     expect(container.querySelector('#coc')).not.toBeNull()
     expect(container.querySelector('#disclaimer')).not.toBeNull()
-    expect(container.querySelector('#history')).not.toBeNull()
     expect(container.querySelector('#join')).not.toBeNull()
+    expect(container.querySelector('#history')).toBeNull()
   })
 
   it('JP/ZH/EN spans carry lang attributes', () => {
