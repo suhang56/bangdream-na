@@ -1,6 +1,6 @@
 # `bangdream-na` Phase 8 — Architecture Specification (Admin redesign)
 
-**Status**: Architect deliverable for Task #2 in team `bangdream-na-phase8`. Pairs with `docs/p8-design.md` (Designer, Task #1, parallel). Hands off to Developer (Task #3).
+**Status**: Architect deliverable for Task #2 in team `bangdream-na-phase8`. **Revision 2** (2026-05-03) — re-aligned with `docs/p8-design.md` after Designer's spec landed. Drops 13 files, drops 2 iteration steps (P8.1 theme tokens + the SVG-illustration assumption inside P8.3), reduces total deliverables from 13 to 12 (P8.2 → P8.13 numbering preserved; P8.1 explicitly DROPPED so Developer can detect if they shipped it before this revision). Pairs with `docs/p8-design.md` §1-§9; both are authoritative.
 
 **Scope**: Visual redesign + theme integration + Chinese localization of the existing `/admin` panel shipped in Phase 4. P8 is a **layered overlay** on P4 — schemas, GitHub API client, save flow, branch+PR semantics, security model are all unchanged. What P8 changes:
 
@@ -784,6 +784,8 @@ Original P8.1 added `--color-error`/`--color-error-on` tokens to all 8 themes. D
 | New `--color-success` token | **Not added** | Reuse `--color-primary` tinted with 10% mix for "success" surfaces; one less token. |
 | `--color-surface` orphan reference | **Replace with `--color-bg-card`** | `--color-surface` was never defined; refs were always resolving to fallback `#fff`. |
 | `validateItem` return shape | **Unchanged: `{ fieldKey, message }`** | Chinese strings stored inline at validateItem call site; no `messageKey` indirection needed without bilingual support. |
+| Theme tokens vs local error hex | **Local `--admin-error: #e53e3e` in `Admin.css :root` (Designer §1 override)** | Don't pollute 8 themes with a new contract for one operator-visible UI signal; one local declaration line is the single allowed exception in the §9.4-A scan. |
+| Save status state count | **5 states (Designer §2.3)**: `idle` (hidden) / `unsaved` / `saving` / `saved` (3s auto-clear) / `error` | Adds `unsaved` (mid-edit dirty indicator) + auto-clear timer; both responsibilities on `Admin.jsx`. |
 | Schema field keys (`id`, `title`, `date` …) — translate column headers? | **Optional override via `column.label`** | AdminTable accepts a Chinese label per column; AdminEditor passes a small inline `COLUMN_LABEL_ZH` map. Where no label is provided, the field key shows (acceptable for operator-visible technical column headers; see §3.4). |
 | Enum option display labels | **Per-schema inline lookup table** in AdminForm | ~25 enum-label pairs across all schemas; mechanical, no abstraction. |
 | English-leakage gate | **Whitelist-based DOM scan** | Replaces P4's i18n switch test; whitelist documents deliberate English exceptions (`GitHub`, `PAT`, schema keys, enum tokens). |
