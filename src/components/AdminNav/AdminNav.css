@@ -1,102 +1,97 @@
 .admin-nav {
-  width: 240px;
-  flex: 0 0 240px;
-  background: var(--color-surface, #fff);
-  border-right: 1px solid var(--color-border, #e5e5e5);
+  width: var(--admin-sidebar-width, 260px);
+  flex: 0 0 var(--admin-sidebar-width, 260px);
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 1.25rem 0.75rem;
+  padding: 0.5rem 0.5rem 1rem;
   box-sizing: border-box;
-}
-
-.admin-nav-logo {
-  font-weight: 600;
-  font-size: 1.1rem;
-  padding: 0 0.5rem 1rem;
-  color: var(--color-text, #111);
-  border-bottom: 1px solid var(--color-border, #eee);
-  margin-bottom: 0.5rem;
-}
-
-.admin-nav-logo small {
-  display: block;
-  font-weight: 400;
-  font-size: 0.75rem;
-  color: var(--color-text-muted, #888);
-  margin-top: 0.15rem;
+  overflow-y: auto;
 }
 
 .admin-nav nav {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  margin-bottom: 1rem;
+  margin-top: 0.4rem;
 }
 
 .admin-nav nav button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   text-align: left;
   background: transparent;
   border: none;
   border-left: 3px solid transparent;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.95rem;
-  color: var(--color-text, #222);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
   cursor: pointer;
-  border-radius: 4px 0 0 4px;
+  border-radius: 0 4px 4px 0;
   font-family: inherit;
+  width: 100%;
+  min-height: 44px;
 }
 
 .admin-nav nav button:hover {
-  background: var(--color-bg, #f3f3f3);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  color: var(--color-text);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-nav nav button:hover {
+    background: var(--color-bg-card);
+  }
 }
 
 .admin-nav nav button.active {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
-  color: var(--color-text, #111);
-  border-left-color: var(--color-primary, #6366f1);
-  font-weight: 500;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-text);
+  border-left-color: var(--color-primary);
+  font-weight: 600;
 }
 
-.admin-nav-utilities {
-  border-top: 1px solid var(--color-border, #eee);
-  padding-top: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.85rem;
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-nav nav button.active {
+    background: var(--color-bg-card);
+  }
 }
 
-.admin-nav-utilities a {
-  padding: 0.35rem 0.75rem;
-  color: var(--color-primary, #6366f1);
-  text-decoration: none;
+.admin-nav nav button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
-.admin-nav-utilities a:hover {
-  text-decoration: underline;
+.admin-nav-glyph {
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  flex: 0 0 auto;
+  opacity: 0.7;
 }
 
-.admin-nav-utilities .disabled {
-  padding: 0.35rem 0.75rem;
-  color: var(--color-text-muted, #999);
-  cursor: not-allowed;
+.admin-nav nav button.active .admin-nav-glyph {
+  opacity: 1;
 }
 
-.admin-nav-logout {
-  margin-top: auto;
-  background: transparent;
-  border: 1px solid var(--color-border, #ddd);
-  color: var(--color-text, #333);
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.9rem;
+.admin-nav-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.admin-nav-logout:hover {
-  background: var(--color-bg, #f3f3f3);
+@media (max-width: 768px) {
+  .admin-nav {
+    width: 100%;
+    flex: 0 0 auto;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
 }

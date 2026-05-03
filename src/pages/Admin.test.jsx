@@ -34,7 +34,7 @@ describe('<Admin />', () => {
   it('logout clears token and returns to login', () => {
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
     render(<Admin />)
-    fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
+    fireEvent.click(screen.getByRole('button', { name: '登出' }))
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
@@ -43,7 +43,7 @@ describe('<Admin />', () => {
     render(<Admin />)
     fireEvent.change(screen.getByLabelText(/personal access token/i), { target: { value: 'ghp_TEST' } })
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    await waitFor(() => expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_TEST')
   })
 
@@ -72,5 +72,32 @@ describe('<Admin />', () => {
     await waitFor(() => expect(screen.getByText(/server error/i)).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_good')
     expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull()
+  })
+
+  it('renders AdminTopBar with breadcrumb 后台 / 活动 by default', async () => {
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
+    render(<Admin />)
+    expect(screen.getByLabelText('后台导航路径')).toBeInTheDocument()
+    expect(screen.getByText('查看网站 ↗')).toBeInTheDocument()
+    expect(screen.getByText('无待合并 PR')).toBeInTheDocument()
+  })
+
+  it('save flow surfaces save-status pill in TopBar', async () => {
+    githubApi.ghGet.mockReset().mockResolvedValue({
+      content: [{ id: 'a-1', title: 'Existing', date: '2025-09-15T19:00:00-07:00', type: 'concert', location: { city: 'LA' } }],
+      sha: 'sha1',
+      raw: '[]',
+    })
+    vi.spyOn(githubApi, 'commitContentChange').mockResolvedValue({
+      pr: { number: 12, htmlUrl: 'https://x/pull/12', created: false },
+      commit: { sha: 'c' },
+    })
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByText('Existing')).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
+    fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByRole('button', { name: /保存（提交 PR）/ }))
+    await waitFor(() => expect(screen.getByText(/已保存 · PR #12/)).toBeInTheDocument())
   })
 })
