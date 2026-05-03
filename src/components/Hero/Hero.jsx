@@ -6,6 +6,13 @@ export default function Hero({ communityName, communityNameZh, tagline, discordU
     <section className="hero">
       <div className="hero-bg" aria-hidden="true" />
       <div className="hero-content">
+        <img
+          src="/logo.png"
+          alt="北美邦 — BanG Dream North America fan community emblem"
+          className="hero-logo"
+          width="200"
+          height="200"
+        />
         <h1 className="hero-name">{communityName}</h1>
         {communityNameZh ? (
           <p className="hero-name-zh" lang="zh">
