@@ -70,8 +70,12 @@ export default function Navbar() {
   const location = useLocation()
 
   // close drawer on route change
+  const lastPath = useRef(location.pathname)
   useEffect(() => {
-    setDrawerOpen(false)
+    if (lastPath.current !== location.pathname) {
+      lastPath.current = location.pathname
+      setDrawerOpen(false)
+    }
   }, [location.pathname])
 
   const brandLabel =

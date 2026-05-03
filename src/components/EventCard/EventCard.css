@@ -25,10 +25,6 @@
 }
 
 .event-card__image {
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
-  overflow: hidden;
-  background-color: var(--color-border);
   background-image: var(--gradient-hero);
   background-size: cover;
   background-position: center;

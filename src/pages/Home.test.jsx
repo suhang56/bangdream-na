@@ -5,18 +5,21 @@ import Home from './Home.jsx'
 import site from '../data/site.json'
 
 describe('<Home />', () => {
-  it('renders hero with community name from site.json', () => {
+  it('renders hero with Chinese H1 (canonical) when communityNameZh present', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
-      screen.getByRole('heading', { level: 1, name: site.communityName }),
+      screen.getByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
   })
 
-  it('renders Chinese community name when present', () => {
+  it('renders Japanese name when present', () => {
     renderWithProviders(<Home />, { route: '/' })
-    if (site.communityNameZh) {
-      expect(screen.getByText(site.communityNameZh)).toBeInTheDocument()
-    }
+    expect(screen.getByText(site.communityNameJp)).toBeInTheDocument()
+  })
+
+  it('renders English name as sister line', () => {
+    renderWithProviders(<Home />, { route: '/' })
+    expect(screen.getByText(site.communityName)).toBeInTheDocument()
   })
 
   it('renders tagline', () => {
@@ -24,20 +27,17 @@ describe('<Home />', () => {
     expect(screen.getByText(site.tagline)).toBeInTheDocument()
   })
 
-  it('renders Discord CTA in disabled state when site.discordInvite is empty', () => {
-    expect(site.discordInvite).toBe('')
+  it('renders active Discord CTA when invite present', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
-      screen.getByRole('button', { name: /discord coming soon/i }),
-    ).toBeDisabled()
+      screen.getByRole('link', { name: /join discord/i }),
+    ).toBeInTheDocument()
   })
 
-  it('renders Coming Soon section with Events + Members cards', () => {
-    renderWithProviders(<Home />, { route: '/' })
-    expect(
-      screen.getByRole('heading', { level: 2, name: /coming soon/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'Events' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 3, name: 'Members' })).toBeInTheDocument()
+  it('all three lang attributes present (lang=ja|zh|en)', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    expect(container.querySelector('[lang="ja"]')).not.toBeNull()
+    expect(container.querySelector('[lang="zh"]')).not.toBeNull()
+    expect(container.querySelector('[lang="en"]')).not.toBeNull()
   })
 })

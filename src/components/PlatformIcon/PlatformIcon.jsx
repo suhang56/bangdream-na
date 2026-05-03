@@ -124,7 +124,6 @@ export default function PlatformIcon({
   const hasQr = typeof qrImage === 'string' && qrImage.length > 0
   const isActive = enabled === true && hasUrl
   const isQr = enabled === true && !hasUrl && hasQr
-  const isDisabled = !isActive && !isQr
 
   useEffect(() => {
     if (!open) return undefined

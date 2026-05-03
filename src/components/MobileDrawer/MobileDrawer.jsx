@@ -24,6 +24,7 @@ export default function MobileDrawer({
     if (!open) return undefined
 
     const previouslyFocused = document.activeElement
+    const returnTarget = returnFocusRef?.current ?? null
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
@@ -60,7 +61,7 @@ export default function MobileDrawer({
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prevOverflow
-      const target = returnFocusRef?.current || previouslyFocused
+      const target = returnTarget || previouslyFocused
       if (target && typeof target.focus === 'function') target.focus()
     }
   }, [open, onClose, returnFocusRef])

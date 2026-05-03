@@ -19,6 +19,7 @@
 
 .hero-content {
   max-width: 720px;
+  width: 100%;
   text-align: center;
   position: relative;
   z-index: 1;
@@ -40,21 +41,42 @@
   filter: drop-shadow(0 0 36px color-mix(in srgb, var(--color-primary) 60%, transparent));
 }
 
-.hero-name {
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  font-weight: 800;
-  letter-spacing: -1.5px;
-  line-height: 1.1;
-  margin: 0 0 0.75rem;
-  color: var(--color-text);
+.hero-name-jp {
+  font-size: clamp(0.875rem, 1.6vw, 1.125rem);
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  margin: 0 0 0.625rem;
 }
 
 .hero-name-zh {
-  font-size: clamp(1rem, 2vw, 1.25rem);
-  font-weight: 400;
-  color: var(--color-text-muted);
-  margin: 0 0 1.25rem;
-  letter-spacing: 0.1em;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.hero-name-en {
+  font-size: clamp(0.9375rem, 2vw, 1.25rem);
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.3;
+  margin: 0.875rem 0 0;
+  padding-top: 0.0625em;
+}
+
+.hero-name-en--solo {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+}
+
+.hero-name-fallback {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  margin: 0;
 }
 
 .hero-tagline {
@@ -62,12 +84,17 @@
   font-weight: 400;
   line-height: 1.5;
   color: var(--color-text-muted);
-  margin: 0 auto 2.5rem;
+  margin: 1.5rem auto 2rem;
   max-width: 560px;
 }
 
 .hero-cta {
   margin-top: 2rem;
+}
+
+.hero-extra {
+  margin-top: 3rem;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -79,5 +106,13 @@
 @media (max-width: 320px) {
   .hero-bg {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-logo,
+  .hero-logo:hover {
+    transform: none;
+    transition: filter 200ms ease;
   }
 }
