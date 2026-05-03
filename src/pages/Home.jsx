@@ -32,15 +32,18 @@ export default function Home() {
 
   return (
     <main>
+      {hasPosts ? (
+        <section className="home-carousel-section">
+          <HeroPeekCarousel posts={featured} />
+        </section>
+      ) : null}
       <Hero
         communityName={site.communityName}
         communityNameZh={site.communityNameZh}
         communityNameJp={site.communityNameJp}
         tagline={t('tagline')}
       >
-        {hasPosts ? (
-          <HeroPeekCarousel posts={featured} />
-        ) : (
+        {hasPosts ? null : (
           <div className="home-stat-tiles">
             <div className="home-stat-tile">
               <p className="home-stat-tile__num">
