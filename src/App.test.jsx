@@ -75,4 +75,20 @@ describe('<App />', () => {
       screen.getByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
   })
+
+  it('renders Admin without public Navbar/Footer when pathname is /admin', () => {
+    window.sessionStorage.clear()
+    window.history.replaceState(null, '', '/admin')
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    )
+    // Admin login is shown
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    // Public-site navbar (with primary nav role) is NOT in DOM on /admin
+    expect(screen.queryByRole('navigation', { name: /primary/i })).toBeNull()
+    // Footer copy ("not affiliated") is NOT in DOM on /admin
+    expect(screen.queryByText(/not affiliated/i)).toBeNull()
+  })
 })
