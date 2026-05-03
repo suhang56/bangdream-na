@@ -6,6 +6,7 @@ import {
 } from '../lib/uiLanguage.js'
 import about from '../data/about.json'
 import site from '../data/site.json'
+import socialData from '../data/social.json'
 import './About.css'
 
 function subscribe(cb) {
@@ -64,18 +65,28 @@ export default function About() {
         ))}
       </section>
 
-      <section id="history" className="about-section">
-        <h2>{t('about.historyHeading')}</h2>
-        {paragraphs(about.history).map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
-      </section>
-
       <section id="join" className="about-section">
         <h2>{t('about.joinHeading')}</h2>
         {paragraphs(about.joinInstructions).map((p, i) => (
           <p key={i}>{p}</p>
         ))}
+        {(() => {
+          const qq = Array.isArray(socialData)
+            ? socialData.find((e) => e && e.platform === 'qq')
+            : null
+          if (!qq || qq.enabled !== true) return null
+          if (typeof qq.url !== 'string' || qq.url.length === 0) return null
+          return (
+            <a
+              className="about-join-cta"
+              href={qq.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('btn.joinQQ')}
+            </a>
+          )
+        })()}
       </section>
 
       <section id="faq" className="about-section">
