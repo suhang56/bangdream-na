@@ -134,4 +134,47 @@ describe('<EventCard />', () => {
     const { container } = render(<EventCard event={e} now={NOW} />)
     expect(container.querySelector('.event-card__location')).toBeNull()
   })
+
+  describe('variant="compact"', () => {
+    it('applies event-card--compact class when variant=compact', () => {
+      const { container } = render(<EventCard event={baseEvent} now={NOW} variant="compact" />)
+      expect(container.querySelector('.event-card--compact')).not.toBeNull()
+    })
+
+    it('default variant does not apply event-card--compact', () => {
+      const { container } = render(<EventCard event={baseEvent} now={NOW} />)
+      expect(container.querySelector('.event-card--compact')).toBeNull()
+    })
+
+    it('explicit variant="default" does not apply event-card--compact', () => {
+      const { container } = render(<EventCard event={baseEvent} now={NOW} variant="default" />)
+      expect(container.querySelector('.event-card--compact')).toBeNull()
+    })
+
+    it('compact with image → inline backgroundImage set, no placeholder glyph (edge)', () => {
+      const { container } = render(<EventCard event={baseEvent} now={NOW} variant="compact" />)
+      const img = container.querySelector('.event-card__image')
+      expect(img.style.backgroundImage).toContain('example.com/roselia.jpg')
+      expect(container.querySelector('.event-card__placeholder-glyph')).toBeNull()
+    })
+
+    it('compact with no image → placeholder glyph rendered (edge)', () => {
+      const e = { ...baseEvent, image: undefined }
+      const { container } = render(<EventCard event={e} now={NOW} variant="compact" />)
+      expect(container.querySelector('.event-card__placeholder-glyph')).not.toBeNull()
+    })
+
+    it('compact past event keeps event-card--past class (edge)', () => {
+      const past = { ...baseEvent, date: '2025-01-15T19:00:00-07:00' }
+      const { container } = render(<EventCard event={past} now={NOW} variant="compact" />)
+      expect(container.querySelector('.event-card--past')).not.toBeNull()
+      expect(container.querySelector('.event-card--compact')).not.toBeNull()
+    })
+
+    it('compact title still renders (edge: very long title)', () => {
+      const e = { ...baseEvent, title: 'B'.repeat(200) }
+      const { container } = render(<EventCard event={e} now={NOW} variant="compact" />)
+      expect(container.querySelector('.event-card__title')).not.toBeNull()
+    })
+  })
 })

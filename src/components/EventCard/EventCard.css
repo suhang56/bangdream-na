@@ -118,6 +118,49 @@
   background: color-mix(in srgb, var(--color-primary) 85%, white);
 }
 
+.event-card--compact {
+  grid-template-columns: 1fr;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.event-card--compact .event-card__image {
+  position: relative;
+  background-image: none;
+  background-color: var(--color-bg-card);
+}
+
+/* override when image IS provided in compact mode */
+.event-card--compact .event-card__image[style] {
+  background-color: transparent;
+}
+
+.event-card--compact .event-card__placeholder-glyph {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.event-card--compact .event-card__body {
+  padding: 0.875rem 1rem 1rem;
+}
+
+.event-card--compact .event-card__title {
+  font-size: 1.0625rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .event-card {
     grid-template-columns: 1fr;

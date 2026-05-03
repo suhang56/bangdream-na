@@ -45,7 +45,8 @@ function formatRelative(date, now) {
   }
 }
 
-export default function EventCard({ event, now = new Date() }) {
+export default function EventCard({ event, now = new Date(), variant = 'default' }) {
+  const isCompact = variant === 'compact'
   const date = parseEventDate(event.date)
   const isPast = date !== null && date.getTime() < now.getTime()
   const formatted = formatDate(event.date)
@@ -57,14 +58,22 @@ export default function EventCard({ event, now = new Date() }) {
 
   return (
     <article
-      className={`event-card${isPast ? ' event-card--past' : ''}`}
+      className={[
+        'event-card',
+        isPast ? 'event-card--past' : '',
+        isCompact ? 'event-card--compact' : '',
+      ].filter(Boolean).join(' ')}
       aria-label={ariaLabel}
     >
       <div
         className="event-card__image card-thumb-16-9"
         aria-hidden="true"
         style={hasImage ? { backgroundImage: `url(${event.image})` } : undefined}
-      />
+      >
+        {!hasImage && isCompact ? (
+          <span className="event-card__placeholder-glyph" aria-hidden="true">◆</span>
+        ) : null}
+      </div>
       <div className="event-card__body">
         <div className="event-card__meta">
           <TypeBadge type={event.type} />
