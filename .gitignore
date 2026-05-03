@@ -34,3 +34,11 @@ Thumbs.db
 
 # Member import script local caches (Discord/QQ/WeChat raw exports)
 scripts/.cache/
+
+# Worker local dev secrets (never commit real .dev.vars)
+worker/.dev.vars
+worker/node_modules/
+worker/.wrangler/
+
+# R6 backup exports (D1 SQL dumps + R2 object listings)
+backups/
