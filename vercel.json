@@ -1,3 +1,35 @@
 {
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "xn--6oqz0h9uah3nn8uf8kujz.com" }],
+      "destination": "https://bangdream.org/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.xn--6oqz0h9uah3nn8uf8kujz.com" }],
+      "destination": "https://bangdream.org/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "xn--6oqz0h9uah3nn8uf8kujz.org" }],
+      "destination": "https://bangdream.org/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.xn--6oqz0h9uah3nn8uf8kujz.org" }],
+      "destination": "https://bangdream.org/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.bangdream.org" }],
+      "destination": "https://bangdream.org/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
