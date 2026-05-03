@@ -9,23 +9,23 @@
   {
     "platform": "qq",
     "label": "QQ群",
-    "url": "",
-    "qrImage": "/social/qq-qr.png",
-    "enabled": false
+    "url": "https://qm.qq.com/q/Dir9OC5TYA",
+    "qrImage": null,
+    "enabled": true
   },
   {
     "platform": "xiaohongshu",
     "label": "小红书",
-    "url": "",
+    "url": "https://xhslink.com/m/1s9XmQRoAug",
     "qrImage": null,
-    "enabled": false
+    "enabled": true
   },
   {
     "platform": "x",
-    "label": "X (Twitter)",
-    "url": "",
+    "label": "X",
+    "url": "https://x.com/BandoriNACC",
     "qrImage": null,
-    "enabled": false
+    "enabled": true
   },
   {
     "platform": "wechat",
