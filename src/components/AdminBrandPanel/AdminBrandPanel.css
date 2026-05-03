@@ -8,9 +8,11 @@
 }
 
 .admin-brand-panel-mark {
-  color: var(--color-primary);
   flex: 0 0 auto;
-  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
 }
 
 .admin-brand-panel-text {

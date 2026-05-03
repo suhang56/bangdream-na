@@ -13,18 +13,18 @@ describe('<AdminBrandPanel />', () => {
     expect(screen.getByText('BD!NA 后台')).toBeInTheDocument()
   })
 
-  it('renders the sigil SVG with aria-hidden=true (decorative)', () => {
+  it('renders the logo image with src=/logo.png and aria-hidden (decorative)', () => {
     const { container } = render(<AdminBrandPanel />)
-    const mark = container.querySelector('.admin-brand-panel-mark')
-    expect(mark).toHaveAttribute('aria-hidden', 'true')
-    const svg = mark.querySelector('svg')
-    expect(svg).toBeInTheDocument()
+    const img = container.querySelector('img.admin-brand-panel-mark')
+    expect(img).toBeInTheDocument()
+    expect(img).toHaveAttribute('src', '/logo.png')
+    expect(img).toHaveAttribute('aria-hidden', 'true')
+    expect(img).toHaveAttribute('alt', '')
   })
 
-  it('sigil stroke uses currentColor (theme-tintable)', () => {
+  it('does not render an inline SVG (logo is an <img>, not vector)', () => {
     const { container } = render(<AdminBrandPanel />)
-    const svg = container.querySelector('svg')
-    expect(svg.getAttribute('stroke')).toBe('currentColor')
+    expect(container.querySelector('svg')).toBeNull()
   })
 
   it('does not render any English brand text other than BD!NA acronym', () => {
