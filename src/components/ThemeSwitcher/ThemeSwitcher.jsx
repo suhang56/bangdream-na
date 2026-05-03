@@ -1,7 +1,19 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { themes, themeOrder } from '../../theme/themes.js'
 import { useTheme } from '../../theme/useTheme.js'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
 import './ThemeSwitcher.css'
+
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
 
 function PaletteIcon() {
   return (
@@ -25,6 +37,7 @@ function PaletteIcon() {
 }
 
 export default function ThemeSwitcher() {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const { themeKey, theme, setThemeKey } = useTheme()
   const [open, setOpen] = useState(false)
   const triggerRef = useRef(null)
@@ -75,7 +88,7 @@ export default function ThemeSwitcher() {
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={popoverId}
-        aria-label="Choose theme"
+        aria-label={t('aria.chooseTheme')}
         onClick={() => setOpen((prev) => !prev)}
       >
         <PaletteIcon />
@@ -86,11 +99,11 @@ export default function ThemeSwitcher() {
           ref={popoverRef}
           className="theme-switcher-popover"
           role="dialog"
-          aria-label="Theme picker"
+          aria-label={t('aria.themePicker')}
         >
           <div className="theme-switcher-grid">
             {themeOrder.map((key) => {
-              const t = themes[key]
+              const themeDef = themes[key]
               const isActive = key === themeKey
               return (
                 <button
@@ -99,8 +112,8 @@ export default function ThemeSwitcher() {
                   className={
                     'theme-swatch' + (isActive ? ' theme-swatch--active' : '')
                   }
-                  style={{ background: t.tokens['--gradient-hero'] }}
-                  aria-label={`${t.name} theme`}
+                  style={{ background: themeDef.tokens['--gradient-hero'] }}
+                  aria-label={`${themeDef.name} theme`}
                   aria-pressed={isActive}
                   onClick={() => handleSelect(key)}
                 />

@@ -1,4 +1,5 @@
 import { groupEventsByTime } from '../../lib/events.js'
+import { t } from '../../lib/uiLanguage.js'
 import EventCard from '../EventCard/EventCard.jsx'
 import './EventList.css'
 
@@ -15,7 +16,7 @@ export default function EventList({ events, now }) {
           aria-labelledby="upcoming-heading"
         >
           <h2 id="upcoming-heading" className="event-list__heading">
-            Upcoming
+            {t('section.upcoming')}
           </h2>
           <ul className="event-list__items">
             {upcoming.map((e) => (
@@ -32,7 +33,7 @@ export default function EventList({ events, now }) {
           aria-labelledby="past-heading"
         >
           <h2 id="past-heading" className="event-list__heading">
-            Past
+            {t('section.past')}
           </h2>
           <ul className="event-list__items">
             {past.map((e) => (
@@ -49,7 +50,7 @@ export default function EventList({ events, now }) {
           role="status"
           aria-live="polite"
         >
-          No events match the current filter.
+          {t('empty.noEventsMatch')}
         </p>
       )}
     </div>

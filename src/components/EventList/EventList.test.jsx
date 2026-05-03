@@ -41,7 +41,7 @@ describe('<EventList />', () => {
   it('empty array → empty-state with role=status, aria-live=polite (edge)', () => {
     render(<EventList events={[]} now={NOW} />)
     const status = screen.getByRole('status')
-    expect(status).toHaveTextContent(/no events/i)
+    expect(status).toHaveTextContent(/no .*events.*match|no events/i)
     expect(status.getAttribute('aria-live')).toBe('polite')
   })
 
@@ -83,7 +83,7 @@ describe('<EventList />', () => {
 
   it('all events malformed → empty state shows (edge)', () => {
     render(<EventList events={[malformed]} now={NOW} />)
-    expect(screen.getByRole('status')).toHaveTextContent(/no events/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/no .*events.*match|no events/i)
   })
 
   it('section has aria-labelledby pointing to its heading', () => {

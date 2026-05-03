@@ -1,10 +1,23 @@
+import { useSyncExternalStore } from 'react'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
 import './EventFilter.css'
 
 const TYPES = [
-  { type: 'concert', label: 'Concerts' },
-  { type: 'fanmeet', label: 'Fan Meets' },
-  { type: 'con', label: 'Conventions' },
+  { type: 'concert', key: 'category.concert' },
+  { type: 'fanmeet', key: 'category.fanmeet' },
+  { type: 'con', key: 'category.con' },
 ]
+
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
 
 export default function EventFilter({
   filterState,
@@ -12,6 +25,7 @@ export default function EventFilter({
   sortDir,
   onSortChange,
 }) {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const types = filterState?.types instanceof Set ? filterState.types : new Set()
 
   function toggleType(type) {
@@ -28,8 +42,8 @@ export default function EventFilter({
   return (
     <div className="event-filter">
       <fieldset className="event-filter__types">
-        <legend className="visually-hidden">Filter by type</legend>
-        {TYPES.map(({ type, label }) => {
+        <legend className="visually-hidden">{t('eventFilter.filterByType')}</legend>
+        {TYPES.map(({ type, key }) => {
           const active = types.has(type)
           return (
             <button
@@ -39,7 +53,7 @@ export default function EventFilter({
               aria-pressed={active}
               onClick={() => toggleType(type)}
             >
-              {label}
+              {t(key)}
             </button>
           )
         })}
@@ -48,9 +62,9 @@ export default function EventFilter({
       <fieldset
         className="event-filter__sort"
         role="radiogroup"
-        aria-label="Sort by date"
+        aria-label={t('eventFilter.sortByDate')}
       >
-        <legend className="visually-hidden">Sort order</legend>
+        <legend className="visually-hidden">{t('eventFilter.sortOrder')}</legend>
         <label className="event-filter__sort-option">
           <input
             type="radio"
@@ -59,7 +73,7 @@ export default function EventFilter({
             checked={sortDir === 'asc'}
             onChange={handleSort}
           />
-          <span>Earliest first</span>
+          <span>{t('eventFilter.earliestFirst')}</span>
         </label>
         <label className="event-filter__sort-option">
           <input
@@ -69,7 +83,7 @@ export default function EventFilter({
             checked={sortDir === 'desc'}
             onChange={handleSort}
           />
-          <span>Latest first</span>
+          <span>{t('eventFilter.latestFirst')}</span>
         </label>
       </fieldset>
     </div>

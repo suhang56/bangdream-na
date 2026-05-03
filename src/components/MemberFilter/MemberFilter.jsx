@@ -1,3 +1,9 @@
+import { useSyncExternalStore } from 'react'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
 import './MemberFilter.css'
 
 const BAND_LABELS = {
@@ -16,12 +22,19 @@ function prettyBandName(key) {
 }
 
 const ROLE_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'organizer', label: 'Organizers' },
-  { value: 'member', label: 'Members' },
-  { value: 'alumnus', label: 'Alumni' },
-  { value: 'cover-band-lead', label: 'Cover Bands' },
+  { value: '', key: 'memberFilter.roleAll' },
+  { value: 'organizer', key: 'memberFilter.roleOrganizers' },
+  { value: 'member', key: 'memberFilter.roleMembers' },
+  { value: 'alumnus', key: 'memberFilter.roleAlumni' },
+  { value: 'cover-band-lead', key: 'memberFilter.roleCoverBands' },
 ]
+
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
 
 export default function MemberFilter({
   bands,
@@ -32,6 +45,8 @@ export default function MemberFilter({
   searchValue,
   onSearchChange,
 }) {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+
   const toggleBand = (band) => {
     if (selectedBands.includes(band)) {
       onBandsChange(selectedBands.filter((b) => b !== band))
@@ -51,7 +66,7 @@ export default function MemberFilter({
       onSubmit={(e) => e.preventDefault()}
     >
       <fieldset className="member-filter-bands">
-        <legend>Filter by band</legend>
+        <legend>{t('memberFilter.byBand')}</legend>
         <div className="member-filter-chip-group" role="group">
           {bands.map((band) => {
             const active = selectedBands.includes(band)
@@ -71,7 +86,7 @@ export default function MemberFilter({
       </fieldset>
 
       <fieldset className="member-filter-roles">
-        <legend>Role</legend>
+        <legend>{t('memberFilter.byRole')}</legend>
         <div className="member-filter-radio-group" role="radiogroup">
           {ROLE_OPTIONS.map((opt) => (
             <label key={opt.value || 'all'} className="member-filter-radio">
@@ -82,21 +97,21 @@ export default function MemberFilter({
                 checked={(selectedRole ?? '') === opt.value}
                 onChange={() => handleRole(opt.value)}
               />
-              <span>{opt.label}</span>
+              <span>{t(opt.key)}</span>
             </label>
           ))}
         </div>
       </fieldset>
 
       <div className="member-filter-search">
-        <label htmlFor="member-search">Search</label>
+        <label htmlFor="member-search">{t('memberFilter.search')}</label>
         <input
           id="member-search"
           type="search"
           inputMode="search"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search by name, city, oshi…"
+          placeholder={t('memberFilter.searchPlaceholder')}
         />
       </div>
     </form>

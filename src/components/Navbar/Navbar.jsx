@@ -84,7 +84,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="navbar" aria-label="Primary">
+      <nav className="navbar" aria-label={t('aria.navPrimary')}>
         <div className="navbar-inner">
           <Link
             to="/"
