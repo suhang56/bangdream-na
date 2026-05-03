@@ -59,31 +59,35 @@ export default function MemberFilter({
     onRoleChange(raw === '' ? null : raw)
   }
 
+  const hasBands = Array.isArray(bands) && bands.length > 0
+
   return (
     <form
       className="member-filter"
       role="search"
       onSubmit={(e) => e.preventDefault()}
     >
-      <fieldset className="member-filter-bands">
-        <legend>{t('memberFilter.byBand')}</legend>
-        <div className="member-filter-chip-group" role="group">
-          {bands.map((band) => {
-            const active = selectedBands.includes(band)
-            return (
-              <button
-                key={band}
-                type="button"
-                className={`member-filter-chip${active ? ' member-filter-chip--active' : ''}`}
-                aria-pressed={active}
-                onClick={() => toggleBand(band)}
-              >
-                {prettyBandName(band)}
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
+      {hasBands && (
+        <fieldset className="member-filter-bands">
+          <legend>{t('memberFilter.byBand')}</legend>
+          <div className="member-filter-chip-group" role="group">
+            {bands.map((band) => {
+              const active = selectedBands.includes(band)
+              return (
+                <button
+                  key={band}
+                  type="button"
+                  className={`member-filter-chip${active ? ' member-filter-chip--active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => toggleBand(band)}
+                >
+                  {prettyBandName(band)}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
 
       <fieldset className="member-filter-roles">
         <legend>{t('memberFilter.byRole')}</legend>

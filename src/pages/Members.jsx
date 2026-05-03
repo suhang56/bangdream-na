@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import membersData from '../data/members.json'
-import MemberFilter from '../components/MemberFilter/MemberFilter.jsx'
-import MemberGrid from '../components/MemberGrid/MemberGrid.jsx'
+import Mobile from '../components/Responsive/Mobile.jsx'
+import Desktop from '../components/Responsive/Desktop.jsx'
+import MembersMobile from './Members.mobile.jsx'
+import MembersDesktop from './Members.desktop.jsx'
 import { filterMembers, sortMembersByName } from '../lib/members.js'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../lib/uiLanguage.js'
-import './Members.css'
 
 const SEARCH_DEBOUNCE_MS = 200
 
@@ -19,6 +20,12 @@ function getSnapshot() {
   return getLanguage()
 }
 
+/**
+ * Members shell — owns ALL hooks and state. Renders both mobile + desktop
+ * tracks; `<Mobile>` / `<Desktop>` wrappers from `useBreakpoint` mount only
+ * the matching one. Tracks are pure presentational (no useState, no useEffect,
+ * no data fetching).
+ */
 export default function Members() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [selectedBands, setSelectedBands] = useState([])
@@ -37,7 +44,9 @@ export default function Members() {
     () =>
       Array.from(
         new Set(
-          membersData.map((m) => m.oshiBand).filter((b) => typeof b === 'string' && b.trim() !== ''),
+          membersData
+            .map((m) => m.oshiBand)
+            .filter((b) => typeof b === 'string' && b.trim() !== ''),
         ),
       ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
     [],
@@ -58,22 +67,27 @@ export default function Members() {
   const rosterEmpty = membersData.length === 0
   const emptyMessage = rosterEmpty ? t('empty.noMembers') : t('empty.noMembersMatch')
 
+  const layoutProps = {
+    totalMembers: membersData.length,
+    visibleMembers,
+    availableBands,
+    selectedBands,
+    onBandsChange: setSelectedBands,
+    selectedRole,
+    onRoleChange: setSelectedRole,
+    searchInput,
+    onSearchChange: setSearchInput,
+    emptyMessage,
+  }
+
   return (
-    <main className="section">
-      <div className="section-inner">
-        <h1 className="section-title">{t('nav.members')}</h1>
-        <p className="section-subtitle">{t('members.subtitle')}</p>
-        <MemberFilter
-          bands={availableBands}
-          selectedBands={selectedBands}
-          onBandsChange={setSelectedBands}
-          selectedRole={selectedRole}
-          onRoleChange={setSelectedRole}
-          searchValue={searchInput}
-          onSearchChange={setSearchInput}
-        />
-        <MemberGrid members={visibleMembers} emptyMessage={emptyMessage} />
-      </div>
-    </main>
+    <>
+      <Mobile>
+        <MembersMobile {...layoutProps} />
+      </Mobile>
+      <Desktop>
+        <MembersDesktop {...layoutProps} />
+      </Desktop>
+    </>
   )
 }
