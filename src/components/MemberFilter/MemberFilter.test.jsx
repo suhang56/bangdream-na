@@ -108,14 +108,33 @@ describe('MemberFilter', () => {
     expect(evt.defaultPrevented).toBe(true)
   })
 
-  it('renders empty bands array: legend present, no chip buttons', () => {
-    render(<MemberFilter {...BASE_PROPS} bands={[]} />)
+  it('renders empty bands array: band fieldset HIDDEN entirely (empty-legend bug fix)', () => {
+    const { container } = render(<MemberFilter {...BASE_PROPS} bands={[]} />)
+    // No "Filter by band" / "按乐队筛选" legend should be present
+    expect(screen.queryByText(/Filter by band/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('按乐队筛选')).not.toBeInTheDocument()
+    // No band-related fieldset should render
+    expect(container.querySelector('.member-filter-bands')).toBeNull()
+    // No band chip buttons (aria-pressed is the band-chip identifier)
+    expect(container.querySelectorAll('button[aria-pressed]').length).toBe(0)
+    // Role fieldset still renders
+    expect(screen.getByText(/^Role$/)).toBeInTheDocument()
+  })
+
+  it('hides band fieldset when bands prop is undefined', () => {
+    const { container } = render(
+      <MemberFilter {...BASE_PROPS} bands={undefined} />,
+    )
+    expect(container.querySelector('.member-filter-bands')).toBeNull()
+  })
+
+  it('renders band fieldset when bands array has at least one entry', () => {
+    const { container } = render(
+      <MemberFilter {...BASE_PROPS} bands={['roselia']} />,
+    )
+    expect(container.querySelector('.member-filter-bands')).not.toBeNull()
     expect(screen.getByText(/Filter by band/i)).toBeInTheDocument()
-    // No chip buttons under bands section. Roles + clear filters might still have buttons.
-    const bandsFieldset = screen
-      .getByText(/Filter by band/i)
-      .closest('fieldset')
-    expect(bandsFieldset.querySelectorAll('button[aria-pressed]').length).toBe(0)
+    expect(screen.getByRole('button', { name: 'Roselia' })).toBeInTheDocument()
   })
 
   it('search label is associated with input via for/id', () => {
