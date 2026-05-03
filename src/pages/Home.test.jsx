@@ -1,18 +1,28 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import Home from './Home.jsx'
 import site from '../data/site.json'
+import events from '../data/events.json'
+import members from '../data/members.json'
+import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
+import { groupEventsByTime } from '../lib/events.js'
 
 describe('<Home />', () => {
-  it('renders hero with Chinese H1 (canonical) when communityNameZh present', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('en')
+  })
+
+  it('renders Chinese H1 (canonical)', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
       screen.getByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
   })
 
-  it('renders Japanese name when present', () => {
+  it('renders Japanese name', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(screen.getByText(site.communityNameJp)).toBeInTheDocument()
   })
@@ -27,17 +37,30 @@ describe('<Home />', () => {
     expect(screen.getByText(site.tagline)).toBeInTheDocument()
   })
 
-  it('renders active Discord CTA when invite present', () => {
+  it('renders active Discord CTA', () => {
     renderWithProviders(<Home />, { route: '/' })
     expect(
       screen.getByRole('link', { name: /join discord/i }),
     ).toBeInTheDocument()
   })
 
-  it('all three lang attributes present (lang=ja|zh|en)', () => {
+  it('all three lang attributes (ja|zh|en) present', () => {
     const { container } = renderWithProviders(<Home />, { route: '/' })
     expect(container.querySelector('[lang="ja"]')).not.toBeNull()
     expect(container.querySelector('[lang="zh"]')).not.toBeNull()
     expect(container.querySelector('[lang="en"]')).not.toBeNull()
+  })
+
+  it('renders HeroCarousel when upcoming events exist, else stat tiles', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    const { upcoming } = groupEventsByTime(events, new Date())
+    if (upcoming.length > 0) {
+      expect(container.querySelector('.hero-carousel')).not.toBeNull()
+    } else {
+      expect(container.querySelector('.home-stat-tiles')).not.toBeNull()
+      const tiles = container.querySelectorAll('.home-stat-tile__num')
+      expect(tiles.length).toBe(2)
+      expect(tiles[0].textContent).toBe(String(members.length))
+    }
   })
 })
