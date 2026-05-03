@@ -47,7 +47,12 @@ export function sortMembersByName(members) {
   )
 }
 
-const CJK_LEADING = /^[　-鿿가-힯぀-ヿ]/u
+// Match a leading CJK ideograph, kana, or Hangul.
+// Ranges via unicode escapes:
+//   、-鿿: CJK Symbols+Punctuation, Hiragana, Katakana, CJK Unified Ideographs
+//                  (starts at U+3001 to skip U+3000 ideographic-space, which is whitespace)
+//   가-힯: Hangul Syllables
+const CJK_LEADING = /^[、-鿿가-힯]/u
 
 /**
  * Compute 1-2 character initials from a display name.

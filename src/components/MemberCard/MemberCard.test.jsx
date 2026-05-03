@@ -245,6 +245,24 @@ describe('MemberCard', () => {
     expect(screen.getByText('東京都')).toBeInTheDocument()
   })
 
+  it('renders unknown social platform as a non-link fallback span', () => {
+    render(
+      <MemberCard
+        member={{
+          id: 'a',
+          name: 'A',
+          role: 'member',
+          socials: { mastodon: 'a@example.com' },
+        }}
+      />,
+    )
+    const list = screen.getByRole('list', { name: 'Social links' })
+    const items = list.querySelectorAll('li')
+    expect(items.length).toBe(1)
+    expect(items[0].querySelector('a')).toBeNull()
+    expect(items[0].textContent).toContain('mastodon')
+  })
+
   it('marks initials fallback aria-hidden so SR does not double-announce', () => {
     const { container } = render(
       <MemberCard member={{ id: 'm', name: 'Madonna', role: 'member' }} />,
