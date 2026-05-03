@@ -47,10 +47,6 @@ export default function AdminAssetUploader({
       setLocalError('Unsupported file type. Allowed: png, jpg, webp, svg.')
       return
     }
-    if (!token) {
-      setLocalError('Not signed in.')
-      return
-    }
     const ext = extFromFilename(file.name) || 'png'
     let slug = deriveSlug({ slugBase, file })
     if (!slug) slug = `pending-${Date.now().toString(36)}`

@@ -98,4 +98,52 @@ describe('<AdminForm />', () => {
     const requiredMarks = container.querySelectorAll('.admin-form-required')
     expect(requiredMarks.length).toBeGreaterThan(0)
   })
+
+  it('datetime field with empty value renders empty input', () => {
+    render(<AdminForm schema={eventsSchema} item={{ date: '' }} onChange={() => {}} />)
+    const dt = document.querySelector('input[type=datetime-local]')
+    expect(dt.value).toBe('')
+  })
+
+  it('datetime field with unparseable iso renders empty input', () => {
+    render(<AdminForm schema={eventsSchema} item={{ date: 'not-a-date' }} onChange={() => {}} />)
+    const dt = document.querySelector('input[type=datetime-local]')
+    expect(dt.value).toBe('')
+  })
+
+  it('datetime clear (set empty) calls onChange with empty string', () => {
+    const onChange = vi.fn()
+    render(<AdminForm schema={eventsSchema} item={{ date: '2025-09-15T19:00:00-07:00' }} onChange={onChange} />)
+    const dt = document.querySelector('input[type=datetime-local]')
+    fireEvent.change(dt, { target: { value: '' } })
+    expect(onChange.mock.calls.at(-1)[0].date).toBe('')
+  })
+
+  it('number + email field types render correctly via synthetic schema', () => {
+    const synthetic = {
+      key: 'synth',
+      title: 'Synthetic',
+      file: 'src/data/synth.json',
+      shape: 'object',
+      fields: [
+        { key: 'count', type: 'number', label: 'Count' },
+        { key: 'contact', type: 'email', label: 'Contact email' },
+      ],
+    }
+    const onChange = vi.fn()
+    render(<AdminForm schema={synthetic} item={{ count: 5, contact: 'a@b.com' }} onChange={onChange} />)
+    const num = screen.getByLabelText(/count/i)
+    expect(num).toHaveAttribute('type', 'number')
+    expect(num).toHaveValue(5)
+    fireEvent.change(num, { target: { value: '10' } })
+    expect(onChange.mock.calls.at(-1)[0].count).toBe(10)
+    // empty number → null
+    fireEvent.change(num, { target: { value: '' } })
+    expect(onChange.mock.calls.at(-1)[0].count).toBeNull()
+
+    const email = screen.getByLabelText(/contact email/i)
+    expect(email).toHaveAttribute('type', 'email')
+    fireEvent.change(email, { target: { value: 'x@y.com' } })
+    expect(onChange.mock.calls.at(-1)[0].contact).toBe('x@y.com')
+  })
 })

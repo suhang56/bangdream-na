@@ -140,4 +140,30 @@ describe('<AdminAssetUploader />', () => {
     fireEvent.dragLeave(dz)
     expect(dz).not.toHaveClass('drag-over')
   })
+
+  it('upload guard: dropzone is disabled when no token (button cannot trigger handleFile)', () => {
+    // The dropzone is disabled (verified by another test) when no token. handleFile is NOT entered
+    // via UI in this scenario. We assert disabled state instead.
+    render(<AdminAssetUploader field={FIELD} value="" token="" onChange={() => {}} />)
+    expect(screen.getByRole('button', { name: /drag image/i })).toBeDisabled()
+  })
+
+  it('drop event with no files does nothing', () => {
+    const onChange = vi.fn()
+    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={onChange} />)
+    const dz = screen.getByRole('button', { name: /drag image/i })
+    fireEvent.drop(dz, { dataTransfer: { files: [] } })
+    expect(uploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('webp accepted (mime list)', async () => {
+    const onChange = vi.fn()
+    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="ev" onChange={onChange} />)
+    const f = new File(['x'], 'a.webp', { type: 'image/webp' })
+    Object.defineProperty(f, 'size', { value: 100 })
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [f] } })
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
+    expect(uploadSpy.mock.calls[0][1]).toBe('public/events/ev.webp')
+  })
 })
