@@ -5,6 +5,7 @@ import {
   setLanguage,
   subscribeLanguage,
   t,
+  getPlatformLabel,
   _resetForTests,
 } from './uiLanguage.js'
 
@@ -167,6 +168,43 @@ describe('uiLanguage', () => {
     it('handles missing params object (edge)', () => {
       setLanguage('en')
       expect(typeof t('filter.resultCount')).toBe('string')
+    })
+  })
+
+  describe('getPlatformLabel', () => {
+    it('resolves to en value when language is en', () => {
+      setLanguage('en')
+      expect(getPlatformLabel('xiaohongshu', '小红书')).toBe('Xiaohongshu')
+    })
+
+    it('resolves to zh value when language is zh', () => {
+      setLanguage('zh')
+      expect(getPlatformLabel('xiaohongshu', 'Xiaohongshu')).toBe('小红书')
+    })
+
+    it('falls back to provided label when key missing', () => {
+      setLanguage('en')
+      expect(getPlatformLabel('twitter', 'Twitter')).toBe('Twitter')
+    })
+
+    it('returns empty string when platform empty and no fallback', () => {
+      expect(getPlatformLabel('', null)).toBe('')
+      expect(getPlatformLabel(null, undefined)).toBe('')
+    })
+
+    it('returns fallback when platform empty and fallback provided (edge)', () => {
+      expect(getPlatformLabel('', 'Default')).toBe('Default')
+    })
+
+    it('handles non-string platform argument (edge)', () => {
+      expect(getPlatformLabel(42, 'Foo')).toBe('Foo')
+      expect(getPlatformLabel(undefined, 'Bar')).toBe('Bar')
+    })
+
+    it('handles non-string fallback when key missing (edge)', () => {
+      setLanguage('en')
+      expect(getPlatformLabel('madeup', null)).toBe('')
+      expect(getPlatformLabel('madeup', 0)).toBe('')
     })
   })
 })
