@@ -1,15 +1,2 @@
-.news-page__layout {
-  display: grid;
-  gap: 1rem;
-}
-
-.news-page__content {
-  min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .news-page__layout {
-    grid-template-columns: 260px 1fr;
-    gap: 2.5rem;
-  }
-}
+/* Shared news page styles. Mobile + Desktop tracks own their own files
+   (News.mobile.css / News.desktop.css) — no @media rules live here. */

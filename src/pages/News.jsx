@@ -1,11 +1,12 @@
 import { useMemo, useState, useSyncExternalStore } from 'react'
-import NewsList from '../components/NewsList/NewsList.jsx'
-import NewsSidebar from '../components/NewsSidebar/NewsSidebar.jsx'
+import Mobile from '../components/Responsive/Mobile.jsx'
+import Desktop from '../components/Responsive/Desktop.jsx'
+import NewsMobile from './News.mobile.jsx'
+import NewsDesktop from './News.desktop.jsx'
 import { filterNews, sortNewsByDate } from '../lib/news.js'
 import {
   getLanguage,
   subscribeLanguage,
-  t,
 } from '../lib/uiLanguage.js'
 import news from '../data/news.json'
 import './News.css'
@@ -17,39 +18,46 @@ function getSnapshot() {
   return getLanguage()
 }
 
+const EMPTY_FILTER_STATE = Object.freeze({
+  categories: null,
+  from: '',
+  to: '',
+  keyword: '',
+})
+
+function makeEmptyState() {
+  return { categories: new Set(), from: '', to: '', keyword: '' }
+}
+
 export default function News() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const [filterState, setFilterState] = useState({
-    categories: new Set(),
-    from: '',
-    to: '',
-    keyword: '',
-  })
+  const [filterState, setFilterState] = useState(makeEmptyState)
 
   const visible = useMemo(
     () => sortNewsByDate(filterNews(news, filterState)),
     [filterState],
   )
 
-  const isEmpty = news.length === 0
-  const emptyMessage = isEmpty
-    ? t('empty.noNews')
-    : t('empty.noNewsMatch')
+  const totalCount = news.length
+  const layoutProps = {
+    news,
+    visible,
+    filterState,
+    onChange: setFilterState,
+    onClear: () => setFilterState(makeEmptyState()),
+    totalCount,
+  }
 
   return (
-    <main className="news-page section">
-      <div className="section-inner">
-        <h1 className="section-title">{t('nav.news')}</h1>
-        <div className="news-page__layout">
-          <NewsSidebar
-            filterState={filterState}
-            onChange={setFilterState}
-          />
-          <div className="news-page__content">
-            <NewsList news={visible} emptyMessage={emptyMessage} />
-          </div>
-        </div>
-      </div>
-    </main>
+    <>
+      <Mobile>
+        <NewsMobile {...layoutProps} />
+      </Mobile>
+      <Desktop>
+        <NewsDesktop {...layoutProps} />
+      </Desktop>
+    </>
   )
 }
+
+export { EMPTY_FILTER_STATE }

@@ -139,14 +139,6 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 768px) {
-  .news-card {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-    gap: 1rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .news-card,
   .news-card:hover {
