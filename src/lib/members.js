@@ -32,55 +32,30 @@ export function filterMembers(members, filters = {}) {
   })
 }
 
+let cachedCollator = null
+function getCollator() {
+  if (cachedCollator) return cachedCollator
+  try {
+    cachedCollator = new Intl.Collator('zh-Hans-u-co-pinyin', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  } catch {
+    cachedCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  }
+  return cachedCollator
+}
+
 /**
- * Sort by `name` ascending using locale-aware, case- and accent-insensitive
- * comparison. Returns a new array; input is never mutated.
+ * Sort by `name` ascending using pinyin collation for CJK and alphabetical for
+ * Latin scripts. Returns a new array; input is never mutated.
  *
  * @param {Array<Object>} members
  * @returns {Array<Object>}
  */
 export function sortMembersByName(members) {
+  const collator = getCollator()
   return [...members].sort((a, b) =>
-    String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, {
-      sensitivity: 'base',
-    }),
+    collator.compare(String(a.name ?? ''), String(b.name ?? '')),
   )
-}
-
-// Match a leading CJK ideograph, kana, or Hangul.
-// Ranges via unicode escapes:
-//   、-鿿: CJK Symbols+Punctuation, Hiragana, Katakana, CJK Unified Ideographs
-//                  (starts at U+3001 to skip U+3000 ideographic-space, which is whitespace)
-//   가-힯: Hangul Syllables
-const CJK_LEADING = /^[、-鿿가-힯]/u
-
-/**
- * Compute 1-2 character initials from a display name.
- * - Empty / whitespace / non-string → ""
- * - Single ASCII word → first letter, uppercased
- * - Two+ ASCII words → first letter of first two words, uppercased
- * - Single CJK token → first CJK char (no uppercase)
- * - Two+ CJK tokens → first chars of first two, joined
- *
- * @param {string} name
- * @returns {string}
- */
-export function getInitials(name) {
-  if (typeof name !== 'string') return ''
-  const trimmed = name.trim()
-  if (!trimmed) return ''
-
-  const tokens = trimmed.split(/\s+/u).filter(Boolean)
-  if (tokens.length === 0) return ''
-
-  const isCJK = CJK_LEADING.test(tokens[0])
-
-  if (tokens.length === 1) {
-    const first = tokens[0][0]
-    return isCJK ? first : first.toUpperCase()
-  }
-
-  const a = tokens[0][0]
-  const b = tokens[1][0]
-  return isCJK ? `${a}${b}` : `${a}${b}`.toUpperCase()
 }
