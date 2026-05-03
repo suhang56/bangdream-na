@@ -19,6 +19,24 @@ const BASE = 'main'
 
 const AUTH_EXPIRED_PATTERN = /unauthorized — token|forbidden — token/i
 
+// Map githubApi.js English error messages to operator-visible Chinese.
+// Falls back to the raw message for anything not matched.
+function translateApiError(message) {
+  if (typeof message !== 'string') return ''
+  if (/concurrent edit detected/i.test(message)) return '内容已过期，请刷新后重试'
+  if (/unauthorized — token/i.test(message)) return '登录已过期，请重新登录'
+  if (/forbidden — token/i.test(message)) return 'Token 权限不足'
+  const notFound = message.match(/^Not found(?::\s*(.+))?$/i)
+  if (notFound) return notFound[1] ? `未找到：${notFound[1]}` : '未找到'
+  if (/^Invalid request/i.test(message)) {
+    return message.replace(/^Invalid request:?\s*/i, '请求无效：').replace(/请求无效：$/, '请求无效')
+  }
+  const server = message.match(/^GitHub server error \((\d+)\)\.?$/i)
+  if (server) return `GitHub 服务器错误（${server[1]}），请稍后重试`
+  if (/^GitHub error/i.test(message)) return 'GitHub 操作失败，请重试'
+  return message
+}
+
 // Chinese display labels for table column headers per schema. Field keys (id,
 // title, date, …) stay English in the data layer; this map provides the
 // operator-visible header text.
@@ -120,7 +138,7 @@ export default function AdminEditor({
         onAuthExpired?.()
         return
       }
-      setLoadError(e.message)
+      setLoadError(translateApiError(e.message))
     } finally {
       setLoading(false)
     }
@@ -195,8 +213,9 @@ export default function AdminEditor({
                   return
                 }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
-                setSaveError(e.message)
-                emit({ status: 'error', errorMessage: e.message })
+                const zhMsg = translateApiError(e.message)
+                setSaveError(zhMsg)
+                emit({ status: 'error', errorMessage: zhMsg })
               } finally {
                 setSaving(false)
               }
@@ -273,8 +292,9 @@ export default function AdminEditor({
                   return
                 }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
-                setSaveError(e.message)
-                emit({ status: 'error', errorMessage: e.message })
+                const zhMsg = translateApiError(e.message)
+                setSaveError(zhMsg)
+                emit({ status: 'error', errorMessage: zhMsg })
               } finally {
                 setSaving(false)
               }
@@ -317,8 +337,9 @@ export default function AdminEditor({
         onAuthExpired?.()
         return
       }
-      setSaveError(e.message)
-      emit({ status: 'error', errorMessage: e.message })
+      const zhMsg = translateApiError(e.message)
+      setSaveError(zhMsg)
+      emit({ status: 'error', errorMessage: zhMsg })
     } finally {
       setSaving(false)
     }
