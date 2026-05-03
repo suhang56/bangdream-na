@@ -30,6 +30,7 @@ const NAV_LINKS = [
   },
   { to: '/members', key: 'nav.members' },
   { to: '/about', key: 'nav.about' },
+  { to: '/rules', key: 'nav.rules' },
   { to: 'https://forum.bangdream.org', key: 'nav.forum', external: true },
 ]
 

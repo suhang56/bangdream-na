@@ -24,7 +24,6 @@ function paragraphs(body) {
 export default function About() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const faq = Array.isArray(about.faq) ? about.faq : []
-  const cocText = typeof about.coc === 'string' ? about.coc : ''
   const hasJp =
     typeof site.communityNameJp === 'string' && site.communityNameJp.length > 0
   const hasZh =
@@ -107,19 +106,6 @@ export default function About() {
             ))}
           </div>
         )}
-      </section>
-
-      <section id="coc" className="about-section">
-        <details className="about-coc">
-          <summary>{t('about.cocSummary')}</summary>
-          <div className="about-coc-body">
-            {cocText.length === 0 ? (
-              <p className="about-empty">{t('empty.noCoc')}</p>
-            ) : (
-              paragraphs(cocText).map((p, i) => <p key={i}>{p}</p>)
-            )}
-          </div>
-        </details>
       </section>
 
       <section id="disclaimer" className="about-section about-disclaimer">

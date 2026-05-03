@@ -21,7 +21,7 @@ const QUICK_LINKS = [
 const ABOUT_LINKS = [
   { href: '/about#mission', key: 'footer.mission' },
   { href: '/about#faq', key: 'footer.faq' },
-  { href: '/about#coc', key: 'footer.coc' },
+  { href: '/rules', key: 'footer.coc' },
   { href: '/about#disclaimer', key: 'footer.disclaimerLink' },
 ]
 
