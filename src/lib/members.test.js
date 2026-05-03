@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterMembers, sortMembersByName, getInitials } from './members.js'
+import { filterMembers, sortMembersByName } from './members.js'
 
 const BASE_MEMBERS = [
   {
@@ -33,7 +33,6 @@ const BASE_MEMBERS = [
     name: 'Carol Carter',
     role: 'alumnus',
     bio: 'Past organizer.',
-    // intentionally no oshiBand
   },
 ]
 
@@ -189,6 +188,41 @@ describe('sortMembersByName', () => {
     expect(sortMembersByName(input)).toHaveLength(2)
   })
 
+  it('sorts CJK names by pinyin first letter (西瓜→x, 北京→b, 啊→a)', () => {
+    const input = [
+      { id: '1', name: '西瓜', role: 'member' },
+      { id: '2', name: '北京', role: 'member' },
+      { id: '3', name: '啊明', role: 'member' },
+    ]
+    const result = sortMembersByName(input)
+    expect(result.map((m) => m.name)).toEqual(['啊明', '北京', '西瓜'])
+  })
+
+  it('sorts CJK by pinyin and Latin alphabetically; each script-group internally correct', () => {
+    const input = [
+      { id: '1', name: 'Zoe', role: 'member' },
+      { id: '2', name: '北京', role: 'member' },
+      { id: '3', name: 'Alice', role: 'member' },
+      { id: '4', name: '西瓜', role: 'member' },
+    ]
+    const result = sortMembersByName(input).map((m) => m.name)
+    const aliceIdx = result.indexOf('Alice')
+    const beijingIdx = result.indexOf('北京')
+    const xiguaIdx = result.indexOf('西瓜')
+    const zoeIdx = result.indexOf('Zoe')
+    expect(aliceIdx).toBeLessThan(zoeIdx)
+    expect(beijingIdx).toBeLessThan(xiguaIdx)
+  })
+
+  it('sorts numbers naturally (member-2 before member-10)', () => {
+    const input = [
+      { id: '1', name: 'member-10', role: 'member' },
+      { id: '2', name: 'member-2', role: 'member' },
+    ]
+    const result = sortMembersByName(input).map((m) => m.name)
+    expect(result).toEqual(['member-2', 'member-10'])
+  })
+
   it('does not mutate input array (immutability)', () => {
     const input = [
       { id: '1', name: 'bob', role: 'member' },
@@ -198,50 +232,14 @@ describe('sortMembersByName', () => {
     sortMembersByName(input)
     expect(input.map((m) => m.id).join(',')).toBe(order)
   })
-})
 
-describe('getInitials', () => {
-  it('returns "" for empty string', () => {
-    expect(getInitials('')).toBe('')
-  })
-
-  it('returns "" for whitespace-only string', () => {
-    expect(getInitials('   ')).toBe('')
-  })
-
-  it('returns "" for non-string input (null/undefined/number)', () => {
-    expect(getInitials(null)).toBe('')
-    expect(getInitials(undefined)).toBe('')
-    expect(getInitials(123)).toBe('')
-  })
-
-  it('returns single uppercased letter for single ASCII word', () => {
-    expect(getInitials('Madonna')).toBe('M')
-  })
-
-  it('returns first letter of two ASCII words uppercased', () => {
-    expect(getInitials('John Smith')).toBe('JS')
-  })
-
-  it('uppercases lowercase ASCII tokens', () => {
-    expect(getInitials('john smith')).toBe('JS')
-  })
-
-  it('returns first CJK char for single CJK token', () => {
-    expect(getInitials('戸山香澄')).toBe('戸')
-  })
-
-  it('returns first chars of two CJK tokens (no uppercase)', () => {
-    expect(getInitials('戸山 香澄')).toBe('戸香')
-  })
-
-  it('handles mixed CJK + ASCII (does not crash)', () => {
-    const result = getInitials('Sakuya 朔夜')
-    expect(typeof result).toBe('string')
-    expect(result.length).toBeGreaterThan(0)
-  })
-
-  it('trims surrounding whitespace before tokenizing', () => {
-    expect(getInitials('   John Smith   ')).toBe('JS')
+  it('handles missing/null name field without throwing', () => {
+    const input = [
+      { id: '1', role: 'member' },
+      { id: '2', name: null, role: 'member' },
+      { id: '3', name: 'Alice', role: 'member' },
+    ]
+    expect(() => sortMembersByName(input)).not.toThrow()
+    expect(sortMembersByName(input)).toHaveLength(3)
   })
 })

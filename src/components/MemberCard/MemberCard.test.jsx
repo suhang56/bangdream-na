@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import MemberCard from './MemberCard.jsx'
 
 const FULL = {
@@ -10,7 +10,6 @@ const FULL = {
   oshiCharacter: 'Yukina Minato',
   city: 'San Francisco, CA',
   bio: 'Roselia stan since 2019.',
-  avatar: '/avatars/alice.jpg',
   socials: {
     twitter: 'alice_a',
     bilibili: 'alice123',
@@ -29,7 +28,13 @@ describe('MemberCard', () => {
     expect(screen.getAllByText(/Roselia/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Yukina Minato/)).toBeInTheDocument()
     expect(screen.getByText('Roselia stan since 2019.')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Alice Anderson' })).toBeInTheDocument()
+  })
+
+  it('does NOT render any avatar img or initials block', () => {
+    const { container } = render(<MemberCard member={FULL} />)
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.querySelector('.member-card-avatar')).toBeNull()
+    expect(container.querySelector('.member-card-initials')).toBeNull()
   })
 
   it('uses real <article> element with aria-label = name', () => {
@@ -47,53 +52,41 @@ describe('MemberCard', () => {
     expect(container.querySelector('.member-card-bio')).toBeNull()
     expect(container.querySelector('.member-card-socials')).toBeNull()
     expect(container.querySelector('.member-card-cover-ribbon')).toBeNull()
-    expect(container.querySelector('.member-card-initials')).not.toBeNull()
   })
 
-  it('renders <img> with alt=name when avatar is set', () => {
-    render(<MemberCard member={FULL} />)
-    const img = screen.getByRole('img', { name: 'Alice Anderson' })
-    expect(img).toHaveAttribute('src', '/avatars/alice.jpg')
-    expect(img).toHaveAttribute('loading', 'lazy')
+  it('omits meta block entirely for plain member with no city/oshi (clean ID display)', () => {
+    const plain = { id: 'p', name: '西瓜', role: 'member' }
+    const { container } = render(<MemberCard member={plain} />)
+    expect(container.querySelector('.member-card-meta')).toBeNull()
   })
 
-  it('falls back to initials on <img> error event', () => {
+  it('shows meta block for organizer (non-member role surfaces badge)', () => {
     const { container } = render(
-      <MemberCard member={{ ...FULL, avatar: 'bad-url.jpg' }} />,
+      <MemberCard member={{ id: 'o', name: 'O', role: 'organizer' }} />,
     )
-    const img = container.querySelector('img')
-    expect(img).not.toBeNull()
-    fireEvent.error(img)
-    expect(container.querySelector('.member-card-initials')).not.toBeNull()
-    expect(container.querySelector('img')).toBeNull()
+    expect(container.querySelector('.member-card-meta')).not.toBeNull()
   })
 
-  it('shows initials immediately when avatar is empty string', () => {
+  it('shows meta block for alumnus role', () => {
     const { container } = render(
-      <MemberCard member={{ ...FULL, avatar: '' }} />,
+      <MemberCard member={{ id: 'a', name: 'A', role: 'alumnus' }} />,
     )
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector('.member-card-initials')).not.toBeNull()
+    expect(container.querySelector('.member-card-meta')).not.toBeNull()
+  })
+
+  it('shows meta block when city is set even for plain member', () => {
+    const { container } = render(
+      <MemberCard
+        member={{ id: 'a', name: 'A', role: 'member', city: 'Tokyo' }}
+      />,
+    )
+    expect(container.querySelector('.member-card-meta')).not.toBeNull()
   })
 
   it('renders very long bio without throwing', () => {
     const longBio = 'X'.repeat(600)
     render(<MemberCard member={{ ...FULL, bio: longBio }} />)
     expect(screen.getByText(longBio)).toBeInTheDocument()
-  })
-
-  it('initials = "M" for single ASCII name "Madonna" with no avatar', () => {
-    const { container } = render(
-      <MemberCard member={{ id: 'm', name: 'Madonna', role: 'member' }} />,
-    )
-    expect(container.querySelector('.member-card-initials')?.textContent).toBe('M')
-  })
-
-  it('initials = "戸" for single CJK name "戸山香澄"', () => {
-    const { container } = render(
-      <MemberCard member={{ id: 'k', name: '戸山香澄', role: 'member' }} />,
-    )
-    expect(container.querySelector('.member-card-initials')?.textContent).toBe('戸')
   })
 
   it('renders very long name (60 chars) without throw', () => {
@@ -114,21 +107,14 @@ describe('MemberCard', () => {
     expect(
       list.querySelector('a[href="https://instagram.com/alice.a"]'),
     ).not.toBeNull()
-    // Discord is NOT an anchor
-    const discordItem = Array.from(items).find((li) =>
-      li.textContent?.includes('alice.a'),
-    )
-    // Multiple items mention 'alice.a'; specifically verify no <a> exists for Discord text
     const discordLi = Array.from(items).find(
       (li) => li.querySelector('a') === null,
     )
     expect(discordLi).toBeDefined()
-    // every <a> must open in new tab safely
     list.querySelectorAll('a').forEach((a) => {
       expect(a.getAttribute('target')).toBe('_blank')
       expect(a.getAttribute('rel')).toContain('noopener')
     })
-    expect(discordItem).toBeDefined()
   })
 
   it('skips empty-string socials', () => {
@@ -261,13 +247,5 @@ describe('MemberCard', () => {
     expect(items.length).toBe(1)
     expect(items[0].querySelector('a')).toBeNull()
     expect(items[0].textContent).toContain('mastodon')
-  })
-
-  it('marks initials fallback aria-hidden so SR does not double-announce', () => {
-    const { container } = render(
-      <MemberCard member={{ id: 'm', name: 'Madonna', role: 'member' }} />,
-    )
-    const initials = container.querySelector('.member-card-initials')
-    expect(initials).toHaveAttribute('aria-hidden', 'true')
   })
 })

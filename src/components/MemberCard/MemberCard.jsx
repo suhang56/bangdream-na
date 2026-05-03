@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import RoleBadge from '../RoleBadge/RoleBadge.jsx'
-import { getInitials } from '../../lib/members.js'
 import { t } from '../../lib/uiLanguage.js'
 import './MemberCard.css'
 
@@ -15,12 +13,9 @@ import './MemberCard.css'
  * @property {string} [coverBandRole]
  * @property {string} [city]
  * @property {string} [bio]
- * @property {string} [avatar]
  * @property {Object<string,string>} [socials]
  * @property {string} [joinedAt]
  * @property {boolean} [alumnus]
- *
- * Schema reference: docs/p3-design.md "Member data shape"
  */
 
 const SOCIAL_RENDERERS = {
@@ -93,12 +88,10 @@ function renderSocials(socials, name) {
 }
 
 export default function MemberCard({ member }) {
-  const [imgFailed, setImgFailed] = useState(false)
-  const showImg = !!member.avatar && !imgFailed
-
-  const initials = getInitials(member.name)
   const isAlumnus = member.alumnus === true || member.role === 'alumnus'
   const cardClass = `member-card${isAlumnus ? ' member-card--alumnus' : ''}`
+  const hasMeta =
+    member.role !== 'member' || isAlumnus || (typeof member.city === 'string' && member.city)
 
   return (
     <article className={cardClass} aria-label={member.name}>
@@ -115,46 +108,28 @@ export default function MemberCard({ member }) {
         </div>
       )}
 
-      <div className="member-card-avatar">
-        {showImg ? (
-          <img
-            src={member.avatar}
-            alt={member.name}
-            loading="lazy"
-            decoding="async"
-            width={88}
-            height={88}
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <div className="member-card-initials" aria-hidden="true">
-            {initials}
-          </div>
-        )}
-      </div>
-
-      <div className="member-card-body">
-        <h3 className="member-card-name" title={member.name}>
-          {member.name}
-        </h3>
+      <h3 className="member-card-name" title={member.name}>
+        {member.name}
+      </h3>
+      {hasMeta && (
         <div className="member-card-meta">
           <RoleBadge role={member.role} alumnus={member.alumnus} />
           {member.city && (
             <span className="member-card-city">{member.city}</span>
           )}
         </div>
-        {member.oshiBand && (
-          <p className="member-card-oshi">
-            <span className="member-card-oshi-label">Oshi: </span>
-            <span className="member-card-oshi-value">
-              {member.oshiBand}
-              {member.oshiCharacter && ` · ${member.oshiCharacter}`}
-            </span>
-          </p>
-        )}
-        {member.bio && <p className="member-card-bio">{member.bio}</p>}
-        {renderSocials(member.socials, member.name)}
-      </div>
+      )}
+      {member.oshiBand && (
+        <p className="member-card-oshi">
+          <span className="member-card-oshi-label">Oshi: </span>
+          <span className="member-card-oshi-value">
+            {member.oshiBand}
+            {member.oshiCharacter && ` · ${member.oshiCharacter}`}
+          </span>
+        </p>
+      )}
+      {member.bio && <p className="member-card-bio">{member.bio}</p>}
+      {renderSocials(member.socials, member.name)}
     </article>
   )
 }
