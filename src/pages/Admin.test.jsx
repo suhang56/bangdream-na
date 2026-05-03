@@ -69,7 +69,7 @@ describe('<Admin />', () => {
     githubApi.ghGet.mockReset().mockRejectedValue(new Error('GitHub server error (502).'))
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_good')
     render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/server error/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/服务器错误/)).toBeInTheDocument())
     expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_good')
     expect(screen.queryByRole('button', { name: '登录' })).toBeNull()
   })
