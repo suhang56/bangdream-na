@@ -24,6 +24,23 @@
   color: var(--color-primary);
   text-decoration: none;
   margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+}
+
+@media (max-width: 540px) {
+  .navbar-brand-text {
+    display: none;
+  }
 }
 
 .navbar-brand:focus-visible {

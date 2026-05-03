@@ -29,3 +29,5 @@ Thumbs.db
 # Vitest temp
 *.tsbuildinfo
 .vitest-cache
+
+.vercel

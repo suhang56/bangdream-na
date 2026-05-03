@@ -18,6 +18,10 @@ describe('<Hero />', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('北美炸梦同好会')).toBeInTheDocument()
     expect(screen.getByText('Concerts and conventions')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /bang dream north america/i })).toHaveAttribute(
+      'src',
+      '/logo.png',
+    )
   })
 
   it('omits Chinese subtitle when not provided (edge)', () => {

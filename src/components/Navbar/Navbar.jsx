@@ -12,8 +12,9 @@ export default function Navbar() {
   return (
     <nav className="navbar" aria-label="Primary">
       <div className="navbar-inner">
-        <Link to="/" className="navbar-brand">
-          BD!NA
+        <Link to="/" className="navbar-brand" aria-label="BanG Dream North America — Home">
+          <img src="/logo.png" alt="" className="navbar-logo" width="32" height="32" />
+          <span className="navbar-brand-text">BD!NA</span>
         </Link>
         <ul className="navbar-links">
           {NAV_LINKS.map((link) => (
