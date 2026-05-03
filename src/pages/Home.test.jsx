@@ -3,7 +3,6 @@ import { screen } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import Home from './Home.jsx'
 import site from '../data/site.json'
-import members from '../data/members.json'
 import posts from '../data/posts.json'
 import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
 
@@ -64,7 +63,8 @@ describe('<Home />', () => {
       expect(container.querySelector('.home-stat-tiles')).not.toBeNull()
       const tiles = container.querySelectorAll('.home-stat-tile__num')
       expect(tiles.length).toBe(2)
-      expect(tiles[0].textContent).toBe(String(members.length))
+      expect(screen.getByLabelText('900+')).toBeInTheDocument()
+      expect(screen.getByLabelText('30+')).toBeInTheDocument()
     }
   })
 
