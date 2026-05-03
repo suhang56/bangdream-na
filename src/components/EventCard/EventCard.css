@@ -165,34 +165,6 @@
   overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  .event-card {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-    gap: 1rem;
-  }
-  .event-card__image {
-    width: 100%;
-  }
-}
-
-@media (max-width: 320px) {
-  .event-card__image {
-    display: none;
-  }
-  .event-card__title {
-    font-size: 1.0625rem;
-  }
-  .event-card__links {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .event-card__links a {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .event-card,
   .event-card:hover {

@@ -1,8 +1,9 @@
 import { useMemo, useState, useSyncExternalStore } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import EventList from '../components/EventList/EventList.jsx'
-import EventSidebar from '../components/EventSidebar/EventSidebar.jsx'
-import EventCalendar from '../components/EventCalendar/EventCalendar.jsx'
+import Mobile from '../components/Responsive/Mobile.jsx'
+import Desktop from '../components/Responsive/Desktop.jsx'
+import EventsMobile from './Events.mobile.jsx'
+import EventsDesktop from './Events.desktop.jsx'
 import {
   filterEvents,
   groupEventsByTime,
@@ -11,10 +12,8 @@ import {
 import {
   getLanguage,
   subscribeLanguage,
-  t,
 } from '../lib/uiLanguage.js'
 import events from '../data/events.json'
-import './Events.css'
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -38,7 +37,6 @@ function deriveBands(list) {
 function applyFilters(list, state) {
   let filtered = filterEvents(list, { types: state.types })
 
-  // band filter — only events with bands array, intersect with selected
   if (state.bands instanceof Set && state.bands.size > 0) {
     filtered = filtered.filter((e) => {
       if (!Array.isArray(e?.bands) || e.bands.length === 0) return false
@@ -79,6 +77,7 @@ export default function Events() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [searchParams, setSearchParams] = useSearchParams()
   const view = searchParams.get('view') === 'calendar' ? 'calendar' : 'list'
+  const scope = searchParams.get('scope') === 'past' ? 'past' : 'upcoming'
   const [filterState, setFilterState] = useState({
     types: new Set(),
     bands: new Set(),
@@ -106,61 +105,34 @@ export default function Events() {
     setSearchParams(sp, { replace: true })
   }
 
+  function setScope(nextScope) {
+    const sp = new URLSearchParams(searchParams)
+    if (nextScope === 'upcoming') sp.delete('scope')
+    else sp.set('scope', nextScope)
+    setSearchParams(sp, { replace: true })
+  }
+
+  const layoutProps = {
+    view,
+    setView,
+    scope,
+    setScope,
+    filterState,
+    onFilterChange: setFilterState,
+    availableBands,
+    visible,
+    groups,
+    now,
+  }
+
   return (
-    <main className="events-page section">
-      <div className="section-inner">
-        <h1 className="section-title">{t('nav.events')}</h1>
-        <div className="events-page__view-toggle" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'list'}
-            className={
-              'events-page__view-btn' +
-              (view === 'list' ? ' events-page__view-btn--active' : '')
-            }
-            onClick={() => setView('list')}
-          >
-            {t('btn.viewList')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'calendar'}
-            className={
-              'events-page__view-btn' +
-              (view === 'calendar' ? ' events-page__view-btn--active' : '')
-            }
-            onClick={() => setView('calendar')}
-          >
-            {t('btn.viewCalendar')}
-          </button>
-        </div>
-        <p
-          className="events-page__count"
-          role="status"
-          aria-live="polite"
-        >
-          {t('filter.resultCount', {
-            N: groups.upcoming.length,
-            M: groups.past.length,
-          })}
-        </p>
-        <div className="events-page__layout">
-          <EventSidebar
-            filterState={filterState}
-            onChange={setFilterState}
-            availableBands={availableBands}
-          />
-          <div className="events-page__content">
-            {view === 'calendar' ? (
-              <EventCalendar events={visible} now={now} />
-            ) : (
-              <EventList events={visible} now={now} />
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
+    <>
+      <Mobile>
+        <EventsMobile {...layoutProps} />
+      </Mobile>
+      <Desktop>
+        <EventsDesktop {...layoutProps} />
+      </Desktop>
+    </>
   )
 }
