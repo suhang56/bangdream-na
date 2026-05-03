@@ -31,3 +31,6 @@ Thumbs.db
 .vitest-cache
 
 .vercel
+
+# Member import script local caches (Discord/QQ/WeChat raw exports)
+scripts/.cache/
