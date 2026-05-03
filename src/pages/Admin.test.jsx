@@ -82,6 +82,52 @@ describe('<Admin />', () => {
     expect(screen.getByText('无待合并 PR')).toBeInTheDocument()
   })
 
+  it('admin chrome contains no English leakage outside whitelist (per schema list view)', async () => {
+    githubApi.ghGet.mockReset().mockResolvedValue({ content: [], sha: 'sha', raw: '[]' })
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
+    const schemaKeys = ['events', 'members', 'news', 'posts', 'social', 'site', 'about']
+    for (const key of schemaKeys) {
+      // Click nav button via its Chinese label (skip if already active)
+      const labelMap = {
+        events: '活动', members: '成员', news: '公告', posts: '首页轮播',
+        social: '社交平台', site: '站点信息', about: '关于页',
+      }
+      fireEvent.click(screen.getByRole('button', { name: labelMap[key] }))
+      await waitFor(() => {
+        const text = document.body.textContent ?? ''
+        const englishWords = text.match(/\b[A-Za-z]{3,}\b/g) ?? []
+        const ALLOWED = new Set([
+          // Brand / GitHub / token vocabulary
+          'BD', 'NA', 'GitHub', 'PAT', 'Personal', 'Access', 'Token', 'JSON', 'URL', 'PR',
+          'bangdream', 'repo', 'ghp', 'https',
+          // Schema field keys (English identifiers operator can recognize)
+          'id', 'title', 'date', 'name', 'role', 'tag', 'image', 'bands', 'type',
+          'platform', 'enabled', 'body', 'summary', 'bio', 'oshi', 'city',
+          'description', 'links', 'location', 'socials', 'avatar', 'qrImage',
+          'sourceUrl', 'ticketUrl', 'endDate', 'discordInvite', 'communityName',
+          'communityNameZh', 'communityNameJp', 'mission', 'history', 'faq',
+          'coc', 'joinInstructions', 'datePosted', 'label', 'url',
+          'TYPE', 'ID', 'DATE', 'TAG', 'TITLE', 'NAME', 'ROLE', 'CITY', 'PLATFORM',
+          // Enum option tokens
+          'concert', 'fanmeet', 'con', 'online', 'meetup',
+          'organizer', 'mod', 'member', 'cover',
+          'announcement', 'event', 'community', 'release', 'update',
+          'discord', 'qq', 'xiaohongshu', 'wechat',
+          'instagram', 'youtube', 'tiktok', 'bilibili',
+          // Help-text technical fragments
+          'ISO', 'lowercase', 'dashes', 'multi', 'day', 'YYYY', 'MM', 'DD',
+          'png', 'jpg', 'webp', 'svg', 'jpeg', 'public', 'src',
+          'Markdown', 'json',
+        ])
+        const ALLOWED_LOWER = new Set([...ALLOWED].map((w) => w.toLowerCase()))
+        const leaks = englishWords.filter((w) => !ALLOWED_LOWER.has(w.toLowerCase()))
+        expect(leaks, `English chrome leak for ${key}: ${leaks.join(', ')}`).toEqual([])
+      })
+    }
+  })
+
   it('save flow surfaces save-status pill in TopBar', async () => {
     githubApi.ghGet.mockReset().mockResolvedValue({
       content: [{ id: 'a-1', title: 'Existing', date: '2025-09-15T19:00:00-07:00', type: 'concert', location: { city: 'LA' } }],
