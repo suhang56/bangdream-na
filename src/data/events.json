@@ -5,13 +5,8 @@
     "date": "2026-05-15T07:29:00.000Z",
     "endDate": "2026-05-17T07:29:00.000Z",
     "type": "con",
-    "location": {
-      "城市": "Chicago",
-      "漫展名称": "Anime Central",
-      "国家": "US",
-      "原因": "大桥彩香出席"
-    },
-    "description": "【漫展】大桥彩香 出席 Anime Central\n2026 5.15-17\n地点 Chicago\n活动群 852139015",
+    "location": "Chicago · Anime Central · US",
+    "description": "大桥彩香 出席 Anime Central。\n2026.5.15 - 5.17\n地点：Chicago\n活动群 852139015",
     "links": [
       {
         "label": "官网链接",

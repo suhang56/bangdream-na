@@ -24,6 +24,14 @@ import './EventCard.css'
 const REL_FORMATTER = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 const MS_PER_DAY = 86_400_000
 
+function formatLocation(loc) {
+  if (typeof loc === 'string') return loc
+  if (!loc || typeof loc !== 'object') return ''
+  const preferred = [loc.city, loc.venue, loc.country].filter((v) => typeof v === 'string' && v.trim() !== '')
+  if (preferred.length > 0) return preferred.join(' · ')
+  return Object.values(loc).filter((v) => typeof v === 'string' && v.trim() !== '').join(' · ')
+}
+
 function formatRelative(date, now) {
   if (!date) return null
   const diffMs = date.getTime() - now.getTime()
@@ -71,7 +79,7 @@ export default function EventCard({ event, now = new Date() }) {
         </div>
         <h3 className="event-card__title">{event.title}</h3>
         {event.location ? (
-          <p className="event-card__location">{event.location}</p>
+          <p className="event-card__location">{formatLocation(event.location)}</p>
         ) : null}
         {event.description ? (
           <p className="event-card__description">{event.description}</p>
