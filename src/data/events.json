@@ -18,25 +18,6 @@
     "ticketUrl": "https://www.acen.org/"
   },
   {
-    "id": "【现地】6月东京5连（ras-🐔-梦限大-ztmy-初音）",
-    "title": "【现地】6月东京5连（RAS 🐔 梦限大 ztmy 初音）",
-    "date": "2026-06-01T07:42:00.000Z",
-    "endDate": "2026-06-30T07:42:00.000Z",
-    "type": "concert",
-    "location": {
-      "city": "Tokyo",
-      "venue": "SGC",
-      "country": "Japan"
-    },
-    "description": "【现地】6月东京5连（RAS 🐔 梦限大 ztmy 初音）\n2026 6.7-21\n地点日本东京都内\n活动群 135134980",
-    "links": [],
-    "bands": [
-      "Raise A Suilen",
-      "Ave Mujica",
-      "梦限大",
-      "Zutomayo",
-      "Miku"
-    ],
     "id": "【漫展】群友组织-uw-少女乐队only",
     "title": "【漫展】群友组织 UW 少女乐队only",
     "date": "2026-05-23T07:41:00.000Z",
@@ -51,6 +32,25 @@
     "links": [],
     "bands": [],
     "image": "",
+    "ticketUrl": ""
+  },
+  {
+    "id": "anime-expo",
+    "title": "Anime Expo",
+    "date": "2026-07-02T07:47:00.000Z",
+    "endDate": "2026-07-06T07:47:00.000Z",
+    "type": "concert",
+    "location": {
+      "city": "Los Angeles",
+      "venue": "Cypto.com Arena",
+      "country": "US"
+    },
+    "description": "Roselia时隔5年重回北美!!!!\nAnime Expo 2026\n2026 7.2-5\n地点 CA\n活动群 797097819",
+    "links": [],
+    "bands": [
+      "Roselia"
+    ],
+    "image": "/events/anime-expo.png",
     "ticketUrl": ""
   }
 ]
