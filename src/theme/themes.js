@@ -13,8 +13,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #6366f1, #a78bfa)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': '#ffffff',
-      '--color-error': '#ef4444',
-      '--color-error-on': '#ffffff',
     },
   },
   roselia: {
@@ -31,8 +29,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #a020c0, #d4af37)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
-      '--color-error': '#ff5577',
-      '--color-error-on': '#ffffff',
     },
   },
   popipa: {
@@ -49,8 +45,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #ff3377, #ff5522, #ffcc11)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': '#ffffff',
-      '--color-error': '#ff4444',
-      '--color-error-on': '#ffffff',
     },
   },
   mygo: {
@@ -67,8 +61,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #77bbdd, #7777aa)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': '#ffffff',
-      '--color-error': '#ee6677',
-      '--color-error-on': '#ffffff',
     },
   },
   morfonica: {
@@ -85,8 +77,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #33aaff, #b896e8)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
-      '--color-error': '#ff6688',
-      '--color-error-on': '#ffffff',
     },
   },
   afterglow: {
@@ -103,8 +93,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #ee0022, #ff9999, #ffee88)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': '#ffffff',
-      '--color-error': '#ff5544',
-      '--color-error-on': '#ffffff',
     },
   },
   pastel: {
@@ -121,8 +109,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(135deg, #ff88bb, #ddbbff, #55ddee, #99dd88, #ffeeaa)',
       '--color-on-primary': '#ffffff',
       '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
-      '--color-error': '#f08899',
-      '--color-error-on': '#ffffff',
     },
   },
   hhw: {
@@ -139,8 +125,6 @@ export const themes = {
       '--gradient-hero': 'linear-gradient(90deg, #aa33cc, #ff9922, #ffee22, #44ddff, #006699)',
       '--color-on-primary': 'rgba(0, 0, 0, 0.85)',
       '--color-on-accent': '#ffffff',
-      '--color-error': '#ee5544',
-      '--color-error-on': '#ffffff',
     },
   },
 }
@@ -169,8 +153,6 @@ export const REQUIRED_TOKENS = [
   '--gradient-hero',
   '--color-on-primary',
   '--color-on-accent',
-  '--color-error',
-  '--color-error-on',
 ]
 
 export function isValidThemeKey(key) {

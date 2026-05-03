@@ -70,19 +70,6 @@ describe('themes contract', () => {
     expect(themes.morfonica.tokens['--color-on-accent']).toBe('rgba(0, 0, 0, 0.85)')
   })
 
-  it('every theme defines --color-error and --color-error-on (P8 admin error tokens)', () => {
-    for (const key of themeOrder) {
-      const tokens = themes[key].tokens
-      expect(tokens['--color-error'], `${key} missing --color-error`).toBeTruthy()
-      expect(tokens['--color-error-on'], `${key} missing --color-error-on`).toBeTruthy()
-    }
-  })
-
-  it('REQUIRED_TOKENS includes --color-error and --color-error-on', () => {
-    expect(REQUIRED_TOKENS).toContain('--color-error')
-    expect(REQUIRED_TOKENS).toContain('--color-error-on')
-  })
-
   it('DEFAULT_THEME_KEY is "neutral" and exists', () => {
     expect(DEFAULT_THEME_KEY).toBe('neutral')
     expect(themes[DEFAULT_THEME_KEY]).toBeDefined()
