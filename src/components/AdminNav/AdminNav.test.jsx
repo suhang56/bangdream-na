@@ -33,9 +33,25 @@ describe('<AdminNav />', () => {
     expect(screen.getByLabelText('后台分区')).toBeInTheDocument()
   })
 
-  it('does not render sign-out (now in AdminTopBar)', () => {
-    render(<AdminNav activeKey="events" onSelect={() => {}} />)
-    expect(screen.queryByRole('button', { name: /登出|sign out/i })).toBeNull()
+  it('renders sign-out button at the bottom of the sidebar', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} onSignOut={() => {}} />)
+    expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument()
+  })
+
+  it('clicking sign-out calls onSignOut', () => {
+    const onSignOut = vi.fn()
+    render(<AdminNav activeKey="events" onSelect={() => {}} onSignOut={onSignOut} />)
+    fireEvent.click(screen.getByRole('button', { name: '登出' }))
+    expect(onSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('sign-out is the last interactive element (sidebar bottom)', () => {
+    const { container } = render(
+      <AdminNav activeKey="events" onSelect={() => {}} onSignOut={() => {}} />,
+    )
+    const buttons = container.querySelectorAll('button')
+    const last = buttons[buttons.length - 1]
+    expect(last).toHaveTextContent('登出')
   })
 
   it('does not render View Site / open PR (now in AdminTopBar)', () => {

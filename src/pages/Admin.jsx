@@ -83,6 +83,7 @@ export default function Admin() {
       <AdminNav
         activeKey={activeKey}
         onSelect={handleSelect}
+        onSignOut={handleLogout}
       />
       <div className="admin-main-column">
         <AdminTopBar
@@ -90,7 +91,6 @@ export default function Admin() {
           editing={null}
           saveStatus={saveStatus}
           openPR={openPR}
-          onSignOut={handleLogout}
         />
         <main className="admin-content" key={activeKey}>
           <AdminEditor

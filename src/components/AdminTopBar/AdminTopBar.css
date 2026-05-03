@@ -157,31 +157,3 @@
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
-
-.admin-topbar-signout {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  padding: 0.4rem 0.85rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.admin-topbar-signout:hover {
-  color: var(--color-error);
-  border-color: color-mix(in srgb, var(--color-error) 60%, var(--color-border));
-}
-
-@supports not (border-color: color-mix(in srgb, red, blue)) {
-  .admin-topbar-signout:hover {
-    border-color: var(--color-error);
-  }
-}
-
-.admin-topbar-signout:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}

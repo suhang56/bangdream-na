@@ -3,21 +3,20 @@ import { deriveSaveStatusLabel } from './saveStatus.js'
 import './AdminTopBar.css'
 
 /**
- * Sticky top bar inside the admin shell.
+ * Sticky top bar inside the admin shell. Sign-out lives in AdminNav (sidebar
+ * bottom) per Designer §3.3, not here.
  *
  * @param {object} props
  * @param {string} props.schemaKey
  * @param {object|null} props.editing - null in list view; item or {__new:true} in edit/create
  * @param {{ status?: 'idle'|'saving'|'saved'|'error', prNumber?: number|null, prUrl?: string|null }} [props.saveStatus]
  * @param {{ number: number, htmlUrl: string } | null} [props.openPR]
- * @param {() => void} props.onSignOut
  */
 export default function AdminTopBar({
   schemaKey,
   editing,
   saveStatus,
   openPR,
-  onSignOut,
 }) {
   const segments = deriveBreadcrumb(schemaKey, editing)
   const status = deriveSaveStatusLabel(saveStatus ?? { status: 'idle' })
@@ -76,13 +75,6 @@ export default function AdminTopBar({
           ) : (
             <span className="admin-topbar-pr-empty">无待合并 PR</span>
           )}
-          <button
-            type="button"
-            className="admin-topbar-signout"
-            onClick={onSignOut}
-          >
-            登出
-          </button>
         </div>
       </div>
     </header>

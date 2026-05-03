@@ -1,8 +1,9 @@
 import { listSchemaKeys, getSchema } from '../../lib/adminSchemas.js'
 import AdminBrandPanel from '../AdminBrandPanel/AdminBrandPanel.jsx'
+import AdminSignOut from '../AdminSignOut/AdminSignOut.jsx'
 import './AdminNav.css'
 
-export default function AdminNav({ activeKey, onSelect }) {
+export default function AdminNav({ activeKey, onSelect, onSignOut }) {
   const keys = listSchemaKeys()
   return (
     <aside className="admin-nav">
@@ -24,6 +25,9 @@ export default function AdminNav({ activeKey, onSelect }) {
           )
         })}
       </nav>
+      <div className="admin-nav-footer">
+        <AdminSignOut onSignOut={onSignOut} />
+      </div>
     </aside>
   )
 }
