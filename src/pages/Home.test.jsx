@@ -5,7 +5,7 @@ import Home from './Home.jsx'
 import site from '../data/site.json'
 import events from '../data/events.json'
 import members from '../data/members.json'
-import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
+import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
 import { groupEventsByTime } from '../lib/events.js'
 
 describe('<Home />', () => {
@@ -32,9 +32,15 @@ describe('<Home />', () => {
     expect(screen.getByText(site.communityName)).toBeInTheDocument()
   })
 
-  it('renders tagline', () => {
+  it('renders tagline from i18n (en)', () => {
     renderWithProviders(<Home />, { route: '/' })
-    expect(screen.getByText(site.tagline)).toBeInTheDocument()
+    expect(screen.getByText(t('tagline'))).toBeInTheDocument()
+  })
+
+  it('tagline switches with language (zh)', () => {
+    setLanguage('zh')
+    renderWithProviders(<Home />, { route: '/' })
+    expect(screen.getByText(t('tagline'))).toBeInTheDocument()
   })
 
   it('renders active Discord CTA', () => {

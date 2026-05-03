@@ -31,7 +31,7 @@ export default function Home() {
         communityName={site.communityName}
         communityNameZh={site.communityNameZh}
         communityNameJp={site.communityNameJp}
-        tagline={site.tagline}
+        tagline={t('tagline')}
         discordUrl={site.discordInvite}
       >
         {hasUpcoming ? (
