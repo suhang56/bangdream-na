@@ -77,17 +77,12 @@ export default function HeroCarousel({
   const slides = sortEventsByDate(upcoming, 'asc').slice(0, max)
   const length = slides.length
 
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [rawIndex, setCurrentIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
   const reducedMotion = getReducedMotion()
-
-  // Keep index in range when slides change
-  useEffect(() => {
-    if (currentIndex >= length && length > 0) {
-      setCurrentIndex(0)
-    }
-  }, [length, currentIndex])
+  // clamp index when slides change without firing an effect
+  const currentIndex = length > 0 ? rawIndex % length : 0
 
   // Auto-advance
   useEffect(() => {
