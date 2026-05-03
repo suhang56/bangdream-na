@@ -15,11 +15,11 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: 20px;
   overflow: hidden;
   background: var(--color-bg-card, #1f1f1f);
   border: 2px solid var(--color-border);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-sticker-rest);
 }
 
 .post-card--side {

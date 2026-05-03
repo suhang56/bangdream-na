@@ -1,9 +1,30 @@
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Noto Sans SC', 'Montserrat', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color-scheme: dark;
+
+  /* Bandori Portal — design tokens */
+  --font-display: 'Montserrat', 'Noto Sans SC', system-ui, sans-serif;
+  --font-body: 'Noto Sans SC', 'Montserrat', 'PingFang SC', 'Microsoft YaHei',
+    system-ui, sans-serif;
+
+  /* Sticker offset shadow — bang-dream.com signature, dark-mode tuned */
+  --shadow-sticker-rest:
+    8px 8px 0 rgba(255, 255, 255, 0.06),
+    0 12px 36px rgba(0, 0, 0, 0.40);
+  --shadow-sticker-hover:
+    12px 12px 0 rgba(255, 255, 255, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.50);
+
+  /* Pastel decorative accents (bang-dream.com palette) — empty-state glyphs only */
+  --accent-cyan: #84e0ff;
+  --accent-mint: #73ffb3;
+  --accent-lemon: #fff978;
+  --accent-lavender: #e6a5ff;
+  --accent-coral: #ffae82;
 }
 
 *, *::before, *::after {

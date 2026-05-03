@@ -66,12 +66,16 @@
 }
 
 .home-section__title-en {
+  font-family: var(--font-display);
   font-size: clamp(1.625rem, 3.5vw, 2.25rem);
+  font-weight: 800;
   color: var(--color-text);
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .home-section__title-zh {
+  font-family: var(--font-body);
   font-size: clamp(0.9375rem, 1.6vw, 1.125rem);
   color: var(--color-text-muted);
   font-weight: 600;
