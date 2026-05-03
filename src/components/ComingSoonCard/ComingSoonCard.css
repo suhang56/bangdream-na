@@ -1,0 +1,71 @@
+.coming-soon-card {
+  padding: 1.75rem;
+  border-radius: 14px;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border);
+  opacity: 0.78;
+  position: relative;
+  overflow: hidden;
+  cursor: not-allowed;
+  transition: opacity 200ms ease;
+}
+
+.coming-soon-card:hover {
+  opacity: 0.88;
+}
+
+.coming-soon-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.coming-soon-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.coming-soon-icon {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.coming-soon-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.coming-soon-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.coming-soon-badge {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.coming-soon-desc {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}

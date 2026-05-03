@@ -1,0 +1,74 @@
+.discord-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  font-family: inherit;
+  transition: transform 80ms ease;
+}
+
+.discord-cta--md {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.discord-cta--lg {
+  padding: 0.875rem 1.75rem;
+  font-size: 1.0625rem;
+}
+
+.discord-cta-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.discord-cta--active {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.discord-cta--active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-hero);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: -1;
+}
+
+.discord-cta--active:hover::before {
+  opacity: 0.30;
+}
+
+.discord-cta--active:active {
+  transform: scale(0.98);
+}
+
+.discord-cta--active:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.discord-cta--disabled {
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.discord-cta--disabled .discord-cta-icon {
+  opacity: 0.5;
+}
