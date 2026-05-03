@@ -1,6 +1,11 @@
 # `bangdream-na` Phase 8 — Architecture Specification (Admin redesign)
 
-**Status**: Architect deliverable for Task #2 in team `bangdream-na-phase8`. **Revision 2** (2026-05-03) — re-aligned with `docs/p8-design.md` after Designer's spec landed. Drops 13 files, drops 2 iteration steps (P8.1 theme tokens + the SVG-illustration assumption inside P8.3), reduces total deliverables from 13 to 12 (P8.2 → P8.13 numbering preserved; P8.1 explicitly DROPPED so Developer can detect if they shipped it before this revision). Pairs with `docs/p8-design.md` §1-§9; both are authoritative.
+**Status**: Architect deliverable for Task #2 in team `bangdream-na-phase8`. **Revision 3** (2026-05-03) — incorporates Designer's §9 canonical-strings table + the parallel-`labelZh`-fields decision. Pairs with `docs/p8-design.md` §1-§9; both are authoritative.
+
+Revision history:
+- v1: initial spec assuming bilingual `t()`/i18n.json admin chrome (~169 keys × 2 langs).
+- v2: pivoted to Chinese-only inline after team-lead override; aligned to Designer doc landing (sidebar 260px, `--admin-error` local token, ◆ glyph empty state, sign-out stays in sidebar, 5-state saveStatus).
+- **v3 (current)**: added Designer §9 canonical strings (login `BD!NA 后台`, news=`公告`, social=`社交平台`, posts=`首页轮播`, save-status pill text), switched schema rewrite from "overwrite `label`" to "add parallel `labelZh` field", narrowed Reviewer English-whitelist to 6 tokens (`BD!NA / PR / GitHub / Token / PAT / JSON`).
 
 **Scope**: Visual redesign + theme integration + Chinese localization of the existing `/admin` panel shipped in Phase 4. P8 is a **layered overlay** on P4 — schemas, GitHub API client, save flow, branch+PR semantics, security model are all unchanged. What P8 changes:
 
@@ -614,9 +619,9 @@ Existing tests in `AdminEditor.test.jsx`, `AdminNav.test.jsx`, `AdminLogin.test.
 1. Match Chinese strings: `getByText('+ 新建')` rather than `getByText('+ Add new')`. (Tests do **not** import `t()`; they query Chinese inline text directly.)
 2. Cover the new prop `onSaveStatus` on `AdminEditor` — verify it's called with `{status:'saving'}` immediately before any save call and with `{status:'saved'}` on success.
 3. Cover theme inheritance: render `<Admin>` inside `<ThemeProvider initialTheme="roselia">`; assert the document's `data-theme` is set; assert the theme tokens are applied (jsdom doesn't fully implement getComputedStyle for vars, so probe via inline style on a sentinel element if needed — same approach Phase 3 used in `ThemeContext.test.jsx`).
-4. **English-leakage scan** (replaces P4's i18n switch test): render `<Admin>`, log in, navigate each schema's list and edit views; for each rendered DOM, run a regex against `document.body.textContent` matching English-letter words `\b[A-Za-z]{3,}\b`; the matches must all be on the whitelist — `GitHub`, `PAT`, `Token`, `Personal`, `Access`, `JSON`, `URL`, `bangdream-na`, `repo`, `ghp`, `https`, `chore`, `feat`, `fix`, `content`, schema-key columns (`id`, `title`, `date`, `name`, `role`, `tag`, `image`, `bands`, `type`, `platform`, `enabled`, `body`, `summary`, `bio`, `oshi`, `city`, `description`, `links`, `location`, `socials`, `avatar`, `qrImage`, `sourceUrl`, `ticketUrl`, `endDate`, `discordInvite`, `communityName`, `communityNameZh`, `communityNameJp`, `mission`, `history`, `faq`, `coc`, `joinInstructions`, `datePosted`, etc.), enum option tokens (`concert`, `fanmeet`, `con`, `online`, `meetup`, `organizer`, `mod`, `member`, `cover-band`, `announcement`, `event`, `community`, `release`, `update`, `discord`, `qq`, `xiaohongshu`, `x`, `wechat`, `instagram`, `youtube`, `tiktok`, `bilibili`), and known help-text technical fragments (`ISO`, `lowercase`, `dashes`, `multi-day`). Architect's call: this whitelist is **explicit** (committed alongside the test) — when Developer adds a new field key, they update the whitelist. The test fails noisily on anything else, which catches genuine English chrome leaks.
+4. **English-leakage scan** (replaces P4's i18n switch test) — Designer §9 binding policy: render `<Admin>`, log in, navigate each schema's list and edit views; for each rendered DOM, scan **only** chrome regions (breadcrumb, nav buttons, button text, status pill, toast, form labels, empty-state copy, login screen) — explicitly **excludes** `<th>` content (column-header field-keys) and `<option value="...">` value attributes (enum tokens). Any English-letter word ≥3 chars in scope must be on the **6-token whitelist**: `BD!NA`, `PR`, `GitHub`, `Token`, `PAT`, `JSON`. The test fails noisily on anything else.
 
-This scan replaces the P4 i18n switch test and is the **memory rule** `feedback_i18n_scope_full_ui_chrome_default.md` enforcement for admin: i18n scope says "full UI chrome by default" — admin is a deliberate scope-exclusion, but English leakage still must be caught (operator wants Chinese-only UX). The whitelist documents the deliberate exceptions.
+Implementation hint: query the chrome regions explicitly (e.g., `screen.getByRole('navigation', {name:/面包屑/})`, `screen.getByRole('banner')`, etc.) and run the whitelist regex against each region's `textContent` — don't scan `document.body.textContent` directly because it'd also catch column headers (which are not chrome). Reviewer enforces.
 
 ### 9.4 Reviewer-only static scans
 
@@ -752,12 +757,15 @@ Each deliverable is one PR-ready commit. After each commit the test suite (`npm 
 
 Original P8.1 added `--color-error`/`--color-error-on` tokens to all 8 themes. Designer §1 declined; error red is a local `--admin-error: #e53e3e` declared in `Admin.css :root` only. **If Developer already shipped P8.1 to remote**: revert that commit (`git revert`) before P8.2; `themes.js` must be byte-identical to pre-P8.
 
-### P8.2 — adminSchemas.js Chinese pass
+### P8.2 — adminSchemas.js Chinese parallel-fields pass (Designer §9)
 
-- Modify `src/lib/adminSchemas.js`: rewrite every operator-visible string (schema `title`, every `field.label`, `field.help`, `validateItem` error messages) to Chinese inline. Schema keys, field keys, `type`, `options`, validation rules unchanged.
-- Modify `src/lib/adminSchemas.test.js`: update assertion strings (`/required/i` → `/不能为空/`, etc.).
-- **Acceptance**: `adminSchemas.test.js` green. AdminForm/AdminEditor still render (they now show Chinese labels via the schemas) — but their existing tests query English text and will fail. They get fixed in P8.7+ commits, so this commit briefly leaves the **component** test files red. Per memory rule (per-commit test green), Developer **bundles the schema-side English-string-update for AdminForm/AdminEditor's existing test assertions into THIS commit** — the test-text update is mechanical (`getByText('Title')` → `getByText('标题')`). This keeps `npm test` green per-commit.
-- **Commit**: `refactor(admin): translate adminSchemas labels to chinese`
+- Modify `src/lib/adminSchemas.js`: **add** parallel `*Zh` sibling fields (don't overwrite English):
+  - For each schema: add `titleZh: '<canonical from §4.1>'`. Optionally add `columnLabelsZh: { fieldKey: '<Chinese>' }` per schema for AdminTable header overrides.
+  - For each `field`: add `labelZh: '<Chinese>'`. Add `helpZh: '<Chinese>'` only when `help` is non-empty.
+  - Update `validateItem` to emit Chinese error messages; if interpolating a label, use `field.labelZh` (not `field.label`).
+- Modify `src/lib/adminSchemas.test.js`: keep existing English-label assertions; **add** new assertions per §4.4 — `titleZh` matches the canonical table; every field has a non-empty string `labelZh`; if `help` exists then `helpZh` must too; `validateItem` error strings match Chinese regex (`/不能为空/`, etc.).
+- **Acceptance**: `adminSchemas.test.js` green. AdminForm/AdminEditor must read `field.labelZh` exclusively at JSX render time (NOT `field.label`); their existing tests query English text and will fail until P8.7+/P8.10+ refactors land. Developer **bundles the AdminForm/AdminEditor visible-string switch from `field.label` → `field.labelZh` into THIS commit** to keep `npm test` green per-commit. The CSS/structural refactors of those components stay in P8.7+/P8.10+.
+- **Commit**: `refactor(admin): add labelZh/titleZh parallel fields and chinese error strings`
 
 ### P8.3 — AdminEmptyState component (◆ glyph card)
 
@@ -860,6 +868,13 @@ Original P8.1 added `--color-error`/`--color-error-on` tokens to all 8 themes. D
 | `validateItem` return shape | **Unchanged: `{ fieldKey, message }`** | Chinese strings stored inline at validateItem call site; no `messageKey` indirection needed without bilingual support. |
 | Theme tokens vs local error hex | **Local `--admin-error: #e53e3e` in `Admin.css :root` (Designer §1 override)** | Don't pollute 8 themes with a new contract for one operator-visible UI signal; one local declaration line is the single allowed exception in the §9.4-A scan. |
 | Save status state count | **5 states (Designer §2.3)**: `idle` (hidden) / `unsaved` / `saving` / `saved` (3s auto-clear) / `error` | Adds `unsaved` (mid-edit dirty indicator) + auto-clear timer; both responsibilities on `Admin.jsx`. |
+| Schema Chinese strings | **Parallel `labelZh` / `titleZh` / `helpZh` fields (Designer §9 override)** | Don't overwrite English `label`; keep both side-by-side. JSX reads `*Zh` exclusively. Slightly more lines in schema source, but explicit and reversible. |
+| Reviewer English-leakage whitelist | **6 tokens only (Designer §9)**: `BD!NA / PR / GitHub / Token / PAT / JSON` | Architect's earlier 40-token whitelist over-permitted; Designer's narrower list catches more leakage. Scan must scope to chrome regions (not column headers / option values). |
+| Save-status pill saved-state copy | **`✓ 已保存` (no PR number, Designer §9)** | PR number lives in the toast (Designer §7), not the pill. Pill is glanceable; toast is the actionable surface. |
+| Login screen heading | **`BD!NA 后台` (Designer §9)** | Sets brand acronym as the dominant element; `BD!NA` is on the Designer whitelist. |
+| News schema title | **`公告` not `资讯` (Designer §9)** | Matches the noun the public-site users see in nav already. |
+| Social schema title | **`社交平台` not `社交链接` (Designer §9)** | Designer chose "platforms" over "links". |
+| Posts schema title | **`首页轮播` not `动态（首页滚动）` (Designer §9)** | Designer's wording is tighter. |
 | Schema field keys (`id`, `title`, `date` …) — translate column headers? | **Optional override via `column.label`** | AdminTable accepts a Chinese label per column; AdminEditor passes a small inline `COLUMN_LABEL_ZH` map. Where no label is provided, the field key shows (acceptable for operator-visible technical column headers; see §3.4). |
 | Enum option display labels | **Per-schema inline lookup table** in AdminForm | ~25 enum-label pairs across all schemas; mechanical, no abstraction. |
 | English-leakage gate | **Whitelist-based DOM scan** | Replaces P4's i18n switch test; whitelist documents deliberate English exceptions (`GitHub`, `PAT`, schema keys, enum tokens). |
@@ -873,7 +888,7 @@ Reviewer APPROVES only when ALL of:
 - [ ] Static scans (§9.4 A, B, C, D) all pass with zero non-whitelisted hits.
 - [ ] DOM English-leakage scan in `Admin.test.jsx` green; whitelist explicit and minimal.
 - [ ] `npm run test:coverage` exits 0; per-file ≥80% on Tier A files (`adminSchemas.js`, `breadcrumb.js`, `saveStatus.js`, `illustrations/index.js`).
-- [ ] On-device smoke (§9.5): theme retint visible in admin sidebar / top bar / save button when switching theme on public site; every visible chrome string is Chinese (whitelist exceptions only); save flow shows status pill `idle → saving → saved · PR #N`.
+- [ ] On-device smoke (§9.5): theme retint visible in admin sidebar / top bar / save button when switching theme on public site; every visible chrome string is Chinese (6-token whitelist `BD!NA / PR / GitHub / Token / PAT / JSON` only); save flow pill cycles `idle → unsaved → saving → ✓ 已保存` (auto-clears 3s); bottom-right toast renders with PR link.
 - [ ] All commits on `feat/phase-8` follow conventional-commit format and have NO `Co-Authored-By` line. (Total 12 deliverables P8.2-P8.13; P8.1 is dropped — see §12.)
 - [ ] No `.claude/` references in committed files.
 - [ ] No new npm deps (`package.json` / `package-lock.json` diff is empty for `dependencies` and `devDependencies`).
@@ -889,9 +904,9 @@ Once APPROVED: per memory rule `feedback_never_autonomous_merge_to_default_branc
 
 ---
 
-## 15. Designer alignment (Task #1, completed)
+## 15. Designer alignment (Task #1, completed; revisions through v3)
 
-Designer's `docs/p8-design.md` landed and overrode three Architect defaults. This doc has been re-aligned (search "Designer §" for cross-references). Summary of overrides:
+Designer's `docs/p8-design.md` landed and was subsequently revised; both sweeps are now incorporated. Search "Designer §" for cross-references. Summary of overrides:
 
 | Architect default | Designer override | Section impact |
 |---|---|---|
@@ -904,6 +919,11 @@ Designer's `docs/p8-design.md` landed and overrode three Architect defaults. Thi
 | Brand panel content | Designer §3.1 specifies `<img src="/panda.svg">` + `后台` wordmark + `BD!NA 后台` subline | §1.1, §1.6 (asset dependency flagged), §12 P8.6 |
 | Sidebar nav prefix | Designer §3.2: `◆ ` prefix on every schema button | §12 P8.8 |
 | List header count badge | Designer §4.2: `{N} 条` count badge next to schema title | §1.2 AdminEditor, §12 P8.7 |
+| Schema-side Chinese strings | Designer §9 binding canonical table; Architect adds parallel `labelZh`/`titleZh`/`helpZh` instead of overwriting | §3.2, §4 (rewritten), §12 P8.2 |
+| Reviewer English whitelist | Designer §9 narrows to 6 tokens (`BD!NA / PR / GitHub / Token / PAT / JSON`) | §3.4, §3.5, §9.3 |
+| Save-status pill `saved` text | Designer §9: `✓ 已保存` (no PR number; PR # is in toast only) | §5.3, §9.1 saveStatus.test |
+| Login heading | Designer §9: `BD!NA 后台` (not `后台面板`) | §3.1 example, §12 P8.10 |
+| News / Social / Posts titles | Designer §9: `公告` / `社交平台` / `首页轮播` (overrides Architect's earlier draft) | §4.1, §13 |
 
 Architect's notes for Developer:
 - Designer's spec is the visual binding contract; this doc is the structural binding contract. Where they reference each other, both are authoritative.

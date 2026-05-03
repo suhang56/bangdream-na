@@ -1,0 +1,187 @@
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-topbar-stripe {
+  height: 3px;
+  background: var(--gradient-hero);
+  opacity: 0.6;
+}
+
+.admin-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  min-height: 52px;
+  flex-wrap: wrap;
+}
+
+.admin-topbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-topbar-breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30ch;
+}
+
+.admin-topbar-breadcrumb-sep {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.admin-topbar-breadcrumb-label {
+  color: var(--color-text-muted);
+}
+
+.admin-topbar-breadcrumb-label.is-last {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.admin-topbar-status-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 8rem;
+  flex: 0 0 auto;
+}
+
+.admin-topbar-status {
+  font-size: 0.8rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.admin-topbar-status-saving {
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-topbar-status-saving {
+    background: var(--color-bg);
+  }
+}
+
+.admin-topbar-status-saved {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-topbar-status-saved {
+    background: var(--color-bg);
+  }
+}
+
+.admin-topbar-status-error {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-topbar-status-error {
+    background: var(--color-bg);
+  }
+}
+
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.admin-topbar-link {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+}
+
+.admin-topbar-link:hover {
+  color: var(--color-text);
+}
+
+.admin-topbar-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.admin-topbar-pr-pill {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-topbar-pr-pill {
+    background: var(--color-bg);
+    border-color: var(--color-border);
+  }
+}
+
+.admin-topbar-pr-pill:hover {
+  filter: brightness(1.1);
+}
+
+.admin-topbar-pr-pill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.admin-topbar-pr-empty {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.admin-topbar-signout {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.admin-topbar-signout:hover {
+  color: var(--color-error);
+  border-color: color-mix(in srgb, var(--color-error) 60%, var(--color-border));
+}
+
+@supports not (border-color: color-mix(in srgb, red, blue)) {
+  .admin-topbar-signout:hover {
+    border-color: var(--color-error);
+  }
+}
+
+.admin-topbar-signout:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
