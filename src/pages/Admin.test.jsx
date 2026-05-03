@@ -19,16 +19,16 @@ describe('<Admin />', () => {
   it('renders shell + sidebar + default Events view when token present', async () => {
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
     render(<Admin />)
-    expect(screen.getByRole('button', { name: /events/i, current: 'page' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText(/no events yet/i)).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: '活动', current: 'page' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/no 活动 yet/i)).toBeInTheDocument())
   })
 
   it('clicking nav button switches view', async () => {
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
     render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/no events yet/i)).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /^members$/i }))
-    await waitFor(() => expect(screen.getByText(/no members yet/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/no 活动 yet/i)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: '成员' }))
+    await waitFor(() => expect(screen.getByText(/no 成员 yet/i)).toBeInTheDocument())
   })
 
   it('logout clears token and returns to login', () => {

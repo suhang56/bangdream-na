@@ -5,20 +5,20 @@ import AdminNav from './AdminNav.jsx'
 describe('<AdminNav />', () => {
   it('renders all 7 schema buttons', () => {
     render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={() => {}} />)
-    for (const label of ['Events', 'Members', 'News', 'Posts (home carousel)', 'Social links', 'Site identity', 'About page']) {
+    for (const label of ['活动', '成员', '公告', '首页轮播', '社交平台', '站点信息', '关于页']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
   })
 
   it('marks active key with aria-current=page', () => {
     render(<AdminNav activeKey="news" onSelect={() => {}} onLogout={() => {}} />)
-    expect(screen.getByRole('button', { name: 'News' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: '公告' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('clicking a schema button calls onSelect with key', () => {
     const onSelect = vi.fn()
     render(<AdminNav activeKey="events" onSelect={onSelect} onLogout={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Members' }))
+    fireEvent.click(screen.getByRole('button', { name: '成员' }))
     expect(onSelect).toHaveBeenCalledWith('members')
   })
 

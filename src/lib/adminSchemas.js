@@ -2,6 +2,10 @@
  * Schema registry for the bangdream-na admin panel.
  * Pure config + small validation helpers — no fetch, no DOM.
  *
+ * Operator-visible labels and validation messages are Chinese inline (P8).
+ * Schema keys, field keys, types, and enum option values stay English —
+ * they are identifiers persisted to JSON, not display labels.
+ *
  * @typedef {'text'|'textarea'|'url'|'email'|'datetime'|'date'|'select'|'boolean'|'number'|'asset'|'array'|'object'} FieldType
  *
  * @typedef {Object} FieldDef
@@ -37,29 +41,29 @@ const DEFAULT_ASSET_MAX = 5 * 1024 * 1024
 export const adminSchemas = {
   events: {
     key: 'events',
-    title: 'Events',
+    title: '活动',
     file: 'src/data/events.json',
     shape: 'array',
     listKey: 'id',
     listColumns: ['id', 'title', 'date', 'type'],
     sortFn: (items) => [...items].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     fields: [
-      { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'title', help: 'Auto-generated from title; lowercase + dashes' },
-      { key: 'title', type: 'text', label: 'Title', required: true },
-      { key: 'date', type: 'datetime', label: 'Date / time', required: true, help: 'ISO 8601, e.g. 2025-09-15T19:00:00-07:00' },
-      { key: 'endDate', type: 'datetime', label: 'End date / time', help: 'Optional; for multi-day events' },
-      { key: 'type', type: 'select', label: 'Type', required: true, options: ['concert', 'fanmeet', 'con', 'online', 'meetup'] },
-      { key: 'location', type: 'object', label: 'Location', complex: true, help: '{"city":"Los Angeles","venue":"YouTube Theater","country":"US"}' },
-      { key: 'description', type: 'textarea', label: 'Description' },
-      { key: 'links', type: 'array', label: 'Links', complex: true, help: '[{"label":"Tickets","url":"https://..."}]' },
-      { key: 'bands', type: 'array', label: 'Bands', complex: true, help: '["Roselia","Poppin\'Party"]' },
-      { key: 'image', type: 'asset', label: 'Banner image', uploadDir: 'public/events/' },
-      { key: 'ticketUrl', type: 'url', label: 'Ticket URL' },
+      { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'title', help: '根据标题自动生成；小写字母 + 横线' },
+      { key: 'title', type: 'text', label: '标题', required: true },
+      { key: 'date', type: 'datetime', label: '日期 / 时间', required: true, help: 'ISO 8601 格式，例如 2025-09-15T19:00:00-07:00' },
+      { key: 'endDate', type: 'datetime', label: '结束日期 / 时间', help: '可选；用于跨日活动' },
+      { key: 'type', type: 'select', label: '类型', required: true, options: ['concert', 'fanmeet', 'con', 'online', 'meetup'] },
+      { key: 'location', type: 'object', label: '地点', complex: true, help: '{"city":"Los Angeles","venue":"YouTube Theater","country":"US"}' },
+      { key: 'description', type: 'textarea', label: '描述' },
+      { key: 'links', type: 'array', label: '链接', complex: true, help: '[{"label":"购票","url":"https://..."}]' },
+      { key: 'bands', type: 'array', label: '乐队', complex: true, help: '["Roselia","Poppin\'Party"]' },
+      { key: 'image', type: 'asset', label: '横幅图片', uploadDir: 'public/events/' },
+      { key: 'ticketUrl', type: 'url', label: '购票链接' },
     ],
   },
   members: {
     key: 'members',
-    title: 'Members',
+    title: '成员',
     file: 'src/data/members.json',
     shape: 'array',
     listKey: 'id',
@@ -67,18 +71,18 @@ export const adminSchemas = {
     sortFn: (items) => [...items].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
     fields: [
       { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'name' },
-      { key: 'name', type: 'text', label: 'Name', required: true },
-      { key: 'role', type: 'select', label: 'Role', options: ['organizer', 'mod', 'member', 'cover-band'] },
-      { key: 'city', type: 'text', label: 'City' },
-      { key: 'oshi', type: 'text', label: 'Oshi (band/character)' },
-      { key: 'bio', type: 'textarea', label: 'Bio' },
-      { key: 'avatar', type: 'asset', label: 'Avatar', uploadDir: 'public/members/' },
-      { key: 'socials', type: 'array', label: 'Socials', complex: true, help: '[{"platform":"x","url":"https://..."}]' },
+      { key: 'name', type: 'text', label: '昵称', required: true },
+      { key: 'role', type: 'select', label: '身份', options: ['organizer', 'mod', 'member', 'cover-band'] },
+      { key: 'city', type: 'text', label: '城市' },
+      { key: 'oshi', type: 'text', label: '推（乐队 / 角色）' },
+      { key: 'bio', type: 'textarea', label: '简介' },
+      { key: 'avatar', type: 'asset', label: '头像', uploadDir: 'public/members/' },
+      { key: 'socials', type: 'array', label: '社交账号', complex: true, help: '[{"platform":"x","url":"https://..."}]' },
     ],
   },
   news: {
     key: 'news',
-    title: 'News',
+    title: '公告',
     file: 'src/data/news.json',
     shape: 'array',
     listKey: 'id',
@@ -86,69 +90,69 @@ export const adminSchemas = {
     sortFn: (items) => [...items].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     fields: [
       { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'title' },
-      { key: 'title', type: 'text', label: 'Title', required: true },
-      { key: 'date', type: 'date', label: 'Date', required: true, help: 'ISO 8601 date, e.g. 2025-09-15' },
-      { key: 'tag', type: 'select', label: 'Tag', options: ['announcement', 'event', 'community', 'release', 'update'] },
-      { key: 'summary', type: 'textarea', label: 'Summary', help: 'Shown on news list / cards' },
-      { key: 'body', type: 'textarea', label: 'Body (markdown)' },
-      { key: 'image', type: 'asset', label: 'Hero image', uploadDir: 'public/news/' },
-      { key: 'sourceUrl', type: 'url', label: 'Source URL', help: 'Optional external link' },
+      { key: 'title', type: 'text', label: '标题', required: true },
+      { key: 'date', type: 'date', label: '日期', required: true, help: 'ISO 8601 日期，例如 2025-09-15' },
+      { key: 'tag', type: 'select', label: '标签', options: ['announcement', 'event', 'community', 'release', 'update'] },
+      { key: 'summary', type: 'textarea', label: '摘要', help: '在公告列表 / 卡片上显示' },
+      { key: 'body', type: 'textarea', label: '正文（Markdown）' },
+      { key: 'image', type: 'asset', label: '主图', uploadDir: 'public/news/' },
+      { key: 'sourceUrl', type: 'url', label: '原文链接', help: '可选外部链接' },
     ],
   },
   posts: {
     key: 'posts',
-    title: 'Posts (home carousel)',
+    title: '首页轮播',
     file: 'src/data/posts.json',
     shape: 'array',
     listKey: 'id',
     listColumns: ['id', 'title', 'datePosted'],
     sortFn: (items) => [...items].sort((a, b) => (b.datePosted ?? '').localeCompare(a.datePosted ?? '')),
     fields: [
-      { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'title', help: 'Auto-generated from title; falls back to date + suffix if no title' },
-      { key: 'image', type: 'asset', label: 'Image', required: true, uploadDir: 'public/posts/' },
-      { key: 'title', type: 'text', label: 'Title overlay', help: 'Optional; absent => image-only card' },
-      { key: 'url', type: 'url', label: 'Click target URL', help: 'Optional; absent => non-link card' },
-      { key: 'datePosted', type: 'date', label: 'Date posted', required: true, help: 'ISO 8601 date' },
+      { key: 'id', type: 'text', label: 'ID', required: true, readOnly: true, autoSlug: true, autoSlugFrom: 'title', help: '根据标题自动生成；标题为空时回退到日期 + 后缀' },
+      { key: 'image', type: 'asset', label: '图片', required: true, uploadDir: 'public/posts/' },
+      { key: 'title', type: 'text', label: '叠加标题', help: '可选；留空时仅显示图片' },
+      { key: 'url', type: 'url', label: '点击跳转链接', help: '可选；留空时不可点击' },
+      { key: 'datePosted', type: 'date', label: '发布日期', required: true, help: 'ISO 8601 日期' },
     ],
   },
   social: {
     key: 'social',
-    title: 'Social links',
+    title: '社交平台',
     file: 'src/data/social.json',
     shape: 'array',
     listKey: 'platform',
     listColumns: ['platform', 'label', 'enabled'],
     fields: [
-      { key: 'platform', type: 'select', label: 'Platform', required: true, readOnly: true, options: ['discord', 'qq', 'xiaohongshu', 'x', 'wechat'] },
-      { key: 'label', type: 'text', label: 'Label', required: true },
-      { key: 'url', type: 'url', label: 'URL', help: 'Empty url + qrImage => QR popover tile' },
-      { key: 'qrImage', type: 'asset', label: 'QR image', uploadDir: 'public/social/', help: 'Used for WeChat etc.' },
-      { key: 'enabled', type: 'boolean', label: 'Enabled' },
+      { key: 'platform', type: 'select', label: '平台', required: true, readOnly: true, options: ['discord', 'qq', 'xiaohongshu', 'x', 'wechat'] },
+      { key: 'label', type: 'text', label: '显示名', required: true },
+      { key: 'url', type: 'url', label: '链接', help: '链接为空 + 上传 QR 图 => 显示二维码弹窗' },
+      { key: 'qrImage', type: 'asset', label: '二维码图片', uploadDir: 'public/social/', help: '微信等平台使用' },
+      { key: 'enabled', type: 'boolean', label: '启用' },
     ],
   },
   site: {
     key: 'site',
-    title: 'Site identity',
+    title: '站点信息',
     file: 'src/data/site.json',
     shape: 'object',
     fields: [
-      { key: 'discordInvite', type: 'url', label: 'Discord invite URL', required: true },
-      { key: 'communityName', type: 'text', label: 'Community name (EN)', required: true, readOnly: true, help: 'Locked — community brand identity. Change requires direct repo edit.' },
-      { key: 'communityNameZh', type: 'text', label: 'Community name (ZH)', required: true, readOnly: true, help: 'Locked — community brand identity.' },
-      { key: 'communityNameJp', type: 'text', label: 'Community name (JP)', required: true, readOnly: true, help: 'Locked — community brand identity.' },
+      { key: 'discordInvite', type: 'url', label: 'Discord 邀请链接', required: true },
+      { key: 'communityName', type: 'text', label: '社区名（英文）', required: true, readOnly: true, help: '已锁定 — 社区品牌标识，如需修改请直接编辑仓库' },
+      { key: 'communityNameZh', type: 'text', label: '社区名（中文）', required: true, readOnly: true, help: '已锁定 — 社区品牌标识' },
+      { key: 'communityNameJp', type: 'text', label: '社区名（日文）', required: true, readOnly: true, help: '已锁定 — 社区品牌标识' },
     ],
   },
   about: {
     key: 'about',
-    title: 'About page',
+    title: '关于页',
     file: 'src/data/about.json',
     shape: 'object',
     fields: [
-      { key: 'mission', type: 'textarea', label: 'Mission', required: true },
-      { key: 'history', type: 'textarea', label: 'History', required: true },
-      { key: 'faq', type: 'array', label: 'FAQ', complex: true, required: true, help: '[{"q":"...","a":"..."}]' },
-      { key: 'coc', type: 'textarea', label: 'Code of conduct', required: true },
-      { key: 'joinInstructions', type: 'textarea', label: 'Join instructions', required: true },
+      { key: 'mission', type: 'textarea', label: '宗旨', required: true },
+      { key: 'history', type: 'textarea', label: '历史', required: true },
+      { key: 'faq', type: 'array', label: '常见问题', complex: true, required: true, help: '[{"q":"...","a":"..."}]' },
+      { key: 'coc', type: 'textarea', label: '行为准则', required: true },
+      { key: 'joinInstructions', type: 'textarea', label: '加入说明', required: true },
     ],
   },
 }
@@ -205,7 +209,7 @@ function isParsableDate(s) {
  */
 export function validateItem(schemaKey, item) {
   const schema = adminSchemas[schemaKey]
-  if (!schema) return [{ fieldKey: '__schema__', message: `Unknown schema: ${schemaKey}` }]
+  if (!schema) return [{ fieldKey: '__schema__', message: `未知 schema：${schemaKey}` }]
   const errors = []
   const obj = item && typeof item === 'object' ? item : {}
   for (const field of schema.fields) {
@@ -218,7 +222,7 @@ export function validateItem(schemaKey, item) {
         } else if (field.type === 'boolean' && (v === true || v === false)) {
           // boolean false is allowed
         } else {
-          errors.push({ fieldKey: field.key, message: `${field.label} is required` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 不能为空` })
           continue
         }
       }
@@ -229,51 +233,51 @@ export function validateItem(schemaKey, item) {
         try {
           const u = new URL(v)
           if (!/^https?:$/i.test(u.protocol)) {
-            errors.push({ fieldKey: field.key, message: `${field.label} must be an http(s) URL` })
+            errors.push({ fieldKey: field.key, message: `${field.label} 必须是 http(s) 链接` })
           }
         } catch {
-          errors.push({ fieldKey: field.key, message: `${field.label} is not a valid URL` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 不是有效链接` })
         }
         break
       case 'email':
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) {
-          errors.push({ fieldKey: field.key, message: `${field.label} is not a valid email` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 不是有效邮箱` })
         }
         break
       case 'date':
       case 'datetime':
         if (!isParsableDate(String(v))) {
-          errors.push({ fieldKey: field.key, message: `${field.label} is not a valid date` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 不是有效日期` })
         }
         break
       case 'select':
         if (Array.isArray(field.options) && !field.options.includes(v)) {
-          errors.push({ fieldKey: field.key, message: `${field.label} must be one of: ${field.options.join(', ')}` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 必须为以下之一：${field.options.join(', ')}` })
         }
         break
       case 'number':
         if (!isFiniteNumber(v)) {
-          errors.push({ fieldKey: field.key, message: `${field.label} must be a number` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 必须是数字` })
         }
         break
       case 'boolean':
         if (typeof v !== 'boolean') {
-          errors.push({ fieldKey: field.key, message: `${field.label} must be true or false` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 必须是 true 或 false` })
         }
         break
       case 'asset':
         if (typeof v !== 'string' || v.length === 0) {
-          if (field.required) errors.push({ fieldKey: field.key, message: `${field.label} is required` })
+          if (field.required) errors.push({ fieldKey: field.key, message: `${field.label} 不能为空` })
         }
         break
       case 'array':
         if (field.complex && !Array.isArray(v)) {
-          errors.push({ fieldKey: field.key, message: `${field.label} must be a JSON array` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 必须是 JSON 数组` })
         }
         break
       case 'object':
         if (field.complex && (typeof v !== 'object' || Array.isArray(v))) {
-          errors.push({ fieldKey: field.key, message: `${field.label} must be a JSON object` })
+          errors.push({ fieldKey: field.key, message: `${field.label} 必须是 JSON 对象` })
         }
         break
       default:
@@ -301,7 +305,7 @@ export function validateUnique(schemaKey, items) {
     const id = item[schema.listKey]
     if (id == null || id === '') continue
     if (seen.has(id)) {
-      errors.push({ fieldKey: schema.listKey, message: `Duplicate ${schema.listKey}: ${id}` })
+      errors.push({ fieldKey: schema.listKey, message: `${schema.listKey} 重复：${id}` })
     }
     seen.add(id)
   }

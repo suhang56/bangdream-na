@@ -31,7 +31,7 @@ describe('<AdminForm />', () => {
   it('Edge 4: select renders options + placeholder; select calls onChange', () => {
     const onChange = vi.fn()
     render(<AdminForm schema={eventsSchema} item={{}} onChange={onChange} />)
-    const sel = screen.getByLabelText(/^Type/)
+    const sel = screen.getByLabelText(/^类型/)
     expect(sel.querySelector('option[value="concert"]')).toBeTruthy()
     fireEvent.change(sel, { target: { value: 'concert' } })
     expect(onChange.mock.calls.at(-1)[0].type).toBe('concert')
@@ -59,7 +59,7 @@ describe('<AdminForm />', () => {
   it('text field change calls onChange with new value', () => {
     const onChange = vi.fn()
     render(<AdminForm schema={eventsSchema} item={{ title: '' }} onChange={onChange} />)
-    const input = screen.getByLabelText(/^Title/)
+    const input = screen.getByLabelText(/^标题/)
     fireEvent.change(input, { target: { value: 'New Event' } })
     expect(onChange.mock.calls.at(-1)[0].title).toBe('New Event')
   })
@@ -67,20 +67,20 @@ describe('<AdminForm />', () => {
   it('boolean field renders checkbox and toggles', () => {
     const onChange = vi.fn()
     render(<AdminForm schema={socialSchema} item={{ platform: 'discord', label: 'Discord', enabled: false }} onChange={onChange} />)
-    const cb = screen.getByLabelText(/Enabled/)
+    const cb = screen.getByLabelText(/启用/)
     fireEvent.click(cb)
     expect(onChange.mock.calls.at(-1)[0].enabled).toBe(true)
   })
 
   it('textarea renders with multiline content', () => {
     render(<AdminForm schema={eventsSchema} item={{ description: 'Line 1\nLine 2' }} onChange={() => {}} />)
-    const ta = screen.getByLabelText(/Description/)
+    const ta = screen.getByLabelText(/描述/)
     expect(ta.value).toBe('Line 1\nLine 2')
   })
 
   it('url field renders with input type=url', () => {
     render(<AdminForm schema={eventsSchema} item={{ ticketUrl: 'https://x.com' }} onChange={() => {}} />)
-    const url = screen.getByLabelText(/Ticket URL/)
+    const url = screen.getByLabelText(/购票链接/)
     expect(url).toHaveAttribute('type', 'url')
     expect(url).toHaveValue('https://x.com')
   })
@@ -88,7 +88,7 @@ describe('<AdminForm />', () => {
   it('date field renders with input type=date', () => {
     const newsSchema = adminSchemas.news
     render(<AdminForm schema={newsSchema} item={{ date: '2025-09-15' }} onChange={() => {}} />)
-    const date = screen.getByLabelText(/^Date/)
+    const date = screen.getByLabelText(/^日期/)
     expect(date).toHaveAttribute('type', 'date')
     expect(date).toHaveValue('2025-09-15')
   })

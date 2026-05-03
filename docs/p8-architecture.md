@@ -141,64 +141,39 @@ Per-file replacement table:
 | `src/pages/Admin.css` | `#111`, `#222`, `#333` (text) | `var(--color-text)` |
 | `src/pages/Admin.css` | `#888`, `#666`, `#555`, `#999` (muted text) | `var(--color-text-muted)` |
 | `src/pages/Admin.css` | `#6366f1` (admin-toast border literal) | `var(--color-primary)` |
-| `src/pages/Admin.css` | `#d33` (toast.error border) | `var(--color-error)` |
+| `src/pages/Admin.css` | `#d33` (toast.error border) | `var(--admin-error)` |
 | `src/pages/Admin.css` | `#fff` (toast surface) | `var(--color-bg-card)` |
 | `src/components/AdminNav/AdminNav.css` | `#fff`, `#e5e5e5`, `#eee`, `#111`, `#222`, `#888`, `#999`, `#333`, `#ddd`, `#6366f1`, `#f3f3f3` | tokens above |
-| `src/components/AdminEditor/AdminEditor.css` | `#111`, `#777`, `#fafafa`, `#222`, `#555`, `#eee`, `#fff`, `#d4d4d4`, `#f5f5f5`, `#d33`, `#6366f1`, `#a00` | tokens above + `var(--color-error)` |
-| `src/components/AdminLogin/AdminLogin.css` | `#fafafa`, `#fff`, `#e5e5e5`, `#111`, `#666`, `#555`, `#d4d4d4`, `#d33`, `#a00`, `#6366f1` | tokens above + `var(--color-error)` + `var(--color-on-primary)` for button text |
-| `src/components/AdminAssetUploader/AdminAssetUploader.css` | `#d33`, `#d4d4d4`, `#fafafa`, `#555`, `#fff`, `#e5e5e5`, `#666`, `#888`, `#6366f1` | tokens + `var(--color-error)` |
+| `src/components/AdminEditor/AdminEditor.css` | `#111`, `#777`, `#fafafa`, `#222`, `#555`, `#eee`, `#fff`, `#d4d4d4`, `#f5f5f5`, `#d33`, `#6366f1`, `#a00` | tokens above + `var(--admin-error)` |
+| `src/components/AdminLogin/AdminLogin.css` | `#fafafa`, `#fff`, `#e5e5e5`, `#111`, `#666`, `#555`, `#d4d4d4`, `#d33`, `#a00`, `#6366f1` | tokens above + `var(--admin-error)` + `var(--color-on-primary)` for button text |
+| `src/components/AdminAssetUploader/AdminAssetUploader.css` | `#d33`, `#d4d4d4`, `#fafafa`, `#555`, `#fff`, `#e5e5e5`, `#666`, `#888`, `#6366f1` | tokens + `var(--admin-error)` |
 | `src/components/AdminForm/AdminForm.css` | (token sweep — read once during dev) | tokens |
 | `src/components/AdminJsonFallback/AdminJsonFallback.css` | (token sweep) | tokens |
 
 ### 2.3 Disallowed tokens (Reviewer-enforced)
 
-Inside admin CSS files (`grep -nP "#[0-9a-fA-F]{3,8}"`) should return zero matches **except** inside `rgba(0, 0, 0, X)` shadow declarations.
+Inside admin CSS files (`grep -nP "#[0-9a-fA-F]{3,8}"`) should return **exactly one** match: the `--admin-error: #e53e3e;` declaration in `Admin.css :root` (the deliberate exception per Designer §1). Plus `rgba(0, 0, 0, X)` shadow declarations (theme-agnostic).
 
-### 2.4 New theme tokens — `--color-error`
+### 2.4 Local layout/error tokens in `Admin.css :root`
 
-`AdminEditor.css`, `AdminLogin.css`, `AdminAssetUploader.css`, `AdminForm.css` all use `#d33` (border) + `#a00` (text) for error messaging. P8 adds **one** new token to every theme so error red is theme-aware (and contrast-correct on dark themes):
+Designer §1 declined adding `--color-error` and `--color-error-on` to all 8 themes. Instead, the following tokens are declared **once** at the top of `src/pages/Admin.css`:
 
-```js
-// src/theme/themes.js — new keys in every theme's tokens object
-'--color-error': '<theme-appropriate red>',
-'--color-error-on': '<text color on error background>',
+```css
+:root {
+  --admin-sidebar-width: 260px;
+  --admin-topbar-height: 52px;
+  --admin-content-max: 900px;
+  --admin-radius: 8px;
+  --admin-input-bg: color-mix(in srgb, var(--color-bg-card) 70%, var(--color-bg) 30%);
+  --admin-error: #e53e3e;
+}
 ```
 
-Per-theme defaults (Architect's first cut — Designer's `docs/p8-design.md` may override):
+These are global to admin (since `Admin.css` is imported once by `Admin.jsx` and the variables cascade to every descendant). The `--admin-error` is the **only hardcoded hex** allowed in admin CSS — Reviewer's static scan §9.4-A whitelists exactly this declaration line.
 
-| Theme | `--color-error` | `--color-error-on` |
-|---|---|---|
-| neutral | `#ef4444` | `#ffffff` |
-| roselia | `#ff5577` | `#ffffff` |
-| popipa | `#ff4444` | `#ffffff` |
-| mygo | `#ee6677` | `#ffffff` |
-| morfonica | `#ff6688` | `#ffffff` |
-| afterglow | `#ff5544` | `#ffffff` |
-| pastel | `#f08899` | `#ffffff` |
-| hhw | `#ee5544` | `#ffffff` |
+`themes.js` is byte-identical to pre-P8. `themes.test.js` is byte-identical. `REQUIRED_TOKENS` is unchanged. The previously-planned P8.1 commit ("add `--color-error` to all themes") is dropped from the iteration contract.
 
-Add to `REQUIRED_TOKENS` in `themes.js`:
-
-```js
-export const REQUIRED_TOKENS = [
-  '--color-bg',
-  '--color-bg-card',
-  '--color-text',
-  '--color-text-muted',
-  '--color-primary',
-  '--color-accent',
-  '--color-border',
-  '--gradient-hero',
-  '--color-on-primary',
-  '--color-on-accent',
-  '--color-error',           // NEW
-  '--color-error-on',        // NEW
-]
-```
-
-`themes.test.js` already iterates `REQUIRED_TOKENS`; the new entries get coverage automatically. Reviewer verifies `themes.test.js` still passes after adding the tokens.
-
-**No `--color-success` added.** P4 admin uses `color-mix(in srgb, var(--color-success, #2a8) 10%, transparent)` — the var is undefined and the fallback hex applies. P8 replaces these refs with `color-mix(in srgb, var(--color-primary) 10%, transparent)` — success uses the band's primary tint (feels native; one less token to maintain).
+**No `--color-success` added.** P4 admin uses `color-mix(in srgb, var(--color-success, #2a8) 10%, transparent)` — the var is undefined and the fallback hex applies. P8 replaces these refs with `color-mix(in srgb, var(--color-primary) 10%, transparent)` — success uses the band's primary tint.
 
 ### 2.5 No `--color-surface` token
 
@@ -441,14 +416,15 @@ The error-inside-form-view (shown above form fields when a save attempt fails mi
 
 `data`, `loading`, `loadError`, `editing`, `draft`, `saving`, in-form `saveError`, `conflict` — all stay. P8 is **not** a state-machine refactor.
 
-### 7.3 The `onSaveStatus` contract
+### 7.3 The `onSaveStatus` contract — 5 states (Designer §2.3)
 
 ```ts
 type SaveStatusUpdate =
-  | { status: 'idle' }
-  | { status: 'saving' }
-  | { status: 'saved'; prNumber: number; prUrl: string }
-  | { status: 'error'; errorMessage: string }
+  | { status: 'idle' }                                    // hidden in pill (no noise when clean)
+  | { status: 'unsaved' }                                 // user typed in the form, nothing committed yet
+  | { status: 'saving' }                                  // commitContentChange in flight
+  | { status: 'saved'; prNumber: number; prUrl: string }  // 200 OK; auto-clears to 'idle' after 3 s
+  | { status: 'error'; errorMessage: string }             // rejection (not auth-expired)
 
 type AdminEditorProps = {
   schemaKey: string;
@@ -460,82 +436,82 @@ type AdminEditorProps = {
 }
 ```
 
-Emits `saving` immediately before any `commitContentChange` (collection save, singleton save, delete). Emits `saved` on 200, `error` on rejection (except auth-expired). `idle` is set by `Admin.jsx` itself on schema change (`useEffect([activeKey])`); AdminEditor doesn't emit it.
+Emit ladder:
+- `unsaved` — emitted when `draft !== null && draft !== data` (cheap deep-equal at edit-form change). Cleared by transitioning to `saving` or `idle`.
+- `saving` — emitted immediately before any `commitContentChange`.
+- `saved` — emitted on 200; `Admin.jsx` schedules a 3 s `setTimeout` to revert to `idle` (Designer §2.3 spec).
+- `error` — emitted on rejection (not auth-expired; that path resets to `idle` via `onAuthExpired`).
+- `idle` — set by `Admin.jsx` itself on schema change (`useEffect([activeKey])`); AdminEditor doesn't emit it directly.
+
+`Admin.jsx` is responsible for the auto-clear timer; the timer must `unref` (memory rule `feedback_timer_unref.md`) and clear on unmount + on subsequent state change.
 
 ---
 
-## 8. Empty state illustrations
+## 8. Empty state — `◆` glyph card (Designer §4.3)
 
-### 8.1 Per-schema illustration registry
+### 8.1 No per-schema illustrations
 
-```jsx
-// src/components/AdminEmptyState/illustrations/index.js
-import EventsArt from './events.jsx'
-import MembersArt from './members.jsx'
-import NewsArt from './news.jsx'
-import PostsArt from './posts.jsx'
-import SocialArt from './social.jsx'
-import SiteArt from './site.jsx'
-import AboutArt from './about.jsx'
-import DefaultArt from './_default.jsx'
+Designer §4.3 declined per-schema SVG illustrations. The single `◆` Unicode glyph (`U+25C6 BLACK DIAMOND`) is the icon for every empty state. Same glyph as the sidebar nav prefix (Designer §3.2). Rationale: font-safe, theme-neutral, zero new asset dependency, ~0 bytes (already in every CJK and basic Unicode font).
 
-const REGISTRY = {
-  events: EventsArt,
-  members: MembersArt,
-  news: NewsArt,
-  posts: PostsArt,
-  social: SocialArt,
-  site: SiteArt,
-  about: AboutArt,
-}
-
-export function getIllustration(schemaKey) {
-  return REGISTRY[schemaKey] ?? DefaultArt
-}
-```
-
-### 8.2 Illustration component contract
-
-Each illustration JSX module is a pure functional component with **no props**. It returns an inline `<svg>` with:
-
-- `viewBox="0 0 200 160"`
-- `width="100%"`
-- `aria-hidden="true"` (decorative; the empty-state title is the real label)
-- `fill="none"`, `stroke="currentColor"`, `strokeWidth="1.5"` so the illustration tints to the active theme's text color (or `--color-primary` if `<AdminEmptyState>` sets `color: var(--color-primary)`)
-- No external image references — pure path/circle/rect primitives
-
-**Architect default content per illustration** (Designer's `docs/p8-design.md` overrides if present):
-
-| Schema | Content sketch |
-|---|---|
-| events | Calendar grid (4×3 squares) with one square highlighted + a small ticket-stub overlap |
-| members | Three overlapping circles representing avatars |
-| news | A folded newspaper rectangle with horizontal lines + corner star icon |
-| posts | A stack of three offset cards with a small play-arrow on top |
-| social | Three speech bubbles connected by a line |
-| site | A globe (circle + curved meridians) |
-| about | An open book (two pages joined at the spine) |
-| _default | A rounded square with a `+` inside |
-
-**Total SVG payload**: 8 × ~400 bytes = ~3 KB. No fonts, no external images.
-
-### 8.3 `<AdminEmptyState>` props
+### 8.2 `<AdminEmptyState>` props
 
 ```js
 /**
  * @typedef {Object} AdminEmptyStateProps
- * @property {string} schemaKey - which illustration to render
- * @property {string} title - Chinese heading (caller passes inline string, e.g., '暂无活动')
- * @property {string} [hint] - Chinese sub-copy (e.g., '点击下方按钮添加第一条活动')
- * @property {{ label: string, onClick: () => void } | null} [cta] - primary action (e.g., '+ 创建第一条活动')
+ * @property {string} title - Chinese heading (e.g., '暂无活动')
+ * @property {string} [hint] - Chinese sub-copy (e.g., '点击上方按钮创建第一条活动')
+ * @property {{ label: string, onClick: () => void } | null} [cta] - primary action (e.g., '+ 新建活动')
  */
 ```
 
-Caller (`AdminEditor`) passes pre-formatted Chinese strings — same inline-string policy as the rest of admin chrome (§3.1).
+No `schemaKey` prop — all empty states render the same `◆` icon. Caller passes pre-formatted Chinese strings (inline-string policy §3.1).
 
-### 8.4 Layout
+### 8.3 DOM + CSS (Designer §4.3)
 
-Card: `padding: 3rem 1rem; text-align: center; max-width: 480px; margin: 2rem auto;`. Illustration: `width: 200px; height: 160px; color: var(--color-primary); margin: 0 auto 1rem;`.
+```jsx
+// AdminEmptyState.jsx
+<div className="admin-empty-card">
+  <div className="admin-empty-icon" aria-hidden="true">◆</div>
+  <h3 className="admin-empty-title">{title}</h3>
+  {hint && <p className="admin-empty-hint">{hint}</p>}
+  {cta && (
+    <button type="button" className="admin-btn-primary" onClick={cta.onClick}>
+      {cta.label}
+    </button>
+  )}
+</div>
+```
+
+```css
+/* AdminEmptyState.css */
+.admin-empty-card {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--admin-radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+.admin-empty-icon {
+  font-size: 2.5rem;
+  color: var(--color-border);
+  line-height: 1;
+}
+.admin-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0.75rem 0 0.375rem;
+}
+.admin-empty-hint {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1rem;
+}
+```
+
+### 8.4 What's removed from the file inventory
+
+The 9 illustration JSX modules (`events.jsx`, `members.jsx`, `news.jsx`, `posts.jsx`, `social.jsx`, `site.jsx`, `about.jsx`, `_default.jsx`, `index.js`) are **not created**. The `registry.test.js` Tier A coverage entry is dropped from §9.1.
 
 ---
 
@@ -546,18 +522,16 @@ Card: `padding: 3rem 1rem; text-align: center; max-width: 480px; margin: 2rem au
 | File | Helpers covered | Edges |
 |---|---|---|
 | `src/components/AdminTopBar/breadcrumb.test.js` | `deriveBreadcrumb` | (a) list view single-segment; (b) edit view 3 segments; (c) `__new:true` edge; (d) item missing title falls back to listKey; (e) singleton schema (site/about) — 2 segments only; (f) unknown schemaKey returns just `[{label:'后台'}]` |
-| `src/components/AdminTopBar/saveStatus.test.js` | `deriveSaveStatusLabel` | (a) idle → label='已保存', a11yLive='off'; (b) saving → '保存中…', polite; (c) saved with prNumber → '已保存 · PR #N', polite; (d) saved missing prNumber → defensive label; (e) error → '保存失败', polite; (f) unknown status → falls back to idle defaults |
-| `src/components/AdminEmptyState/illustrations/registry.test.js` | `getIllustration` | (a) every schemaKey returns its component; (b) unknown key returns `_default`; (c) every registry entry is a React component (function) |
+| `src/components/AdminTopBar/saveStatus.test.js` | `deriveSaveStatusLabel` | (a) idle → hidden (label = '', a11yLive='off'); (b) unsaved → '● 未保存', a11yLive='off' (informational, not a status update); (c) saving → '保存中…', polite; (d) saved with prNumber → '✓ 已保存 · PR #N', polite; (e) saved missing prNumber → defensive label `'✓ 已保存'`; (f) error → '✗ 保存失败', polite; (g) unknown status → falls back to idle defaults |
 
 ### 9.2 Tier B new components (≥80% branch + function)
 
 | File | Coverage focus |
 |---|---|
-| `AdminTopBar.test.jsx` | renders breadcrumb segments (Chinese); renders correct save-status pill class per status; renders openPR link when set; renders `暂无 PR` placeholder when null; sign-out button calls `onSignOut`; ARIA: `<nav aria-label="面包屑导航">` (or English `aria-label` — Designer's choice; tests assert whichever lands), save-status has `role="status"` for `saving`/`saved`/`error` variants |
-| `AdminEmptyState.test.jsx` | renders illustration component for known schemaKey; falls back to default for unknown; renders title + hint Chinese props; CTA button click; CTA absent when not provided |
+| `AdminTopBar.test.jsx` | renders breadcrumb segments (Chinese); renders correct save-status pill class for each of 5 states; renders `查看网站 ↗` ghost link; renders openPR pill when set; renders `无待合并 PR` muted placeholder when null; **no sign-out** rendered (sign-out lives in sidebar); ARIA: `<nav aria-label="...">` for breadcrumb, save-status has `role="status"` for `saving`/`saved`/`error` variants |
+| `AdminEmptyState.test.jsx` | renders `◆` glyph with `aria-hidden="true"`; renders title + hint Chinese props; CTA button click triggers handler; CTA absent when prop not provided; dashed-border card class present |
 | `AdminTable.test.jsx` | renders rows; column headers in correct order; click `编辑` calls `onEdit(row)`; click `✕` calls `onDelete(row)`; `onDelete=null` hides delete column; `busy=true` disables all buttons; `rows=[]` renders the empty-state slot, NOT the table |
-| `AdminBrandPanel.test.jsx` | renders `后台` wordmark + `bangdream-na` subtitle; sigil SVG has `aria-hidden="true"`; sigil uses `currentColor` (no hex stroke/fill on the wordmark element) |
-| `AdminSignOut.test.jsx` | click triggers `onSignOut`; renders Chinese label `退出登录`; with `confirm: true` prop shows confirm dialog before triggering |
+| `AdminBrandPanel.test.jsx` | renders `后台` wordmark + `BD!NA 后台` subline; logo `<img>` has `aria-hidden="true"` and `alt=""`; img `src` is `/panda.svg` or `/logo.png` per §1.6 |
 
 ### 9.3 Tier B/C modified components (regression)
 
@@ -573,12 +547,13 @@ This scan replaces the P4 i18n switch test and is the **memory rule** `feedback_
 ### 9.4 Reviewer-only static scans
 
 ```bash
-# A. No hex literals in admin CSS (except rgba shadows).
+# A. No hex literals in admin CSS (except rgba shadows + the one --admin-error declaration).
 grep -rnEH '#[0-9a-fA-F]{3,8}' \
   src/components/Admin*/ src/pages/Admin.css 2>/dev/null \
   | grep -v 'rgba\(0' \
+  | grep -v '\-\-admin-error: #e53e3e' \
   || true
-# Should print zero non-shadow hits.
+# Should print zero remaining hits.
 
 # B. No console.log / no localStorage / no Authorization header in admin chrome.
 grep -rn 'console\.log\|localStorage\|Authorization' \
@@ -623,7 +598,7 @@ If Designer's spec specifies a drawer layout, **Architect approves the override*
 
 ## 11. File-by-file plan (CREATE / MODIFY / DELETE)
 
-### 11.1 CREATE (28 files)
+### 11.1 CREATE (16 files)
 
 ```
 src/components/AdminTopBar/AdminTopBar.jsx
@@ -637,16 +612,6 @@ src/components/AdminTopBar/saveStatus.test.js
 src/components/AdminEmptyState/AdminEmptyState.jsx
 src/components/AdminEmptyState/AdminEmptyState.css
 src/components/AdminEmptyState/AdminEmptyState.test.jsx
-src/components/AdminEmptyState/illustrations/index.js
-src/components/AdminEmptyState/illustrations/registry.test.js
-src/components/AdminEmptyState/illustrations/events.jsx
-src/components/AdminEmptyState/illustrations/members.jsx
-src/components/AdminEmptyState/illustrations/news.jsx
-src/components/AdminEmptyState/illustrations/posts.jsx
-src/components/AdminEmptyState/illustrations/social.jsx
-src/components/AdminEmptyState/illustrations/site.jsx
-src/components/AdminEmptyState/illustrations/about.jsx
-src/components/AdminEmptyState/illustrations/_default.jsx
 
 src/components/AdminTable/AdminTable.jsx
 src/components/AdminTable/AdminTable.css
@@ -655,13 +620,11 @@ src/components/AdminTable/AdminTable.test.jsx
 src/components/AdminBrandPanel/AdminBrandPanel.jsx
 src/components/AdminBrandPanel/AdminBrandPanel.css
 src/components/AdminBrandPanel/AdminBrandPanel.test.jsx
-
-src/components/AdminSignOut/AdminSignOut.jsx
-src/components/AdminSignOut/AdminSignOut.css
-src/components/AdminSignOut/AdminSignOut.test.jsx
 ```
 
-### 11.2 MODIFY (16 files)
+(Was 28; dropped: 9 illustration JSX modules + `illustrations/index.js` + `illustrations/registry.test.js` (10 files) + `AdminSignOut/{jsx,css,test.jsx}` (3 files) — total 13 dropped.)
+
+### 11.2 MODIFY (21 files)
 
 ```
 src/pages/Admin.jsx
@@ -693,11 +656,9 @@ src/components/AdminJsonFallback/AdminJsonFallback.css
 
 src/lib/adminSchemas.js
 src/lib/adminSchemas.test.js
-
-src/theme/themes.js
 ```
 
-(Counted = 23 files; the §1.2 estimate of 16 was the net component-tree count not counting test/css siblings of the 6 modified components. Both numbers are correct under their respective definitions; this list is the absolute path inventory Developer uses.)
+(Was 23; dropped `src/theme/themes.js` per §2.4 Designer alignment.)
 
 ### 11.3 DELETE
 
@@ -705,7 +666,7 @@ None.
 
 ### 11.4 Forbidden touches in P8
 
-`src/lib/githubApi.js`, `src/lib/githubApi.test.js`, `src/lib/uiLanguage.js`, `src/data/i18n.json`, `src/data/*.json` content files, `src/theme/ThemeContext.jsx`, `src/theme/theme.css`, `vite.config.js`, `eslint.config.js`, `vercel.json`, `index.html`, `package.json`, `package-lock.json`, all non-admin pages and components.
+`src/lib/githubApi.js`, `src/lib/githubApi.test.js`, `src/lib/uiLanguage.js`, `src/data/i18n.json` (no `admin.*` keys added), `src/data/*.json` content files, `src/theme/themes.js`, `src/theme/themes.test.js`, `src/theme/ThemeContext.jsx`, `src/theme/theme.css`, `vite.config.js`, `eslint.config.js`, `vercel.json`, `index.html`, `package.json`, `package-lock.json`, all non-admin pages and components.
 
 ---
 
@@ -713,12 +674,9 @@ None.
 
 Each deliverable is one PR-ready commit. After each commit the test suite (`npm test`) MUST pass. Push to remote after each commit (memory rule `feedback_push_and_save.md`). Conventional Commit format, no `Co-Authored-By` line.
 
-### P8.1 — Theme tokens
+### P8.1 — DROPPED
 
-- Modify `src/theme/themes.js`: add `--color-error` and `--color-error-on` to every theme's `tokens` object; append both to `REQUIRED_TOKENS`.
-- Verify `src/theme/themes.test.js` still passes (tests iterate `REQUIRED_TOKENS`; new entries are picked up automatically). If an explicit assertion is needed, add it.
-- **Acceptance**: `npm test src/theme/` green; no other admin behavior changed.
-- **Commit**: `feat(theme): add --color-error tokens to all themes`
+Original P8.1 added `--color-error`/`--color-error-on` tokens to all 8 themes. Designer §1 declined; error red is a local `--admin-error: #e53e3e` declared in `Admin.css :root` only. **If Developer already shipped P8.1 to remote**: revert that commit (`git revert`) before P8.2; `themes.js` must be byte-identical to pre-P8.
 
 ### P8.2 — adminSchemas.js Chinese pass
 
@@ -727,11 +685,11 @@ Each deliverable is one PR-ready commit. After each commit the test suite (`npm 
 - **Acceptance**: `adminSchemas.test.js` green. AdminForm/AdminEditor still render (they now show Chinese labels via the schemas) — but their existing tests query English text and will fail. They get fixed in P8.7+ commits, so this commit briefly leaves the **component** test files red. Per memory rule (per-commit test green), Developer **bundles the schema-side English-string-update for AdminForm/AdminEditor's existing test assertions into THIS commit** — the test-text update is mechanical (`getByText('Title')` → `getByText('标题')`). This keeps `npm test` green per-commit.
 - **Commit**: `refactor(admin): translate adminSchemas labels to chinese`
 
-### P8.3 — AdminEmptyState component + illustrations
+### P8.3 — AdminEmptyState component (◆ glyph card)
 
-- Create everything under `src/components/AdminEmptyState/` (jsx + css + test + 8 illustration JSX modules + index.js + registry.test.js).
-- **Acceptance**: AdminEmptyState tests green. Component is mountable but not yet used.
-- **Commit**: `feat(admin): add AdminEmptyState with per-schema illustrations`
+- Create `AdminEmptyState.jsx` + `.css` + `.test.jsx` per §8 (single `◆` glyph; no per-schema illustrations; no `schemaKey` prop).
+- **Acceptance**: AdminEmptyState tests green. Component mountable but not yet used.
+- **Commit**: `feat(admin): add AdminEmptyState with diamond glyph card`
 
 ### P8.4 — AdminTable component
 
@@ -745,11 +703,13 @@ Each deliverable is one PR-ready commit. After each commit the test suite (`npm 
 - **Acceptance**: All AdminTopBar tests green. Component mountable but not yet placed in Admin.jsx.
 - **Commit**: `feat(admin): add AdminTopBar with breadcrumb + save-status pill`
 
-### P8.6 — AdminBrandPanel + AdminSignOut
+### P8.6 — AdminBrandPanel only (no AdminSignOut)
 
-- Create both components (3 files each).
-- **Acceptance**: tests green; not yet wired.
-- **Commit**: `feat(admin): add AdminBrandPanel + AdminSignOut`
+- Create `AdminBrandPanel.jsx` + `.css` + `.test.jsx` per Designer §3.1 (panda logo img + `后台` wordmark + `BD!NA 后台` subline).
+- Asset: confirm `public/panda.svg` exists, OR use `/logo.png` per §1.6. If neither passes the on-device smoke test, ping Designer for an asset commit.
+- **AdminSignOut DROPPED**: sign-out stays in `AdminNav` per Designer §3.3 (restyled CSS, not a new component).
+- **Acceptance**: tests green; AdminBrandPanel mountable but not yet wired.
+- **Commit**: `feat(admin): add AdminBrandPanel`
 
 ### P8.7 — Wire AdminEditor to use AdminTable + AdminEmptyState + onSaveStatus + Chinese chrome
 
@@ -759,21 +719,21 @@ Each deliverable is one PR-ready commit. After each commit the test suite (`npm 
 - **Acceptance**: AdminEditor tests green; old behavior preserved (load, list, edit, save, conflict still work).
 - **Commit**: `refactor(admin): wire AdminEditor to AdminTable + onSaveStatus + chinese chrome`
 
-### P8.8 — Wire AdminNav: AdminBrandPanel + Chinese chrome (no sign-out)
+### P8.8 — Wire AdminNav: AdminBrandPanel + Chinese chrome + restyled sign-out
 
-- Modify `src/components/AdminNav/AdminNav.jsx`: replace inline brand block with `<AdminBrandPanel />`; remove sign-out button (it moves to TopBar in P8.9); replace English strings with Chinese inline (`查看站点 ↗`, `打开 PR #N ↗`, `暂无 PR`, etc.). Schema button labels come from `schema.title` (now Chinese after P8.2).
-- Modify `src/components/AdminNav/AdminNav.css`: replace literals with vars.
-- Modify `src/components/AdminNav/AdminNav.test.jsx`: update for new structure + Chinese assertions.
-- **Acceptance**: AdminNav tests green; sidebar renders with brand panel + Chinese labels; sign-out is temporarily missing — that's OK because P8.9 adds it via TopBar in the same dispatch series.
-- **Commit**: `refactor(admin): use AdminBrandPanel + chinese chrome in AdminNav`
+- Modify `src/components/AdminNav/AdminNav.jsx`: replace inline brand block with `<AdminBrandPanel />`; **keep** the bottom-anchored sign-out button (Designer §3.3); drop the `View Site ↗` / `Open PR ↗` utility links (they move to top bar). Replace English strings with Chinese inline (`登出` for sign-out etc.). Prefix each schema button label with `◆ ` (Designer §3.2). Schema button labels come from `schema.title` (Chinese after P8.2).
+- Modify `src/components/AdminNav/AdminNav.css`: sidebar width = `var(--admin-sidebar-width)`; replace literals with vars; sign-out button gets the §3.3 restyle (transparent bg, hover red via `--admin-error`).
+- Modify `src/components/AdminNav/AdminNav.test.jsx`: update for new structure + Chinese assertions; assert `◆ ` prefix appears once per schema button.
+- **Acceptance**: AdminNav tests green; sidebar renders with brand panel + Chinese labels + restyled sign-out at bottom.
+- **Commit**: `refactor(admin): use AdminBrandPanel + chinese chrome + restyled signout in AdminNav`
 
-### P8.9 — Wire Admin.jsx: top bar + saveStatus state lift
+### P8.9 — Wire Admin.jsx: top bar + saveStatus state lift + toast
 
-- Modify `src/pages/Admin.jsx`: introduce `saveStatus` state; mount `<AdminTopBar>`; wire `onSaveStatus` to AdminEditor; wire `onSignOut` to AdminTopBar (since AdminNav no longer has it). Replace any English strings with Chinese inline.
-- Modify `src/pages/Admin.css`: grid layout for sidebar + top bar + main; replace literals with vars.
-- Modify `src/pages/Admin.test.jsx`: cover top bar mounting; saveStatus propagation; sign-out via top bar.
+- Modify `src/pages/Admin.jsx`: introduce `saveStatus` state with 5 variants per §7.3 (`idle`/`unsaved`/`saving`/`saved`/`error`); mount `<AdminTopBar>`; wire `onSaveStatus` to AdminEditor; render success/error toast (Designer §7) consuming the same `saveStatus`. Schedule a 3 s `setTimeout` to revert `saved → idle` (with `unref`/cleanup per memory rule). No sign-out wiring on top bar.
+- Modify `src/pages/Admin.css`: declare the 6 new `:root` tokens per §2.4; grid layout `grid-template-columns: var(--admin-sidebar-width) 1fr`; 3px gradient stripe at top; replace literals with vars.
+- Modify `src/pages/Admin.test.jsx`: cover top bar mounting; saveStatus propagation across all 5 states; toast appearance/dismissal; the 3 s auto-clear.
 - **Acceptance**: full admin chrome end-to-end works in tests; manual `npm run dev` smoke check.
-- **Commit**: `feat(admin): wire AdminTopBar + lift saveStatus into Admin shell`
+- **Commit**: `feat(admin): wire AdminTopBar + lift saveStatus + toast into Admin shell`
 
 ### P8.10 — AdminLogin Chinese chrome + theme sweep
 
@@ -815,9 +775,9 @@ Each deliverable is one PR-ready commit. After each commit the test suite (`npm 
 |---|---|---|
 | Admin language | **Chinese inline strings, no t()** | Operator-only console; user 西瓜 is Chinese-native. Bilingual ceremony. Locked by team-lead 2026-05-03. |
 | `useOpenPR` hook extraction | **Skipped** | Single caller, ~6 lines of state — yagni. |
-| Per-schema illustrations vs single shared | **Per-schema** | Empty states are the highest-empathy moment; per-schema gives identifiable feedback. 3 KB total payload acceptable. |
-| Save status as banner vs pill | **Pill in top bar** | Banner duplicates the breadcrumb area and competes with form-level error inline message. Pill is small, persistent, theme-tinted. |
-| Sign-out button location | **Top bar (right edge)** | Standardizes "destructive corner" UX; sidebar bottom-anchor breaks at <768px when sidebar is no longer always-visible. |
+| Per-schema illustrations vs single shared | **Single `◆` glyph (Designer §4.3 override)** | No new SVG asset language; font-safe; theme-neutral; zero deps. Designer's call wins. |
+| Save status as banner vs pill | **Pill in top bar + toast on event spike** | Pill is always-visible mini status (5 states); toast (Designer §7) is the per-save-completion spike with PR link. |
+| Sign-out button location | **Sidebar bottom (Designer §3.3 override)** | Designer kept P4 placement, restyled with red hover via `--admin-error`. Architect's earlier "lift to top bar" was overridden. |
 | Theme switcher in admin | **Not added** | Maintainer changes theme on the public site; admin chrome inherits silently. |
 | Lang toggle in admin | **Not added** | Admin is Chinese-only; LangToggle is for the public site. |
 | Mobile drawer | **Deferred to V2** | Admin is desktop-first. |
@@ -838,31 +798,41 @@ Reviewer APPROVES only when ALL of:
 - [ ] DOM English-leakage scan in `Admin.test.jsx` green; whitelist explicit and minimal.
 - [ ] `npm run test:coverage` exits 0; per-file ≥80% on Tier A files (`adminSchemas.js`, `breadcrumb.js`, `saveStatus.js`, `illustrations/index.js`).
 - [ ] On-device smoke (§9.5): theme retint visible in admin sidebar / top bar / save button when switching theme on public site; every visible chrome string is Chinese (whitelist exceptions only); save flow shows status pill `idle → saving → saved · PR #N`.
-- [ ] All 13 commits on `feat/phase-8` follow conventional-commit format and have NO `Co-Authored-By` line.
+- [ ] All commits on `feat/phase-8` follow conventional-commit format and have NO `Co-Authored-By` line. (Total 12 deliverables P8.2-P8.13; P8.1 is dropped — see §12.)
 - [ ] No `.claude/` references in committed files.
 - [ ] No new npm deps (`package.json` / `package-lock.json` diff is empty for `dependencies` and `devDependencies`).
 - [ ] User-facing pages (`Home`, `Events`, `Members`, `News`, `About`) render unchanged — admin route does not regress them.
 - [ ] `src/data/i18n.json` contains **zero `admin.*` keys** added by P8 (Reviewer grep `'"admin\.'` returns no hits). Unrelated edits to user-facing keys in this file are Phase-5-owned and don't block P8 review.
-- [ ] `src/lib/githubApi.js` and `src/lib/uiLanguage.js` are **byte-identical** to their pre-P8 state.
+- [ ] `src/lib/githubApi.js`, `src/lib/uiLanguage.js`, **`src/theme/themes.js`**, **`src/theme/themes.test.js`** are **byte-identical** to their pre-P8 state.
 - [ ] No `t()` import or call inside `src/components/Admin*/` or `src/pages/Admin.jsx`.
+- [ ] Admin CSS hex-literal scan (§9.4-A) returns zero hits except the single `--admin-error: #e53e3e;` declaration in `Admin.css :root`.
+- [ ] `public/panda.svg` (or `/logo.png`) is referenced from `<AdminBrandPanel>` and the image actually loads in on-device smoke.
 - [ ] Code review summary written to `.claude/code-reviews.md` per memory rule `feedback_code_review_log.md`.
 
 Once APPROVED: per memory rule `feedback_never_autonomous_merge_to_default_branch.md`, team-lead opens a PR (does NOT auto-merge); user reviews and merges. Vercel auto-deploys.
 
 ---
 
-## 15. Dependency on Designer's deliverable (Task #1, parallel)
+## 15. Designer alignment (Task #1, completed)
 
-Designer's `docs/p8-design.md` may override Architect defaults in:
+Designer's `docs/p8-design.md` landed and overrode three Architect defaults. This doc has been re-aligned (search "Designer §" for cross-references). Summary of overrides:
 
-- §1.2 sidebar width / collapse behavior
-- §2.4 specific `--color-error` hex per theme
-- §5.6 top bar height + sticky behavior
-- §8.2 illustration content per schema (paths, stroke widths, accents)
-- §10 mobile responsive treatment
-- Chinese copy specifics (this doc proposes labels — Designer's wording is authoritative if it differs)
+| Architect default | Designer override | Section impact |
+|---|---|---|
+| Sidebar 240px | **260px** via `--admin-sidebar-width` | §1, §2.4, §11 |
+| Add `--color-error` to all 8 themes | **Reject** — single `--admin-error: #e53e3e` in `Admin.css :root` | §2.4 (rewritten); §11 (drops `themes.js`); §12 (P8.1 dropped); §14 (themes.js byte-identical) |
+| Per-schema SVG illustrations | **Reject** — single `◆` Unicode glyph for every empty state | §1.1 (drops 10 illustration files); §8 (rewritten); §9.1 (drops registry test); §11.1 (16 new files instead of 28); §12 (P8.3 simpler) |
+| Sign-out moves to top bar | **Reject** — sign-out stays in sidebar, restyled per §3.3 | §1.1 (drops `AdminSignOut`); §1.2 (AdminNav keeps sign-out); §11.1 (drops 3 files); §12 (P8.6 / P8.8 reworked) |
+| Top bar = breadcrumb + saveStatus + openPR | **Add** `查看网站 ↗` ghost link as 3rd element; saveStatus is **5-state** (idle hidden / unsaved / saving / saved with 3s auto-clear / error) | §5, §7.3 |
+| Toast handling | Designer §7 specifies bottom-right toast for save success/error spike — `Admin.jsx` renders both top-bar pill (always) and toast (event spike) | §1.2 Admin.jsx, §7, §12 P8.9 |
+| Brand panel content | Designer §3.1 specifies `<img src="/panda.svg">` + `后台` wordmark + `BD!NA 后台` subline | §1.1, §1.6 (asset dependency flagged), §12 P8.6 |
+| Sidebar nav prefix | Designer §3.2: `◆ ` prefix on every schema button | §12 P8.8 |
+| List header count badge | Designer §4.2: `{N} 条` count badge next to schema title | §1.2 AdminEditor, §12 P8.7 |
 
-When Designer's doc lands, Architect re-reads relevant sections and edits this doc (commit `docs: align P8 architecture with designer overrides`) **before** Developer dispatches. Developer reads the final architecture as the binding spec; design doc is the visual reference.
+Architect's notes for Developer:
+- Designer's spec is the visual binding contract; this doc is the structural binding contract. Where they reference each other, both are authoritative.
+- Designer's full rendering specs (toast position, spinner CSS, focus ring offsets, contrast notes for each band theme, button system tokens) are in `docs/p8-design.md` §1-§9 — Developer reads both docs side-by-side.
+- The `public/panda.svg` asset gap is the only blocking issue Architect can't resolve unilaterally; if Developer hits it, fall back to `/logo.png` and ping Designer for an asset commit per §1.6.
 
 ---
 

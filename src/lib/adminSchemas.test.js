@@ -76,7 +76,7 @@ describe('adminSchemas registry shape', () => {
   })
 
   it('getSchema returns schema by key, undefined for unknown', () => {
-    expect(getSchema('events').title).toBe('Events')
+    expect(getSchema('events').title).toBe('活动')
     expect(getSchema('does-not-exist')).toBeUndefined()
   })
 })
@@ -123,7 +123,7 @@ describe('validateItem(events)', () => {
   it('Edge 9: missing title returns title-required error', () => {
     const errs = validateItem('events', { ...valid, title: '' })
     expect(errs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ fieldKey: 'title', message: expect.stringMatching(/required/i) }),
+      expect.objectContaining({ fieldKey: 'title', message: expect.stringMatching(/不能为空/) }),
     ]))
   })
 
@@ -134,12 +134,12 @@ describe('validateItem(events)', () => {
 
   it('Edge 11: invalid date returns date error', () => {
     const errs = validateItem('events', { ...valid, date: 'not-a-date' })
-    expect(errs.some((e) => e.fieldKey === 'date' && /valid date/i.test(e.message))).toBe(true)
+    expect(errs.some((e) => e.fieldKey === 'date' && /有效日期/.test(e.message))).toBe(true)
   })
 
   it('Edge 12: type=unknown returns enum violation', () => {
     const errs = validateItem('events', { ...valid, type: 'something-else' })
-    expect(errs.some((e) => e.fieldKey === 'type' && /one of/i.test(e.message))).toBe(true)
+    expect(errs.some((e) => e.fieldKey === 'type' && /必须为以下之一/.test(e.message))).toBe(true)
   })
 
   it('autoSlug+readOnly id is allowed empty if title is set', () => {
@@ -194,7 +194,7 @@ describe('validateUnique', () => {
 
   it('returns error on duplicate ids', () => {
     const errs = validateUnique('events', [{ id: 'a' }, { id: 'a' }])
-    expect(errs[0].message).toMatch(/duplicate id/i)
+    expect(errs[0].message).toMatch(/id 重复/)
   })
 
   it('skips object-shape schemas', () => {
@@ -225,7 +225,7 @@ describe('boolean field validation', () => {
 
   it('rejects non-boolean value on boolean field', () => {
     const errs = validateItem('social', { platform: 'discord', label: 'D', enabled: 'maybe' })
-    expect(errs.some((e) => e.fieldKey === 'enabled' && /true or false/i.test(e.message))).toBe(true)
+    expect(errs.some((e) => e.fieldKey === 'enabled' && /true 或 false/.test(e.message))).toBe(true)
   })
 })
 
