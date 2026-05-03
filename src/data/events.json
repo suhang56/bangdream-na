@@ -18,19 +18,25 @@
     "ticketUrl": "https://www.acen.org/"
   },
   {
-    "id": "【漫展】群友组织-uw-少女乐队only",
-    "title": "【漫展】群友组织 UW 少女乐队only",
-    "date": "2026-05-23T07:41:00.000Z",
-    "endDate": "2026-05-23T07:41:00.000Z",
-    "type": "con",
+    "id": "【现地】6月东京5连（ras-🐔-梦限大-ztmy-初音）",
+    "title": "【现地】6月东京5连（RAS 🐔 梦限大 ztmy 初音）",
+    "date": "2026-06-01T07:42:00.000Z",
+    "endDate": "2026-06-30T07:42:00.000Z",
+    "type": "concert",
     "location": {
-      "city": "Seattle",
-      "venue": "University of Washington，Oka Hall Denny Room",
-      "country": "US"
+      "city": "Tokyo",
+      "venue": "SGC",
+      "country": "Japan"
     },
-    "description": "【漫展】群友组织 UW 少女乐队only\n2026 5.23\n地点 University of Washington，Oka Hall Denny Room\n活动群 233507612\n主群是微信群，需要的请艾特嘎老师或管理索要微信群二维码",
+    "description": "【现地】6月东京5连（RAS 🐔 梦限大 ztmy 初音）\n2026 6.7-21\n地点日本东京都内\n活动群 135134980",
     "links": [],
-    "bands": [],
+    "bands": [
+      "Raise A Suilen",
+      "Ave Mujica",
+      "梦限大",
+      "Zutomayo",
+      "Miku"
+    ],
     "image": "",
     "ticketUrl": ""
   }
