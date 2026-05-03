@@ -1,0 +1,12 @@
+# Cloudflare Pages — _redirects
+# Syntax: <from>  <to>  <status>
+
+# 1) IDN alias domains → canonical
+https://xn--6oqz0h9uah3nn8uf8kujz.com/*           https://bangdream.org/:splat  301
+https://www.xn--6oqz0h9uah3nn8uf8kujz.com/*       https://bangdream.org/:splat  301
+https://xn--6oqz0h9uah3nn8uf8kujz.org/*           https://bangdream.org/:splat  301
+https://www.xn--6oqz0h9uah3nn8uf8kujz.org/*       https://bangdream.org/:splat  301
+https://www.bangdream.org/*                        https://bangdream.org/:splat  301
+
+# 2) SPA fallback — every non-asset path → index.html (200, NOT 301)
+/*    /index.html   200
