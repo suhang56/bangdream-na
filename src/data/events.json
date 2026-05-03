@@ -52,5 +52,24 @@
     "bands": [],
     "image": "",
     "ticketUrl": ""
+  },
+  {
+    "id": "anime-expo",
+    "title": "Anime Expo",
+    "date": "2026-07-02T07:47:00.000Z",
+    "endDate": "2026-07-06T07:47:00.000Z",
+    "type": "concert",
+    "location": {
+      "city": "Los Angeles",
+      "venue": "Cypto.com Arena",
+      "country": "US"
+    },
+    "description": "Roselia时隔5年重回北美!!!!\nAnime Expo 2026\n2026 7.2-5\n地点 CA\n活动群 797097819",
+    "links": [],
+    "bands": [
+      "Roselia"
+    ],
+    "image": "/events/anime-expo.png",
+    "ticketUrl": ""
   }
 ]
