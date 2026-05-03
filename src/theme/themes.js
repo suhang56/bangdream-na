@@ -11,6 +11,8 @@ export const themes = {
       '--color-accent': '#a78bfa',
       '--color-border': 'rgba(255, 255, 255, 0.07)',
       '--gradient-hero': 'linear-gradient(135deg, #6366f1, #a78bfa)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': '#ffffff',
     },
   },
   roselia: {
@@ -25,6 +27,8 @@ export const themes = {
       '--color-accent': '#d4af37',
       '--color-border': '#2a1838',
       '--gradient-hero': 'linear-gradient(135deg, #a020c0, #d4af37)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
     },
   },
   popipa: {
@@ -39,6 +43,8 @@ export const themes = {
       '--color-accent': '#ffcc11',
       '--color-border': '#3a1c2a',
       '--gradient-hero': 'linear-gradient(135deg, #ff3377, #ff5522, #ffcc11)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': '#ffffff',
     },
   },
   mygo: {
@@ -53,6 +59,8 @@ export const themes = {
       '--color-accent': '#7777aa',
       '--color-border': '#1f2c38',
       '--gradient-hero': 'linear-gradient(135deg, #77bbdd, #7777aa)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': '#ffffff',
     },
   },
   morfonica: {
@@ -67,6 +75,8 @@ export const themes = {
       '--color-accent': '#b896e8',
       '--color-border': '#241c40',
       '--gradient-hero': 'linear-gradient(135deg, #33aaff, #b896e8)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
     },
   },
   afterglow: {
@@ -81,6 +91,8 @@ export const themes = {
       '--color-accent': '#ff9999',
       '--color-border': '#3a1f1f',
       '--gradient-hero': 'linear-gradient(135deg, #ee0022, #ff9999, #ffee88)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': '#ffffff',
     },
   },
   pastel: {
@@ -95,6 +107,8 @@ export const themes = {
       '--color-accent': '#99dd88',
       '--color-border': '#2a2a3a',
       '--gradient-hero': 'linear-gradient(135deg, #ff88bb, #ddbbff, #55ddee, #99dd88, #ffeeaa)',
+      '--color-on-primary': '#ffffff',
+      '--color-on-accent': 'rgba(0, 0, 0, 0.85)',
     },
   },
   hhw: {
@@ -109,6 +123,8 @@ export const themes = {
       '--color-accent': '#aa33cc',
       '--color-border': '#3a2a2a',
       '--gradient-hero': 'linear-gradient(90deg, #aa33cc, #ff9922, #ffee22, #44ddff, #006699)',
+      '--color-on-primary': 'rgba(0, 0, 0, 0.85)',
+      '--color-on-accent': '#ffffff',
     },
   },
 }
@@ -135,6 +151,8 @@ export const REQUIRED_TOKENS = [
   '--color-accent',
   '--color-border',
   '--gradient-hero',
+  '--color-on-primary',
+  '--color-on-accent',
 ]
 
 export function isValidThemeKey(key) {
