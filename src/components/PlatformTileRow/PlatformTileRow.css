@@ -98,6 +98,10 @@
   background: #07c160;
 }
 
+.platform-tile[data-platform="forum"] {
+  background: #f31864;
+}
+
 /* Disabled state overrides brand color and uses theme-tinted muted look. */
 .platform-tile--disabled,
 .platform-tile--disabled[data-platform] {

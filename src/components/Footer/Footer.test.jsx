@@ -11,26 +11,22 @@ describe('<Footer />', () => {
     setLanguage('en')
   })
 
-  it('renders exactly 2 column headings (Quick Links + About & Legal)', () => {
+  it('renders 3 column headings (Quick Links + Communities + About & Legal) when communities enabled', () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
     const headings = container.querySelectorAll('.footer-heading')
-    expect(headings.length).toBe(2)
+    expect(headings.length).toBe(3)
     expect(
       screen.getByRole('heading', { level: 3, name: /quick links/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 3, name: /^communities$/i }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { level: 3, name: /about & legal/i }),
     ).toBeInTheDocument()
   })
 
-  it('does NOT render Communities heading (P6 — moved to PlatformTileRow)', () => {
-    renderWithProviders(<Footer />, { route: '/' })
-    expect(
-      screen.queryByRole('heading', { level: 3, name: /communities/i }),
-    ).toBeNull()
-  })
-
-  it('does NOT render PlatformIcon list inside footer (P6)', () => {
+  it('does NOT render legacy PlatformIcon list inside footer', () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
     expect(container.querySelector('.footer-platform-list')).toBeNull()
     expect(container.querySelector('.platform-icon')).toBeNull()
@@ -60,9 +56,49 @@ describe('<Footer />', () => {
 
   it('Quick Links column lists 5 routes (5 internal links)', () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
-    const quickLinks = container.querySelector('.footer-column .footer-list')
-    const links = quickLinks.querySelectorAll('a')
+    const columns = container.querySelectorAll('.footer-column')
+    const quickLinksColumn = columns[0]
+    const links = quickLinksColumn.querySelectorAll('a')
     expect(links.length).toBe(5)
+  })
+
+  it('Communities column shows 5 enabled platforms by default (wechat disabled)', () => {
+    renderWithProviders(<Footer />, { route: '/' })
+    const communitiesHeading = screen.getByRole('heading', {
+      level: 3,
+      name: /^communities$/i,
+    })
+    const column = communitiesHeading.closest('.footer-column')
+    expect(column).not.toBeNull()
+    const links = column.querySelectorAll('a')
+    expect(links.length).toBe(5)
+    const labels = Array.from(links).map((a) => a.textContent)
+    expect(labels).toContain('Discord')
+    expect(labels).toContain('QQ')
+    expect(labels).toContain('Xiaohongshu')
+    expect(labels).toContain('X')
+    expect(labels).toContain('Forum')
+    expect(labels).not.toContain('WeChat')
+  })
+
+  it('Communities column links open in new tab with correct rel attrs', () => {
+    renderWithProviders(<Footer />, { route: '/' })
+    const communitiesHeading = screen.getByRole('heading', {
+      level: 3,
+      name: /^communities$/i,
+    })
+    const column = communitiesHeading.closest('.footer-column')
+    const links = column.querySelectorAll('a')
+    links.forEach((a) => {
+      expect(a.getAttribute('target')).toBe('_blank')
+      expect(a.getAttribute('rel')).toBe('noopener noreferrer')
+      expect(a.getAttribute('href')).toMatch(/^https:\/\//)
+    })
+  })
+
+  it('Communities column shows forum link when forum.enabled === true (default ship)', () => {
+    renderWithProviders(<Footer />, { route: '/' })
+    expect(screen.getAllByRole('link', { name: 'Forum' }).length).toBeGreaterThan(0)
   })
 
   it('LangToggle re-render: ZH switches headings', () => {
@@ -71,5 +107,9 @@ describe('<Footer />', () => {
     expect(
       screen.getByRole('heading', { level: 3, name: /快速导航/ }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 3, name: /^社群$/ }),
+    ).toBeInTheDocument()
   })
 })
+

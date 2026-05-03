@@ -71,7 +71,7 @@ describe('<Home />', () => {
   it('renders PlatformTileRow at home bottom (always)', () => {
     const { container } = renderWithProviders(<Home />, { route: '/' })
     expect(container.querySelector('.platform-tile-row')).not.toBeNull()
-    // 5 platforms from social.json
-    expect(container.querySelectorAll('.platform-tile').length).toBe(5)
+    // 6 platforms from social.json (discord, qq, xiaohongshu, x, wechat, forum)
+    expect(container.querySelectorAll('.platform-tile').length).toBe(6)
   })
 })

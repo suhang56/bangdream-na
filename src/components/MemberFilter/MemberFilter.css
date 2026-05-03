@@ -136,3 +136,27 @@
     transition: none;
   }
 }
+
+@media (max-width: 540px) {
+  .member-filter {
+    gap: 0.875rem;
+    margin: 0 0 1.25rem;
+  }
+  .member-filter legend {
+    margin-bottom: 0.375rem;
+  }
+  .member-filter-chip-group,
+  .member-filter-radio-group {
+    gap: 0.375rem;
+  }
+  .member-filter-chip,
+  .member-filter-radio {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+  .member-filter-search input {
+    max-width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}

@@ -2,10 +2,12 @@ import { useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import {
   getLanguage,
+  getPlatformLabel,
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
 import site from '../../data/site.json'
+import socialData from '../../data/social.json'
 import './Footer.css'
 
 const QUICK_LINKS = [
@@ -19,9 +21,13 @@ const QUICK_LINKS = [
 const ABOUT_LINKS = [
   { href: '/about#mission', key: 'footer.mission' },
   { href: '/about#faq', key: 'footer.faq' },
-  { href: '/about#coc', key: 'footer.coc' },
+  { href: '/rules', key: 'footer.coc' },
   { href: '/about#disclaimer', key: 'footer.disclaimerLink' },
 ]
+
+function isHttpsUrl(url) {
+  return typeof url === 'string' && /^https:\/\//i.test(url.trim())
+}
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -40,6 +46,13 @@ export default function Footer() {
   const hasEn =
     typeof site.communityName === 'string' && site.communityName.length > 0
 
+  const communityLinks = Array.isArray(socialData)
+    ? socialData.filter(
+        (entry) =>
+          entry && entry.enabled === true && isHttpsUrl(entry.url),
+      )
+    : []
+
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -56,6 +69,26 @@ export default function Footer() {
               ))}
             </ul>
           </section>
+
+          {communityLinks.length > 0 ? (
+            <section className="footer-column">
+              <h3 className="footer-heading">{t('footer.communities')}</h3>
+              <ul className="footer-list">
+                {communityLinks.map((entry) => (
+                  <li key={entry.platform}>
+                    <a
+                      href={entry.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="footer-link"
+                    >
+                      {getPlatformLabel(entry.platform, entry.label)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="footer-column">
             <h3 className="footer-heading">{t('footer.aboutLegal')}</h3>

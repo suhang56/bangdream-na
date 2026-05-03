@@ -245,4 +245,95 @@ describe('<PlatformTileRow />', () => {
       'Twitter',
     )
   })
+
+  it('forum tile in enabled state renders <a data-platform="forum"> with external attrs', () => {
+    const forumActive = [
+      {
+        platform: 'forum',
+        label: '论坛',
+        url: 'https://forum.bangdream.org',
+        qrImage: null,
+        enabled: true,
+      },
+    ]
+    const { container } = renderWithProviders(
+      <PlatformTileRow social={forumActive} />,
+    )
+    const tile = container.querySelector(
+      '.platform-tile[data-platform="forum"]',
+    )
+    expect(tile).not.toBeNull()
+    expect(tile.tagName).toBe('A')
+    expect(tile.getAttribute('href')).toBe('https://forum.bangdream.org')
+    expect(tile.getAttribute('target')).toBe('_blank')
+    expect(tile.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('forum tile renders ForumSvg glyph when active', () => {
+    const forumActive = [
+      {
+        platform: 'forum',
+        label: '论坛',
+        url: 'https://forum.bangdream.org',
+        qrImage: null,
+        enabled: true,
+      },
+    ]
+    const { container } = renderWithProviders(
+      <PlatformTileRow social={forumActive} />,
+    )
+    const svg = container.querySelector('[data-platform="forum"] svg')
+    expect(svg).not.toBeNull()
+  })
+
+  it('forum tile in disabled state renders <span aria-disabled> with comingSoon title', () => {
+    const forumDisabled = [
+      {
+        platform: 'forum',
+        label: '论坛',
+        url: 'https://forum.bangdream.org',
+        qrImage: null,
+        enabled: false,
+      },
+    ]
+    const { container } = renderWithProviders(
+      <PlatformTileRow social={forumDisabled} />,
+    )
+    const tile = container.querySelector(
+      '.platform-tile[data-platform="forum"]',
+    )
+    expect(tile.tagName).toBe('SPAN')
+    expect(tile.getAttribute('aria-disabled')).toBe('true')
+    expect(tile.getAttribute('title')).toBe('Coming soon')
+  })
+
+  it('forum tile shows 论坛 label in zh', () => {
+    setLanguage('zh')
+    const forumActive = [
+      {
+        platform: 'forum',
+        label: '论坛',
+        url: 'https://forum.bangdream.org',
+        qrImage: null,
+        enabled: true,
+      },
+    ]
+    renderWithProviders(<PlatformTileRow social={forumActive} />)
+    expect(screen.getByRole('link', { name: '论坛' })).toBeInTheDocument()
+  })
+
+  it('forum tile shows Forum label in en', () => {
+    setLanguage('en')
+    const forumActive = [
+      {
+        platform: 'forum',
+        label: '论坛',
+        url: 'https://forum.bangdream.org',
+        qrImage: null,
+        enabled: true,
+      },
+    ]
+    renderWithProviders(<PlatformTileRow social={forumActive} />)
+    expect(screen.getByRole('link', { name: 'Forum' })).toBeInTheDocument()
+  })
 })

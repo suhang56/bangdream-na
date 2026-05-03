@@ -3,20 +3,35 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher.jsx'
 import LangToggle from '../LangToggle/LangToggle.jsx'
 import MobileDrawer from '../MobileDrawer/MobileDrawer.jsx'
+import { ForumSvg } from '../PlatformIcon/icons.jsx'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
 import site from '../../data/site.json'
+import socialData from '../../data/social.json'
+import { isForumEnabled } from '../../lib/forum.js'
 import './Navbar.css'
 
 const NAV_LINKS = [
   { to: '/', key: 'nav.home', end: true },
   { to: '/news', key: 'nav.news' },
   { to: '/events', key: 'nav.events' },
+  {
+    to: 'https://docs.qq.com/sheet/DQ3JJdGN6anNyQVhV?tab=BB08J2',
+    key: 'nav.tickets',
+    external: true,
+  },
+  {
+    to: 'https://arisa114514.feishu.cn/wiki/QCNOwAGPxiAE1Ak39BIcRlGbnjh',
+    key: 'nav.guide',
+    external: true,
+  },
   { to: '/members', key: 'nav.members' },
   { to: '/about', key: 'nav.about' },
+  { to: '/rules', key: 'nav.rules' },
+  { to: 'https://forum.bangdream.org', key: 'nav.forum', external: true },
 ]
 
 function subscribe(cb) {
@@ -77,6 +92,10 @@ export default function Navbar() {
     }
   }, [location.pathname])
 
+  const navLinks = isForumEnabled(socialData)
+    ? NAV_LINKS
+    : NAV_LINKS.filter((l) => l.key !== 'nav.forum')
+
   const brandLabel =
     typeof site.communityName === 'string' && site.communityName.length > 0
       ? site.communityName + ' — Home'
@@ -102,21 +121,44 @@ export default function Navbar() {
             <span className="navbar-brand-text" lang="zh">北美炸梦同好会</span>
           </Link>
           <ul className="navbar-links">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <li key={link.to}>
-                <NavLink
-                  to={link.to}
-                  end={link.end}
-                  className={({ isActive }) =>
-                    'navbar-link' + (isActive ? ' navbar-link--active' : '')
-                  }
-                >
-                  {t(link.key)}
-                </NavLink>
+                {link.external ? (
+                  <a
+                    href={link.to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="navbar-link"
+                  >
+                    {t(link.key)}
+                  </a>
+                ) : (
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    className={({ isActive }) =>
+                      'navbar-link' + (isActive ? ' navbar-link--active' : '')
+                    }
+                  >
+                    {t(link.key)}
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>
           <div className="navbar-tail">
+            {isForumEnabled(socialData) ? (
+              <a
+                href="https://forum.bangdream.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="navbar-forum-icon"
+                aria-label={t('nav.forum')}
+                title={t('nav.forum')}
+              >
+                <ForumSvg size={20} className="navbar-forum-icon__svg" />
+              </a>
+            ) : null}
             <LangToggle />
             <ThemeSwitcher />
           </div>
@@ -156,18 +198,29 @@ export default function Navbar() {
           </button>
         </div>
         <ul className="mobile-drawer-nav">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <li key={link.to}>
-              <NavLink
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  'mobile-drawer-link' +
-                  (isActive ? ' mobile-drawer-link--active' : '')
-                }
-              >
-                {t(link.key)}
-              </NavLink>
+              {link.external ? (
+                <a
+                  href={link.to}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mobile-drawer-link"
+                >
+                  {t(link.key)}
+                </a>
+              ) : (
+                <NavLink
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) =>
+                    'mobile-drawer-link' +
+                    (isActive ? ' mobile-drawer-link--active' : '')
+                  }
+                >
+                  {t(link.key)}
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>

@@ -113,4 +113,27 @@ describe('<Navbar />', () => {
     // first link re-renders to ZH
     expect(screen.getAllByRole('link', { name: '首页' }).length).toBeGreaterThan(0)
   })
+
+  it('forum nav entry shown when social.json forum.enabled === true (default ship)', () => {
+    renderWithProviders(<Navbar />, { route: '/' })
+    expect(screen.getAllByRole('link', { name: 'Forum' }).length).toBeGreaterThan(0)
+  })
+
+  it('forum nav entry shown in mobile drawer when forum.enabled === true (default ship)', async () => {
+    const user = userEvent.setup()
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    await user.click(container.querySelector('.navbar-hamburger'))
+    expect(screen.getAllByRole('link', { name: 'Forum' }).length).toBeGreaterThan(0)
+  })
+
+  it('forum tail-icon button rendered when enabled, with external attrs', () => {
+    const { container } = renderWithProviders(<Navbar />, { route: '/' })
+    const iconLink = container.querySelector('.navbar-forum-icon')
+    expect(iconLink).not.toBeNull()
+    expect(iconLink.getAttribute('href')).toBe('https://forum.bangdream.org')
+    expect(iconLink.getAttribute('target')).toBe('_blank')
+    expect(iconLink.getAttribute('rel')).toBe('noopener noreferrer')
+    expect(iconLink.querySelector('svg')).not.toBeNull()
+  })
 })
+
