@@ -137,3 +137,14 @@ a.member-card-social:focus-visible {
     transform: none;
   }
 }
+
+@media (max-width: 540px) {
+  .member-card {
+    padding: 0.625rem 0.75rem;
+    border-radius: 8px;
+    gap: 0.25rem;
+  }
+  .member-card-name {
+    font-size: 0.875rem;
+  }
+}
