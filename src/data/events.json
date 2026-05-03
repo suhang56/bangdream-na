@@ -1,25 +1,19 @@
 [
   {
-    "id": "【漫展】大桥彩香-出席-anime-central",
-    "title": "【漫展】大桥彩香 出席 Anime Central",
-    "date": "2026-05-15T07:29:00.000Z",
-    "endDate": "2026-05-17T07:29:00.000Z",
+    "id": "【漫展】群友组织-uw-少女乐队only",
+    "title": "【漫展】群友组织 UW 少女乐队only",
+    "date": "2026-05-23T07:34:00.000Z",
+    "endDate": "2026-05-23T07:34:00.000Z",
     "type": "con",
     "location": {
-      "城市": "Chicago",
-      "漫展名称": "Anime Central",
-      "国家": "US",
-      "原因": "大桥彩香出席"
+      "city": "Seattle",
+      "venue": "University of Washington，Oka Hall Denny Room",
+      "country": "US"
     },
-    "description": "【漫展】大桥彩香 出席 Anime Central\n2026 5.15-17\n地点 Chicago\n活动群 852139015",
-    "links": [
-      {
-        "label": "官网链接",
-        "url": "https://www.acen.org/"
-      }
-    ],
+    "description": "【漫展】群友组织 UW 少女乐队only\n2026 5.23\n地点 University of Washington，Oka Hall Denny Room\n活动群 233507612\n主群是微信群，需要的请艾特嘎老师或管理索要微信群二维码",
+    "links": [],
     "bands": [],
-    "image": "/events/【漫展】大桥彩香-出席-anime-central.png",
-    "ticketUrl": "https://www.acen.org/"
+    "image": "",
+    "ticketUrl": ""
   }
 ]
