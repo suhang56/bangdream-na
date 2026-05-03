@@ -11,7 +11,6 @@ describe('<Hero />', () => {
         communityNameZh="北美炸梦同好会"
         communityNameJp="バンドリ北米華人コミュニティ"
         tagline="Concerts and conventions"
-        discordUrl="https://discord.gg/abc"
       />,
     )
     expect(container.querySelector('[lang="ja"]')).toHaveTextContent(
@@ -32,7 +31,6 @@ describe('<Hero />', () => {
         communityNameZh="北美炸梦同好会"
         communityNameJp="JP"
         tagline=""
-        discordUrl=""
       />,
     )
     expect(
@@ -46,7 +44,6 @@ describe('<Hero />', () => {
         communityName="EN Only"
         communityNameJp="JP"
         tagline=""
-        discordUrl=""
       />,
     )
     expect(
@@ -55,7 +52,7 @@ describe('<Hero />', () => {
   })
 
   it('all three missing → fallback H1 (edge)', () => {
-    renderWithProviders(<Hero tagline="" discordUrl="" />)
+    renderWithProviders(<Hero tagline="" />)
     expect(
       screen.getByRole('heading', { level: 1, name: 'BanG Dream NA' }),
     ).toBeInTheDocument()
@@ -63,46 +60,30 @@ describe('<Hero />', () => {
 
   it('JP missing → no JP line rendered (edge)', () => {
     const { container } = renderWithProviders(
-      <Hero
-        communityName="EN"
-        communityNameZh="ZH"
-        tagline=""
-        discordUrl=""
-      />,
+      <Hero communityName="EN" communityNameZh="ZH" tagline="" />,
     )
     expect(container.querySelector('[lang="ja"]')).toBeNull()
   })
 
   it('omits tagline when empty (edge)', () => {
     const { container } = renderWithProviders(
-      <Hero communityName="X" tagline="" discordUrl="" />,
+      <Hero communityName="X" tagline="" />,
     )
     expect(container.querySelector('.hero-tagline')).toBeNull()
   })
 
-  it('renders disabled CTA when discordUrl empty (edge)', () => {
-    renderWithProviders(<Hero communityName="X" tagline="y" discordUrl="" />)
-    expect(
-      screen.getByRole('button', { name: /discord coming soon/i }),
-    ).toBeDisabled()
-  })
-
-  it('renders active CTA when discordUrl valid', () => {
-    renderWithProviders(
-      <Hero
-        communityName="X"
-        tagline="y"
-        discordUrl="https://discord.gg/abc"
-      />,
+  it('does NOT render any Discord CTA inside hero (P6 — moved to PlatformTileRow)', () => {
+    const { container } = renderWithProviders(
+      <Hero communityName="X" tagline="y" />,
     )
-    expect(
-      screen.getByRole('link', { name: /join discord/i }),
-    ).toBeInTheDocument()
+    expect(container.querySelector('.hero-cta')).toBeNull()
+    const discordLinks = container.querySelectorAll('a[href*="discord"]')
+    expect(discordLinks.length).toBe(0)
   })
 
   it('renders children prop in hero-extra slot', () => {
     renderWithProviders(
-      <Hero communityName="X" tagline="" discordUrl="">
+      <Hero communityName="X" tagline="">
         <div data-testid="extra">Carousel</div>
       </Hero>,
     )

@@ -43,11 +43,11 @@ describe('<Home />', () => {
     expect(screen.getByText(t('tagline'))).toBeInTheDocument()
   })
 
-  it('renders active Discord CTA', () => {
-    renderWithProviders(<Home />, { route: '/' })
-    expect(
-      screen.getByRole('link', { name: /join discord/i }),
-    ).toBeInTheDocument()
+  it('does NOT render Discord CTA inside Hero (P6 — moved to PlatformTileRow)', () => {
+    const { container } = renderWithProviders(<Home />, { route: '/' })
+    const hero = container.querySelector('.hero')
+    expect(hero).not.toBeNull()
+    expect(hero.querySelector('a[href*="discord"]')).toBeNull()
   })
 
   it('all three lang attributes (ja|zh|en) present', () => {

@@ -32,7 +32,6 @@ export default function Home() {
         communityNameZh={site.communityNameZh}
         communityNameJp={site.communityNameJp}
         tagline={t('tagline')}
-        discordUrl={site.discordInvite}
       >
         {hasUpcoming ? (
           <HeroCarousel events={events} max={5} now={now} />
