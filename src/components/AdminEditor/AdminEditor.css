@@ -6,89 +6,69 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
   gap: 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 0.75rem;
 }
 
 .admin-editor-header h2 {
   margin: 0;
-  font-size: 1.3rem;
-  color: var(--color-text, #111);
+  font-size: 1.25rem;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.admin-editor-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-left: 0.5rem;
+  font-weight: 400;
 }
 
 .admin-editor-back {
   background: transparent;
   border: none;
-  color: var(--color-primary, #6366f1);
+  color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   padding: 0;
+  font-family: inherit;
 }
 
 .admin-editor-back:hover {
-  text-decoration: underline;
+  color: var(--color-primary);
 }
 
-.admin-editor-loading,
-.admin-editor-empty {
-  color: var(--color-text-muted, #777);
-  font-style: italic;
+.admin-editor-back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.admin-editor-loading {
+  color: var(--color-text-muted);
 }
 
 .admin-editor-error {
-  background: color-mix(in srgb, #d33 8%, transparent);
-  border: 1px solid #d33;
-  color: #a00;
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
   padding: 0.6rem 0.8rem;
   border-radius: 6px;
   margin-bottom: 1rem;
 }
 
-.admin-editor-success {
-  background: color-mix(in srgb, var(--color-success, #2a8) 10%, transparent);
-  border: 1px solid var(--color-success, #2a8);
-  color: var(--color-text, #111);
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-}
-
-.admin-editor-success a {
-  color: var(--color-primary, #6366f1);
-}
-
-.admin-editor-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
-}
-
-.admin-editor-table th,
-.admin-editor-table td {
-  text-align: left;
-  padding: 0.55rem 0.7rem;
-  border-bottom: 1px solid var(--color-border, #eee);
-  font-size: 0.92rem;
-  color: var(--color-text, #222);
-}
-
-.admin-editor-table th {
-  font-weight: 500;
-  color: var(--color-text-muted, #555);
-  background: var(--color-bg, #fafafa);
-}
-
-.admin-editor-row-actions {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-editor-error {
+    background: var(--color-bg-card);
+  }
 }
 
 .admin-editor-btn {
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #d4d4d4);
-  color: var(--color-text, #222);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.45rem 0.85rem;
   border-radius: 6px;
   cursor: pointer;
@@ -97,7 +77,19 @@
 }
 
 .admin-editor-btn:hover:not(:disabled) {
-  background: var(--color-bg, #f5f5f5);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-card));
+  border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-text));
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-editor-btn:hover:not(:disabled) {
+    background: var(--color-bg);
+  }
+}
+
+.admin-editor-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .admin-editor-btn:disabled {
@@ -106,27 +98,15 @@
 }
 
 .admin-editor-btn.primary {
-  background: var(--color-primary, #6366f1);
-  border-color: var(--color-primary, #6366f1);
-  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
 }
 
 .admin-editor-btn.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 85%, black);
-}
-
-.admin-editor-btn.danger {
-  border-color: #d33;
-  color: #d33;
-}
-
-.admin-editor-btn.danger:hover:not(:disabled) {
-  background: color-mix(in srgb, #d33 8%, transparent);
-}
-
-.admin-editor-btn.small {
-  padding: 0.3rem 0.65rem;
-  font-size: 0.85rem;
+  filter: brightness(1.1);
+  background: var(--color-primary);
 }
 
 .admin-editor-actions {
@@ -145,17 +125,20 @@
 }
 
 .admin-editor-conflict-box {
-  background: var(--color-surface, #fff);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1.5rem 1.75rem;
   max-width: 420px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  color: var(--color-text);
 }
 
 .admin-editor-conflict-box h3 {
   margin: 0 0 0.75rem;
+  color: var(--color-text);
 }
 
 .admin-editor-conflict-box p {
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-muted);
 }

@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AdminEditor from './AdminEditor.jsx'
 import * as githubApi from '../../lib/githubApi.js'
 
+const SAVE_BUTTON = /保存（提交 PR）/
+
 describe('<AdminEditor /> events (collection)', () => {
   beforeEach(() => {
     vi.spyOn(githubApi, 'ghGet').mockResolvedValue({
@@ -17,35 +19,35 @@ describe('<AdminEditor /> events (collection)', () => {
   })
   afterEach(() => { vi.restoreAllMocks() })
 
-  it('loads + lists items + shows Add button', async () => {
+  it('loads + lists items + shows + 新建 button', async () => {
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /add new/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /\+ 新建活动/ })).toBeInTheDocument()
   })
 
-  it('clicking Edit row opens form view; Cancel returns to list', async () => {
+  it('clicking 编辑 row opens form view; 取消 returns to list', async () => {
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
-    expect(screen.getByRole('button', { name: /save \(commit \+ pr\)/i })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
+    expect(screen.getByRole('button', { name: SAVE_BUTTON })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^取消$/ }))
     expect(screen.getByText('Existing event')).toBeInTheDocument()
   })
 
-  it('Add new opens empty form', async () => {
+  it('+ 新建 opens empty form', async () => {
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /add new/i }))
-    expect(screen.getByRole('button', { name: /save \(commit \+ pr\)/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /\+ 新建活动/ }))
+    expect(screen.getByRole('button', { name: SAVE_BUTTON })).toBeDisabled()
   })
 
   it('save flow: triggers commitContentChange with composed message', async () => {
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
     const titleInput = screen.getByLabelText(/^标题/)
     fireEvent.change(titleInput, { target: { value: 'Updated event' } })
-    const save = screen.getByRole('button', { name: /save \(commit \+ pr\)/i })
+    const save = screen.getByRole('button', { name: SAVE_BUTTON })
     fireEvent.click(save)
     await waitFor(() => expect(githubApi.commitContentChange).toHaveBeenCalled())
     const args = githubApi.commitContentChange.mock.calls[0]
@@ -54,27 +56,29 @@ describe('<AdminEditor /> events (collection)', () => {
     expect(args[4]).toMatch(/update events\.json/)
   })
 
-  it('shows toast with PR link after save', async () => {
-    render(<AdminEditor schemaKey="events" token="ghp_X" />)
+  it('emits onSaveStatus saving → saved on successful save', async () => {
+    const onSaveStatus = vi.fn()
+    render(<AdminEditor schemaKey="events" token="ghp_X" onSaveStatus={onSaveStatus} />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
     fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'X' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
-    await waitFor(() => expect(screen.getByText(/PR #7 open/)).toBeInTheDocument())
-    const link = screen.getByRole('link', { name: /view on github/i })
-    expect(link).toHaveAttribute('href', 'https://github.com/x/y/pull/7')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
+    await waitFor(() => expect(onSaveStatus).toHaveBeenCalledWith({ status: 'saving' }))
+    await waitFor(() => expect(onSaveStatus).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'saved',
+      prNumber: 7,
+    })))
   })
 
   it('handles 409 conflict by showing dialog', async () => {
     vi.spyOn(githubApi, 'commitContentChange').mockRejectedValue(new Error('Concurrent edit detected. Refresh and retry.'))
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
     fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'X' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /discard/i }))
+    fireEvent.click(screen.getByRole('button', { name: /放弃并刷新/ }))
     expect(screen.queryByRole('alertdialog')).toBeNull()
   })
 
@@ -84,27 +88,36 @@ describe('<AdminEditor /> events (collection)', () => {
       .mockRejectedValueOnce(new Error('Not found: src/data/events.json on content-updates'))
       .mockResolvedValueOnce({ content: [], sha: 'main-sha', raw: '[]' })
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
-    await waitFor(() => expect(screen.getByText(/no 活动 yet/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
+  })
+
+  it('empty state has primary CTA that opens new-item form', async () => {
+    githubApi.ghGet.mockReset().mockResolvedValue({ content: [], sha: 'sha', raw: '[]' })
+    render(<AdminEditor schemaKey="events" token="ghp_X" />)
+    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
+    const ctas = screen.getAllByRole('button', { name: /\+ 新建活动/ })
+    fireEvent.click(ctas[0])
+    expect(screen.getByRole('button', { name: SAVE_BUTTON })).toBeInTheDocument()
   })
 
   it('load error shows banner with retry', async () => {
     githubApi.ghGet.mockReset().mockRejectedValue(new Error('Server error'))
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/server error/i))
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /重试/ })).toBeInTheDocument()
   })
 
   it('delete item triggers commitContentChange with delete message', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('Existing event')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: '✕' }))
+    fireEvent.click(screen.getByRole('button', { name: /^删除 a-1$/ }))
     await waitFor(() => expect(githubApi.commitContentChange).toHaveBeenCalled())
     const args = githubApi.commitContentChange.mock.calls[0]
     expect(args[4]).toMatch(/remove/)
   })
 
-  it('social schema hides Add and ✕ buttons', async () => {
+  it('social schema hides + 新建 and ✕ buttons', async () => {
     githubApi.ghGet.mockReset().mockResolvedValue({
       content: [{ platform: 'discord', label: 'Discord', url: 'https://x', enabled: true }],
       sha: 'sha',
@@ -112,8 +125,8 @@ describe('<AdminEditor /> events (collection)', () => {
     })
     render(<AdminEditor schemaKey="social" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('discord')).toBeInTheDocument())
-    expect(screen.queryByRole('button', { name: /add new/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: '✕' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /\+ 新建/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^删除/ })).toBeNull()
   })
 })
 
@@ -134,32 +147,42 @@ describe('<AdminEditor /> site (singleton)', () => {
   it('renders form directly (no list view)', async () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
-    expect(screen.queryByRole('button', { name: /add new/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /\+ 新建/ })).toBeNull()
   })
 
-  it('Save button disabled until edit makes draft', async () => {
+  it('保存按钮 disabled until edit makes draft', async () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /save \(commit \+ pr\)/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: SAVE_BUTTON })).toBeDisabled()
     fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/y' } })
-    expect(screen.getByRole('button', { name: /save \(commit \+ pr\)/i })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: SAVE_BUTTON })).not.toBeDisabled()
   })
 
   it('saves singleton merge', async () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/y' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(githubApi.commitContentChange).toHaveBeenCalled())
     const args = githubApi.commitContentChange.mock.calls[0]
     expect(args[3].discordInvite).toBe('https://discord.gg/y')
+  })
+
+  it('singleton emits onSaveStatus saving → saved', async () => {
+    const onSaveStatus = vi.fn()
+    render(<AdminEditor schemaKey="site" token="ghp_X" onSaveStatus={onSaveStatus} />)
+    await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/y' } })
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
+    await waitFor(() => expect(onSaveStatus).toHaveBeenCalledWith({ status: 'saving' }))
+    await waitFor(() => expect(onSaveStatus).toHaveBeenCalledWith(expect.objectContaining({ status: 'saved', prNumber: 8 })))
   })
 })
 
 describe('<AdminEditor /> unknown schema', () => {
   it('shows unknown schema error', () => {
     render(<AdminEditor schemaKey="not-a-schema" token="ghp_X" />)
-    expect(screen.getByText(/unknown schema/i)).toBeInTheDocument()
+    expect(screen.getByText(/未知 schema/)).toBeInTheDocument()
   })
 })
 
@@ -181,7 +204,7 @@ describe('<AdminEditor /> additional branches', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: '✕' }))
+    fireEvent.click(screen.getByRole('button', { name: /^删除 a-1$/ }))
     expect(githubApi.commitContentChange).not.toHaveBeenCalled()
   })
 
@@ -190,30 +213,29 @@ describe('<AdminEditor /> additional branches', () => {
     githubApi.commitContentChange.mockRejectedValueOnce(new Error('Server down'))
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: '✕' }))
+    fireEvent.click(screen.getByRole('button', { name: /^删除 a-1$/ }))
     await waitFor(() => expect(screen.getByText(/server down/i)).toBeInTheDocument())
   })
 
-  it('conflict dialog Cancel button closes dialog without discarding', async () => {
+  it('conflict dialog 取消 closes dialog without discarding', async () => {
     githubApi.commitContentChange.mockRejectedValueOnce(new Error('Concurrent edit detected.'))
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
     fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'Y' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument())
-    // Find the Cancel button inside the alertdialog (it's the second Cancel, scoped to dialog)
     const dialog = screen.getByRole('alertdialog')
-    const dialogCancel = dialog.querySelector('button.admin-editor-btn:not(.primary)')
-    fireEvent.click(dialogCancel)
+    const cancelBtns = dialog.querySelectorAll('button.admin-editor-btn:not(.primary)')
+    fireEvent.click(cancelBtns[cancelBtns.length - 1])
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
   })
 
-  it('Add new with empty required title shows save disabled until valid', async () => {
+  it('+ 新建 with empty required title shows save disabled until valid', async () => {
     render(<AdminEditor schemaKey="events" token="ghp_X" />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /add new/i }))
-    const save = screen.getByRole('button', { name: /save \(commit \+ pr\)/i })
+    fireEvent.click(screen.getByRole('button', { name: /\+ 新建活动/ }))
+    const save = screen.getByRole('button', { name: SAVE_BUTTON })
     expect(save).toBeDisabled()
   })
 
@@ -233,11 +255,11 @@ describe('<AdminEditor /> additional branches', () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/y' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument())
   })
 
-  it('singleton Reset button clears draft', async () => {
+  it('singleton 重置 button clears draft', async () => {
     githubApi.ghGet.mockReset().mockResolvedValue({
       content: { discordInvite: 'https://x.com', communityName: 'A', communityNameZh: 'B', communityNameJp: 'C' },
       sha: 'sha',
@@ -246,9 +268,9 @@ describe('<AdminEditor /> additional branches', () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/z' } })
-    expect(screen.getByRole('button', { name: /^reset$/i })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /^reset$/i }))
-    expect(screen.queryByRole('button', { name: /^reset$/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /^重置$/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^重置$/ }))
+    expect(screen.queryByRole('button', { name: /^重置$/ })).toBeNull()
   })
 
   it('formatCell renders boolean / number / object via row table', async () => {
@@ -274,9 +296,9 @@ describe('<AdminEditor /> additional branches', () => {
     const onAuthExpired = vi.fn()
     render(<AdminEditor schemaKey="events" token="ghp_X" onAuthExpired={onAuthExpired} />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
     fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'Y' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
   })
 
@@ -286,7 +308,7 @@ describe('<AdminEditor /> additional branches', () => {
     const onAuthExpired = vi.fn()
     render(<AdminEditor schemaKey="events" token="ghp_X" onAuthExpired={onAuthExpired} />)
     await waitFor(() => expect(screen.getByText('X')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: '✕' }))
+    fireEvent.click(screen.getByRole('button', { name: /^删除 a-1$/ }))
     await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
   })
 
@@ -301,7 +323,7 @@ describe('<AdminEditor /> additional branches', () => {
     render(<AdminEditor schemaKey="site" token="ghp_X" onAuthExpired={onAuthExpired} />)
     await waitFor(() => expect(screen.getByLabelText(/Discord 邀请链接/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/Discord 邀请链接/), { target: { value: 'https://discord.gg/y' } })
-    fireEvent.click(screen.getByRole('button', { name: /save \(commit \+ pr\)/i }))
+    fireEvent.click(screen.getByRole('button', { name: SAVE_BUTTON }))
     await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
   })
 })

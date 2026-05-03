@@ -20,15 +20,15 @@ describe('<Admin />', () => {
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
     render(<Admin />)
     expect(screen.getByRole('button', { name: '活动', current: 'page' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText(/no 活动 yet/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
   })
 
   it('clicking nav button switches view', async () => {
     window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
     render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/no 活动 yet/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: '成员' }))
-    await waitFor(() => expect(screen.getByText(/no 成员 yet/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/还没有成员/)).toBeInTheDocument())
   })
 
   it('logout clears token and returns to login', () => {
