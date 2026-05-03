@@ -43,11 +43,11 @@ export default function AdminAssetUploader({
     setLocalError(null)
     if (file.size > maxBytes) {
       const mb = (file.size / (1024 * 1024)).toFixed(1)
-      setLocalError(`File too large (${mb} MB). Max ${(maxBytes / 1024 / 1024).toFixed(0)} MB.`)
+      setLocalError(`文件过大（${mb} MB）。最大 ${(maxBytes / 1024 / 1024).toFixed(0)} MB。`)
       return
     }
     if (!acceptedMime.includes(file.type)) {
-      setLocalError('Unsupported file type. Allowed: png, jpg, webp, svg.')
+      setLocalError('不支持的文件类型，仅支持 png · jpg · webp · svg。')
       return
     }
     const ext = extFromFilename(file.name) || 'png'
@@ -103,13 +103,13 @@ export default function AdminAssetUploader({
           readOnly
           className="admin-asset-path-input"
           value={value ?? ''}
-          aria-label={`${field?.label ?? 'Asset'} path`}
+          aria-label={`${field?.label ?? '资源'} 路径`}
         />
       </div>
 
       {value && (
         <div className="admin-asset-preview">
-          <img src={value} alt={field?.label ?? 'Preview'} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img src={value} alt={field?.label ?? '预览'} onError={(e) => { e.currentTarget.style.display = 'none' }} />
         </div>
       )}
 
@@ -124,11 +124,11 @@ export default function AdminAssetUploader({
         aria-busy={uploading ? 'true' : 'false'}
       >
         {uploading ? (
-          <span>Uploading…</span>
+          <span>上传中…</span>
         ) : (
           <>
             <span className="admin-asset-dropzone-icon">⬆</span>
-            <span>Drag image here, or click to upload</span>
+            <span>拖拽图片至此，或点击上传</span>
             <span className="admin-asset-dropzone-hint">png · jpg · webp · svg · ≤{(maxBytes / 1024 / 1024).toFixed(0)}MB</span>
           </>
         )}

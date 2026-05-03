@@ -28,7 +28,7 @@ describe('<AdminJsonFallback />', () => {
     fireEvent.change(ta, { target: { value: '{not valid' } })
     fireEvent.blur(ta)
     expect(onChange).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert')).toHaveTextContent(/invalid json/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/无效 JSON/)
   })
 
   it('Edge 3: empty textarea + blur calls onChange with null', () => {

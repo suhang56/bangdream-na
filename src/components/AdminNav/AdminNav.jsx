@@ -1,15 +1,14 @@
 import { listSchemaKeys, getSchema } from '../../lib/adminSchemas.js'
+import AdminBrandPanel from '../AdminBrandPanel/AdminBrandPanel.jsx'
+import AdminSignOut from '../AdminSignOut/AdminSignOut.jsx'
 import './AdminNav.css'
 
-export default function AdminNav({ activeKey, onSelect, onLogout, openPR }) {
+export default function AdminNav({ activeKey, onSelect, onSignOut }) {
   const keys = listSchemaKeys()
   return (
     <aside className="admin-nav">
-      <div className="admin-nav-logo">
-        Admin
-        <small>bangdream-na</small>
-      </div>
-      <nav aria-label="Admin sections">
+      <AdminBrandPanel />
+      <nav aria-label="后台分区">
         {keys.map((k) => {
           const schema = getSchema(k)
           return (
@@ -20,24 +19,15 @@ export default function AdminNav({ activeKey, onSelect, onLogout, openPR }) {
               onClick={() => onSelect?.(k)}
               aria-current={k === activeKey ? 'page' : undefined}
             >
-              {schema.title}
+              <span aria-hidden="true" className="admin-nav-glyph">◆</span>
+              <span className="admin-nav-label">{schema.title}</span>
             </button>
           )
         })}
       </nav>
-      <div className="admin-nav-utilities">
-        <a href="/" target="_blank" rel="noopener noreferrer">View Site ↗</a>
-        {openPR ? (
-          <a href={openPR.htmlUrl} target="_blank" rel="noopener noreferrer">
-            Open PR #{openPR.number} ↗
-          </a>
-        ) : (
-          <span className="disabled" title="A PR opens automatically on your next save.">No open PR</span>
-        )}
+      <div className="admin-nav-footer">
+        <AdminSignOut onSignOut={onSignOut} />
       </div>
-      <button type="button" className="admin-nav-logout" onClick={onLogout}>
-        Sign out
-      </button>
     </aside>
   )
 }

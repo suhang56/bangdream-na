@@ -85,7 +85,7 @@ describe('<App />', () => {
       </ThemeProvider>,
     )
     // Admin login is shown
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument()
     // Public-site navbar (with primary nav role) is NOT in DOM on /admin
     expect(screen.queryByRole('navigation', { name: /primary/i })).toBeNull()
     // Footer copy ("not affiliated") is NOT in DOM on /admin

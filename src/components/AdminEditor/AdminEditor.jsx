@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import AdminForm from '../AdminForm/AdminForm.jsx'
+import AdminTable from '../AdminTable/AdminTable.jsx'
+import AdminEmptyState from '../AdminEmptyState/AdminEmptyState.jsx'
 import {
   getSchema,
   validateItem,
@@ -16,6 +18,17 @@ const BRANCH = 'content-updates'
 const BASE = 'main'
 
 const AUTH_EXPIRED_PATTERN = /unauthorized — token|forbidden — token/i
+
+// Chinese display labels for table column headers per schema. Field keys (id,
+// title, date, …) stay English in the data layer; this map provides the
+// operator-visible header text.
+const COLUMN_LABEL_ZH = {
+  events: { id: 'ID', title: '标题', date: '日期', type: '类型' },
+  members: { id: 'ID', name: '昵称', role: '身份', city: '城市' },
+  news: { id: 'ID', title: '标题', date: '日期', tag: '标签' },
+  posts: { id: 'ID', title: '叠加标题', datePosted: '发布日期' },
+  social: { platform: '平台', label: '显示名', enabled: '启用' },
+}
 
 function isAuthExpiredError(err) {
   return !!err && typeof err.message === 'string' && AUTH_EXPIRED_PATTERN.test(err.message)
@@ -58,7 +71,22 @@ function composeMessage(schema, action, item) {
   }
 }
 
-export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired }) {
+function buildColumns(schema) {
+  if (!Array.isArray(schema.listColumns)) return []
+  const labels = COLUMN_LABEL_ZH[schema.key] ?? {}
+  return schema.listColumns.map((key) => ({
+    key,
+    label: labels[key] ?? key,
+  }))
+}
+
+export default function AdminEditor({
+  schemaKey,
+  token,
+  onSavedPR,
+  onAuthExpired,
+  onSaveStatus,
+}) {
   const schema = useMemo(() => getSchema(schemaKey), [schemaKey])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -68,7 +96,10 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [conflict, setConflict] = useState(false)
-  const [successMsg, setSuccessMsg] = useState(null)
+
+  const emit = useCallback((update) => {
+    onSaveStatus?.(update)
+  }, [onSaveStatus])
 
   const load = useCallback(async () => {
     if (!schema) return
@@ -110,13 +141,13 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
     return list
   }, [draft, schemaKey])
 
-  if (!schema) return <p className="admin-editor-error">Unknown schema: {schemaKey}</p>
-  if (loading) return <p className="admin-editor-loading">Loading…</p>
+  if (!schema) return <p className="admin-editor-error">未知 schema：{schemaKey}</p>
+  if (loading) return <p className="admin-editor-loading">加载中…</p>
   if (loadError) {
     return (
       <div className="admin-editor-error" role="alert">
-        Failed to load {schema.file}: {loadError}
-        <button type="button" className="admin-editor-btn" onClick={load}>Retry</button>
+        加载 {schema.file} 失败：{loadError}
+        <button type="button" className="admin-editor-btn" onClick={load}>重试</button>
       </div>
     )
   }
@@ -130,12 +161,6 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
           <h2>{schema.title}</h2>
         </header>
         {saveError && <p className="admin-editor-error" role="alert">{saveError}</p>}
-        {successMsg && (
-          <p className="admin-editor-success" role="status" aria-live="polite">
-            {successMsg.text}{' '}
-            <a href={successMsg.url} target="_blank" rel="noopener noreferrer">View on GitHub →</a>
-          </p>
-        )}
         <AdminForm
           schema={schema}
           item={current ?? {}}
@@ -154,13 +179,14 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
               setSaving(true)
               setSaveError(null)
               setConflict(false)
+              emit({ status: 'saving' })
               try {
                 const merged = { ...(data ?? {}), ...(draft ?? {}) }
                 const message = composeMessage(schema, 'edit-singleton', merged)
                 const r = await commitContentChange(token, schemaKey, schema.file, merged, message, { branch: BRANCH, base: BASE })
                 setData(merged)
                 setDraft(null)
-                setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
+                emit({ status: 'saved', prNumber: r.pr.number, prUrl: r.pr.htmlUrl })
                 onSavedPR?.(r.pr)
               } catch (e) {
                 if (isAuthExpiredError(e)) {
@@ -170,16 +196,17 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
                 }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
                 setSaveError(e.message)
+                emit({ status: 'error', errorMessage: e.message })
               } finally {
                 setSaving(false)
               }
             }}
           >
-            {saving ? 'Saving…' : 'Save (commit + PR)'}
+            {saving ? '保存中…' : '保存（提交 PR）'}
           </button>
           {draft && (
             <button type="button" className="admin-editor-btn" onClick={() => setDraft(null)} disabled={saving}>
-              Reset
+              重置
             </button>
           )}
         </div>
@@ -196,8 +223,8 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
     return (
       <section className="admin-editor">
         <header className="admin-editor-header">
-          <button type="button" className="admin-editor-back" onClick={() => { setEditing(null); setDraft(null); setSaveError(null) }}>← Back to {schema.title}</button>
-          <h2>{editing === 'new' ? `New ${schema.key.replace(/s$/, '')}` : `Edit ${schema.key.replace(/s$/, '')}`}</h2>
+          <button type="button" className="admin-editor-back" onClick={() => { setEditing(null); setDraft(null); setSaveError(null) }}>← 返回 {schema.title}</button>
+          <h2>{editing === 'new' ? `新建${schema.title}` : `编辑${schema.title}`}</h2>
         </header>
         {saveError && <p className="admin-editor-error" role="alert">{saveError}</p>}
         <AdminForm
@@ -218,6 +245,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
               setSaving(true)
               setSaveError(null)
               setConflict(false)
+              emit({ status: 'saving' })
               try {
                 const finalItem = { ...draft, [schema.listKey]: autoIdForItem(schemaKey, draft) }
                 const isNew = editing === 'new'
@@ -228,6 +256,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
                 if (dupErrors.length > 0) {
                   setSaveError(dupErrors[0].message)
                   setSaving(false)
+                  emit({ status: 'error', errorMessage: dupErrors[0].message })
                   return
                 }
                 const message = composeMessage(schema, isNew ? 'add' : 'edit', finalItem)
@@ -235,7 +264,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
                 setData(nextItems)
                 setEditing(null)
                 setDraft(null)
-                setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
+                emit({ status: 'saved', prNumber: r.pr.number, prUrl: r.pr.htmlUrl })
                 onSavedPR?.(r.pr)
               } catch (e) {
                 if (isAuthExpiredError(e)) {
@@ -245,12 +274,13 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
                 }
                 if (/concurrent edit/i.test(e.message)) setConflict(true)
                 setSaveError(e.message)
+                emit({ status: 'error', errorMessage: e.message })
               } finally {
                 setSaving(false)
               }
             }}
           >
-            {saving ? 'Saving…' : 'Save (commit + PR)'}
+            {saving ? '保存中…' : '保存（提交 PR）'}
           </button>
           <button
             type="button"
@@ -258,7 +288,7 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
             onClick={() => { setEditing(null); setDraft(null); setSaveError(null) }}
             disabled={saving}
           >
-            Cancel
+            取消
           </button>
         </div>
         {conflict && <ConflictDialog onDiscard={() => { setConflict(false); setEditing(null); setDraft(null); load() }} onCancel={() => setConflict(false)} />}
@@ -270,15 +300,16 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
   const isLockedSocial = schemaKey === 'social'
 
   async function handleDelete(item) {
-    if (!window.confirm(`Delete "${listLabel(schema, item)}"?`)) return
+    if (!window.confirm(`删除「${listLabel(schema, item)}」？此操作无法撤销。`)) return
     setSaving(true)
     setSaveError(null)
+    emit({ status: 'saving' })
     try {
       const next = items.filter((it) => it[schema.listKey] !== item[schema.listKey])
       const message = composeMessage(schema, 'delete', item)
       const r = await commitContentChange(token, schemaKey, schema.file, next, message, { branch: BRANCH, base: BASE })
       setData(next)
-      setSuccessMsg({ text: `Saved → PR #${r.pr.number} open.`, url: r.pr.htmlUrl })
+      emit({ status: 'saved', prNumber: r.pr.number, prUrl: r.pr.htmlUrl })
       onSavedPR?.(r.pr)
     } catch (e) {
       if (isAuthExpiredError(e)) {
@@ -287,97 +318,71 @@ export default function AdminEditor({ schemaKey, token, onSavedPR, onAuthExpired
         return
       }
       setSaveError(e.message)
+      emit({ status: 'error', errorMessage: e.message })
     } finally {
       setSaving(false)
     }
   }
 
+  function startNew() {
+    setEditing('new')
+    setDraft(emptyItem(schema))
+  }
+
+  const columns = buildColumns(schema)
+  const itemCount = sorted.length
+
+  const emptyState = (
+    <AdminEmptyState
+      schemaKey={schemaKey}
+      title={`还没有${schema.title}`}
+      hint="点击上方按钮创建第一条记录"
+      cta={isLockedSocial ? null : { label: `+ 新建${schema.title}`, onClick: startNew }}
+    />
+  )
+
   return (
     <section className="admin-editor">
       <header className="admin-editor-header">
-        <h2>{schema.title}</h2>
+        <h2>
+          {schema.title}
+          <span className="admin-editor-count">{itemCount} 条</span>
+        </h2>
         {!isLockedSocial && (
           <button
             type="button"
             className="admin-editor-btn primary"
             disabled={saving}
-            onClick={() => { setEditing('new'); setDraft(emptyItem(schema)) }}
+            onClick={startNew}
           >
-            + Add new
+            + 新建{schema.title}
           </button>
         )}
       </header>
       {saveError && <p className="admin-editor-error" role="alert">{saveError}</p>}
-      {successMsg && (
-        <p className="admin-editor-success" role="status" aria-live="polite">
-          {successMsg.text}{' '}
-          <a href={successMsg.url} target="_blank" rel="noopener noreferrer">View on GitHub →</a>
-        </p>
-      )}
-      {sorted.length === 0 ? (
-        <p className="admin-editor-empty">No {schema.title.toLowerCase()} yet.</p>
-      ) : (
-        <table className="admin-editor-table">
-          <thead>
-            <tr>
-              {schema.listColumns?.map((col) => (
-                <th key={col}>{col}</th>
-              ))}
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((item) => (
-              <tr key={item[schema.listKey]}>
-                {schema.listColumns?.map((col) => (
-                  <td key={col}>{formatCell(item[col])}</td>
-                ))}
-                <td className="admin-editor-row-actions">
-                  <button
-                    type="button"
-                    className="admin-editor-btn small"
-                    onClick={() => { setEditing(item[schema.listKey]); setDraft({ ...item }) }}
-                    disabled={saving}
-                  >
-                    Edit
-                  </button>
-                  {!isLockedSocial && (
-                    <button
-                      type="button"
-                      className="admin-editor-btn small danger"
-                      onClick={() => handleDelete(item)}
-                      disabled={saving}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <AdminTable
+        columns={columns}
+        rows={sorted}
+        idKey={schema.listKey}
+        onEdit={(item) => { setEditing(item[schema.listKey]); setDraft({ ...item }) }}
+        onDelete={isLockedSocial ? null : handleDelete}
+        busy={saving}
+        emptyState={emptyState}
+        caption={schema.title}
+      />
     </section>
   )
-}
-
-function formatCell(v) {
-  if (v == null) return ''
-  if (typeof v === 'boolean') return v ? '✓' : '—'
-  if (typeof v === 'string') return v
-  if (typeof v === 'number') return String(v)
-  return JSON.stringify(v)
 }
 
 function ConflictDialog({ onDiscard, onCancel }) {
   return (
     <div className="admin-editor-conflict" role="alertdialog" aria-labelledby="conflict-title">
       <div className="admin-editor-conflict-box">
-        <h3 id="conflict-title">⚠ Out of date</h3>
-        <p>The data on GitHub changed since you loaded this page. Your changes have NOT been saved.</p>
+        <h3 id="conflict-title">⚠ 内容已过期</h3>
+        <p>GitHub 上的数据自你加载以来已被修改。当前更改尚未保存。</p>
         <div className="admin-editor-actions">
-          <button type="button" className="admin-editor-btn primary" onClick={onDiscard}>Discard &amp; Refresh</button>
-          <button type="button" className="admin-editor-btn" onClick={onCancel}>Cancel</button>
+          <button type="button" className="admin-editor-btn primary" onClick={onDiscard}>放弃并刷新</button>
+          <button type="button" className="admin-editor-btn" onClick={onCancel}>取消</button>
         </div>
       </div>
     </div>

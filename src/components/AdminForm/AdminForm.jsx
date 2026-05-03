@@ -135,7 +135,7 @@ function FormField({ field, item, value, onChange, error, token, branch, schema,
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
         >
-          <option value="" disabled hidden>Select…</option>
+          <option value="" disabled hidden>请选择…</option>
           {field.options?.map((o) => (
             <option key={o} value={o}>{o}</option>
           ))}

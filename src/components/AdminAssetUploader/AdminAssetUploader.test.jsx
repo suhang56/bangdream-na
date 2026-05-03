@@ -32,7 +32,7 @@ describe('<AdminAssetUploader />', () => {
     const hidden = document.querySelector('input[type=file]')
     fireEvent.change(hidden, { target: { files: [big] } })
     expect(uploadSpy).not.toHaveBeenCalled()
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/文件过大/))
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -42,14 +42,14 @@ describe('<AdminAssetUploader />', () => {
     const hidden = document.querySelector('input[type=file]')
     fireEvent.change(hidden, { target: { files: [gif] } })
     expect(uploadSpy).not.toHaveBeenCalled()
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/unsupported/i))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/不支持的文件类型/))
   })
 
   it('Edge 3 (drag-drop PNG): calls uploadAsset and onChange with /events/<slug>.png', async () => {
     const onChange = vi.fn()
     render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="my-event" onChange={onChange} />)
     const file = pngFile('whatever.png', 1000)
-    const dropzone = screen.getByRole('button', { name: /drag image|uploading/i })
+    const dropzone = screen.getByRole('button', { name: /拖拽图片|上传中/ })
     fireEvent.dragOver(dropzone, { dataTransfer: { files: [file] } })
     fireEvent.drop(dropzone, { dataTransfer: { files: [file] } })
     await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
@@ -110,7 +110,7 @@ describe('<AdminAssetUploader />', () => {
 
   it('disables dropzone when no token', () => {
     render(<AdminAssetUploader field={FIELD} value="" token="" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: /drag image/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeDisabled()
   })
 
   it('jpeg extension normalized to jpg', async () => {
@@ -135,7 +135,7 @@ describe('<AdminAssetUploader />', () => {
 
   it('drag-leave clears dragOver state', () => {
     render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={() => {}} />)
-    const dz = screen.getByRole('button', { name: /drag image/i })
+    const dz = screen.getByRole('button', { name: /拖拽图片/ })
     fireEvent.dragOver(dz)
     fireEvent.dragLeave(dz)
     expect(dz).not.toHaveClass('drag-over')
@@ -145,13 +145,13 @@ describe('<AdminAssetUploader />', () => {
     // The dropzone is disabled (verified by another test) when no token. handleFile is NOT entered
     // via UI in this scenario. We assert disabled state instead.
     render(<AdminAssetUploader field={FIELD} value="" token="" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: /drag image/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeDisabled()
   })
 
   it('drop event with no files does nothing', () => {
     const onChange = vi.fn()
     render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={onChange} />)
-    const dz = screen.getByRole('button', { name: /drag image/i })
+    const dz = screen.getByRole('button', { name: /拖拽图片/ })
     fireEvent.drop(dz, { dataTransfer: { files: [] } })
     expect(uploadSpy).not.toHaveBeenCalled()
   })

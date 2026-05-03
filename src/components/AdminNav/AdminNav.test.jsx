@@ -3,49 +3,69 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import AdminNav from './AdminNav.jsx'
 
 describe('<AdminNav />', () => {
-  it('renders all 7 schema buttons', () => {
-    render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={() => {}} />)
-    for (const label of ['Events', 'Members', 'News', 'Posts (home carousel)', 'Social links', 'Site identity', 'About page']) {
+  it('renders all 7 schema buttons in Chinese', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} />)
+    for (const label of ['活动', '成员', '公告', '首页轮播', '社交平台', '站点信息', '关于页']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
   })
 
   it('marks active key with aria-current=page', () => {
-    render(<AdminNav activeKey="news" onSelect={() => {}} onLogout={() => {}} />)
-    expect(screen.getByRole('button', { name: 'News' })).toHaveAttribute('aria-current', 'page')
+    render(<AdminNav activeKey="news" onSelect={() => {}} />)
+    expect(screen.getByRole('button', { name: '公告' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('clicking a schema button calls onSelect with key', () => {
     const onSelect = vi.fn()
-    render(<AdminNav activeKey="events" onSelect={onSelect} onLogout={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Members' }))
+    render(<AdminNav activeKey="events" onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole('button', { name: '成员' }))
     expect(onSelect).toHaveBeenCalledWith('members')
   })
 
-  it('logout button calls onLogout', () => {
-    const onLogout = vi.fn()
-    render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={onLogout} />)
-    fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
-    expect(onLogout).toHaveBeenCalled()
+  it('renders the AdminBrandPanel (后台 wordmark)', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} />)
+    expect(screen.getByText('后台')).toBeInTheDocument()
+    expect(screen.getByText('BD!NA 后台')).toBeInTheDocument()
   })
 
-  it('shows "No open PR" when openPR is null', () => {
-    render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={() => {}} />)
-    expect(screen.getByText(/no open pr/i)).toBeInTheDocument()
+  it('uses Chinese aria-label for nav region', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} />)
+    expect(screen.getByLabelText('后台分区')).toBeInTheDocument()
   })
 
-  it('shows PR link when openPR is set', () => {
-    render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={() => {}} openPR={{ number: 42, htmlUrl: 'https://github.com/x/y/pull/42' }} />)
-    const link = screen.getByRole('link', { name: /open pr #42/i })
-    expect(link).toHaveAttribute('href', 'https://github.com/x/y/pull/42')
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  it('renders sign-out button at the bottom of the sidebar', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} onSignOut={() => {}} />)
+    expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument()
   })
 
-  it('View Site link uses target=_blank rel=noopener noreferrer', () => {
-    render(<AdminNav activeKey="events" onSelect={() => {}} onLogout={() => {}} />)
-    const link = screen.getByRole('link', { name: /view site/i })
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(link).toHaveAttribute('target', '_blank')
+  it('clicking sign-out calls onSignOut', () => {
+    const onSignOut = vi.fn()
+    render(<AdminNav activeKey="events" onSelect={() => {}} onSignOut={onSignOut} />)
+    fireEvent.click(screen.getByRole('button', { name: '登出' }))
+    expect(onSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('sign-out is the last interactive element (sidebar bottom)', () => {
+    const { container } = render(
+      <AdminNav activeKey="events" onSelect={() => {}} onSignOut={() => {}} />,
+    )
+    const buttons = container.querySelectorAll('button')
+    const last = buttons[buttons.length - 1]
+    expect(last).toHaveTextContent('登出')
+  })
+
+  it('does not render View Site / open PR (now in AdminTopBar)', () => {
+    render(<AdminNav activeKey="events" onSelect={() => {}} />)
+    expect(screen.queryByRole('link', { name: /查看网站|view site/i })).toBeNull()
+    expect(screen.queryByText(/无待合并 PR|no open pr/i)).toBeNull()
+  })
+
+  it('each nav button has a decorative ◆ glyph (aria-hidden)', () => {
+    const { container } = render(<AdminNav activeKey="events" onSelect={() => {}} />)
+    const glyphs = container.querySelectorAll('.admin-nav-glyph')
+    expect(glyphs.length).toBe(7)
+    for (const g of glyphs) {
+      expect(g).toHaveAttribute('aria-hidden', 'true')
+    }
   })
 })

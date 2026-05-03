@@ -11,13 +11,13 @@
 
 .admin-asset-path-input {
   flex: 1;
-  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
   font-size: 0.9rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--color-border, #d4d4d4);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-bg, #fafafa);
-  color: var(--color-text-muted, #555);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
 }
 
 .admin-asset-preview {
@@ -26,14 +26,14 @@
 
 .admin-asset-preview img {
   max-width: 100%;
-  border: 1px solid var(--color-border, #e5e5e5);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 
 .admin-asset-dropzone {
-  border: 2px dashed var(--color-border, #d4d4d4);
-  background: var(--color-surface, #fff);
-  color: var(--color-text-muted, #666);
+  border: 2px dashed var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
   border-radius: 8px;
   padding: 1.5rem 1rem;
   display: flex;
@@ -48,13 +48,31 @@
 }
 
 .admin-asset-dropzone:hover {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 6%, var(--color-surface, #fff));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-card));
+  color: var(--color-text);
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-asset-dropzone:hover {
+    background: var(--color-bg);
+  }
 }
 
 .admin-asset-dropzone.drag-over {
   border-style: solid;
-  border-color: var(--color-primary, #6366f1);
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 8%, var(--color-surface, #fff));
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-card));
+}
+
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .admin-asset-dropzone.drag-over {
+    background: var(--color-bg);
+  }
+}
+
+.admin-asset-dropzone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .admin-asset-dropzone:disabled,
@@ -65,16 +83,16 @@
 
 .admin-asset-dropzone-icon {
   font-size: 1.4rem;
-  color: var(--color-primary, #6366f1);
+  color: var(--color-primary);
 }
 
 .admin-asset-dropzone-hint {
   font-size: 0.78rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
 }
 
 .admin-asset-error {
   margin: 0;
-  color: var(--color-error, #d33);
+  color: var(--color-error);
   font-size: 0.85rem;
 }

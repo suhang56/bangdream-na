@@ -6,30 +6,37 @@
 
 .admin-json-textarea {
   width: 100%;
-  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", "Source Code Pro", monospace;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
   font-size: 0.9rem;
   padding: 0.6rem 0.7rem;
-  border: 1px solid var(--color-border, #d4d4d4);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #111);
+  background: var(--color-bg);
+  color: var(--color-text);
   box-sizing: border-box;
   resize: vertical;
   min-height: 6rem;
 }
 
 .admin-json-textarea:focus {
-  outline: 2px solid var(--color-primary, #6366f1);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+  border-color: var(--color-primary);
 }
 
 .admin-json-fallback.has-error .admin-json-textarea {
-  border-color: var(--color-error, #d33);
+  border-color: var(--color-error);
   border-width: 2px;
 }
 
 .admin-json-fallback.is-valid .admin-json-textarea {
-  border-color: color-mix(in srgb, var(--color-success, #2a8) 60%, var(--color-border, #d4d4d4));
+  border-color: color-mix(in srgb, var(--color-primary) 60%, var(--color-border));
+}
+
+@supports not (border-color: color-mix(in srgb, red, blue)) {
+  .admin-json-fallback.is-valid .admin-json-textarea {
+    border-color: var(--color-primary);
+  }
 }
 
 .admin-json-status {
@@ -38,16 +45,16 @@
 }
 
 .admin-json-status.error {
-  color: var(--color-error, #d33);
+  color: var(--color-error);
 }
 
 .admin-json-status.ok {
-  color: var(--color-success, #2a8);
+  color: var(--color-accent);
 }
 
 .admin-json-help {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #777);
-  font-family: ui-monospace, "JetBrains Mono", monospace;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
 }
