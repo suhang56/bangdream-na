@@ -36,7 +36,7 @@
  */
 
 const DEFAULT_ASSET_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
-const DEFAULT_ASSET_MAX = 5 * 1024 * 1024
+const DEFAULT_ASSET_MAX = 15 * 1024 * 1024
 
 export const adminSchemas = {
   events: {
