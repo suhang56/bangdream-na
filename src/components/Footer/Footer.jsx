@@ -1,13 +1,11 @@
 import { useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
-import PlatformIcon from '../PlatformIcon/PlatformIcon.jsx'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
 import site from '../../data/site.json'
-import social from '../../data/social.json'
 import './Footer.css'
 
 const QUICK_LINKS = [
@@ -35,7 +33,6 @@ function getSnapshot() {
 export default function Footer() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const year = new Date().getFullYear()
-  const platforms = Array.isArray(social) ? social : []
   const hasJp =
     typeof site.communityNameJp === 'string' && site.communityNameJp.length > 0
   const hasZh =
@@ -58,27 +55,6 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </section>
-
-          <section className="footer-column">
-            <h3 className="footer-heading">{t('footer.communities')}</h3>
-            {platforms.length === 0 ? (
-              <p className="footer-empty">{t('empty.noCommunities')}</p>
-            ) : (
-              <ul className="footer-platform-list">
-                {platforms.map((p) => (
-                  <li key={p.platform}>
-                    <PlatformIcon
-                      platform={p.platform}
-                      label={p.label}
-                      url={p.url}
-                      qrImage={p.qrImage}
-                      enabled={p.enabled}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
           </section>
 
           <section className="footer-column">
