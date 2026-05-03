@@ -3298,7 +3298,7 @@
   {
     "id": "西瓜6月东京来人",
     "name": "西瓜@6月东京来人",
-    "role": "organizer",
+    "role": "member",
     "oshiBand": null,
     "pronouns": null,
     "bio": null
@@ -3417,8 +3417,8 @@
   },
   {
     "id": "小日向美香老公",
-    "name": "小日向美香老公",
-    "role": "member",
+    "name": "飞鸟",
+    "role": "mod",
     "oshiBand": null,
     "pronouns": null,
     "bio": null
