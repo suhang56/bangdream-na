@@ -25,10 +25,10 @@ describe('<AdminAssetUploader />', () => {
     vi.restoreAllMocks()
   })
 
-  it('Edge 1: file >5MB rejected — no uploadAsset call, error visible', async () => {
+  it('Edge 1: file >15MB rejected — no uploadAsset call, error visible', async () => {
     const onChange = vi.fn()
     render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-1" onChange={onChange} />)
-    const big = pngFile('big.png', 6 * 1024 * 1024)
+    const big = pngFile('big.png', 16 * 1024 * 1024)
     const hidden = document.querySelector('input[type=file]')
     fireEvent.change(hidden, { target: { files: [big] } })
     expect(uploadSpy).not.toHaveBeenCalled()
