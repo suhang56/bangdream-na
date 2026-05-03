@@ -1,40 +1,186 @@
-import { Link, NavLink } from 'react-router-dom'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher.jsx'
+import LangToggle from '../LangToggle/LangToggle.jsx'
+import MobileDrawer from '../MobileDrawer/MobileDrawer.jsx'
+import DiscordCTA from '../DiscordCTA/DiscordCTA.jsx'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
+import site from '../../data/site.json'
 import './Navbar.css'
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/events', label: 'Events' },
-  { to: '/members', label: 'Members' },
+  { to: '/', key: 'nav.home', end: true },
+  { to: '/news', key: 'nav.news' },
+  { to: '/events', key: 'nav.events' },
+  { to: '/members', key: 'nav.members' },
+  { to: '/about', key: 'nav.about' },
 ]
 
-export default function Navbar() {
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
+
+function HamburgerIcon() {
   return (
-    <nav className="navbar" aria-label="Primary">
-      <div className="navbar-inner">
-        <Link to="/" className="navbar-brand" aria-label="BanG Dream North America — Home">
-          <img src="/logo.png" alt="" className="navbar-logo" width="32" height="32" />
-          <span className="navbar-brand-text">BD!NA</span>
-        </Link>
-        <ul className="navbar-links">
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
+export default function Navbar() {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const triggerRef = useRef(null)
+  const location = useLocation()
+
+  // close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname])
+
+  const brandLabel =
+    typeof site.communityName === 'string' && site.communityName.length > 0
+      ? site.communityName + ' — Home'
+      : 'Home'
+
+  return (
+    <>
+      <nav className="navbar" aria-label="Primary">
+        <div className="navbar-inner">
+          <Link
+            to="/"
+            className="navbar-brand"
+            aria-label={brandLabel}
+            title={site.communityName || ''}
+          >
+            <img
+              src="/logo.png"
+              alt=""
+              className="navbar-logo"
+              width="32"
+              height="32"
+            />
+            <span className="navbar-brand-text">BD!NA</span>
+          </Link>
+          <ul className="navbar-links">
+            {NAV_LINKS.map((link) => (
+              <li key={link.to}>
+                <NavLink
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) =>
+                    'navbar-link' + (isActive ? ' navbar-link--active' : '')
+                  }
+                >
+                  {t(link.key)}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+          <div className="navbar-tail">
+            <LangToggle />
+            <ThemeSwitcher />
+            <DiscordCTA url={site.discordInvite} size="sm" />
+          </div>
+          <button
+            ref={triggerRef}
+            type="button"
+            className="navbar-hamburger"
+            aria-label={t('btn.openMenu')}
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-drawer"
+            onClick={() => setDrawerOpen((p) => !p)}
+          >
+            <HamburgerIcon />
+          </button>
+        </div>
+      </nav>
+
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        ariaLabel={t('drawer.title')}
+        returnFocusRef={triggerRef}
+      >
+        <div className="mobile-drawer-header">
+          <Link to="/" className="navbar-brand">
+            <img src="/logo.png" alt="" width="24" height="24" />
+            <span className="navbar-brand-text">BD!NA</span>
+          </Link>
+          <button
+            type="button"
+            className="mobile-drawer-close"
+            aria-label={t('btn.closeMenu')}
+            onClick={() => setDrawerOpen(false)}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        <ul className="mobile-drawer-nav">
           {NAV_LINKS.map((link) => (
             <li key={link.to}>
               <NavLink
                 to={link.to}
                 end={link.end}
                 className={({ isActive }) =>
-                  'navbar-link' + (isActive ? ' navbar-link--active' : '')
+                  'mobile-drawer-link' +
+                  (isActive ? ' mobile-drawer-link--active' : '')
                 }
               >
-                {link.label}
+                {t(link.key)}
               </NavLink>
             </li>
           ))}
         </ul>
-        <div className="navbar-tail">
+        <div className="mobile-drawer-divider" aria-hidden="true" />
+        <div className="mobile-drawer-controls">
+          <span className="mobile-drawer-label">{t('lang.drawerLabel')}</span>
+          <LangToggle variant="inline" />
+        </div>
+        <div className="mobile-drawer-controls">
           <ThemeSwitcher />
         </div>
-      </div>
-    </nav>
+        <div className="mobile-drawer-cta">
+          <DiscordCTA url={site.discordInvite} size="md" />
+        </div>
+      </MobileDrawer>
+    </>
   )
 }
