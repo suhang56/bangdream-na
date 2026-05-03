@@ -69,5 +69,25 @@
     "bands": [],
     "image": "/events/北美邦-×-eupd-十周年la观影会.png",
     "ticketUrl": ""
+  },
+  {
+    "id": "6月-sgc-ras花篮意向收集中",
+    "title": "6月 SGC RAS花篮意向收集中",
+    "date": "2026-06-01T13:21:00.000Z",
+    "endDate": "2026-06-18T13:21:00.000Z",
+    "type": "fanmeet",
+    "location": null,
+    "description": "【花篮】6.18 RAS 「Boot IGNITION」東京公演 花篮参与表\n具体细节待定 人均等详情意向表内查看",
+    "links": [
+      {
+        "label": "意向表",
+        "url": "https://docs.qq.com/form/page/DQ3dqc2xVVnhCeUVa"
+      }
+    ],
+    "bands": [
+      "Raise A Suilen"
+    ],
+    "image": "",
+    "ticketUrl": ""
   }
 ]
