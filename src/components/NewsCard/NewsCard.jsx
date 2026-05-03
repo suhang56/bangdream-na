@@ -17,7 +17,8 @@ function excerpt(body) {
   return oneLine.length > 90 ? oneLine.slice(0, 87) + '…' : oneLine
 }
 
-export default function NewsCard({ news }) {
+export default function NewsCard({ news, variant = 'default' }) {
+  const isCompact = variant === 'compact'
   const date = formatDate(news?.date)
   const hasImage =
     typeof news?.image === 'string' && news.image.length > 0
@@ -37,12 +38,16 @@ export default function NewsCard({ news }) {
   const linkable = id.length > 0
 
   const cardInner = (
-    <article className="news-card" aria-label={ariaLabel}>
+    <article className={`news-card${isCompact ? ' news-card--compact' : ''}`} aria-label={ariaLabel}>
       <div
         className="news-card__thumb card-thumb-16-9"
         aria-hidden="true"
         style={hasImage ? { backgroundImage: `url(${news.image})` } : undefined}
-      />
+      >
+        {!hasImage && isCompact ? (
+          <span className="news-card__placeholder-glyph" aria-hidden="true">◈</span>
+        ) : null}
+      </div>
       <div className="news-card__body">
         <div className="news-card__meta">
           <span

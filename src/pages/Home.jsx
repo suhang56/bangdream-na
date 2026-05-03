@@ -95,7 +95,7 @@ export default function Home() {
           <ul className="home-section__grid">
             {latestNews.map((n) => (
               <li key={n.id}>
-                <NewsCard news={n} />
+                <NewsCard news={n} variant="compact" />
               </li>
             ))}
           </ul>
@@ -118,7 +118,7 @@ export default function Home() {
           <ul className="home-section__grid">
             {upcomingEvents.map((e) => (
               <li key={e.id}>
-                <EventCard event={e} />
+                <EventCard event={e} variant="compact" />
               </li>
             ))}
           </ul>

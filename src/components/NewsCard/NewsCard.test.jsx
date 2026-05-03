@@ -78,4 +78,43 @@ describe('<NewsCard />', () => {
     expect(article.getAttribute('aria-label')).toContain(base.title)
     expect(article.getAttribute('aria-label')).toContain('2026.04.30')
   })
+
+  describe('variant="compact"', () => {
+    it('applies news-card--compact class when variant=compact', () => {
+      const { container } = render(<NewsCard news={base} variant="compact" />)
+      expect(container.querySelector('.news-card--compact')).not.toBeNull()
+    })
+
+    it('default variant does not apply news-card--compact', () => {
+      const { container } = render(<NewsCard news={base} />)
+      expect(container.querySelector('.news-card--compact')).toBeNull()
+    })
+
+    it('explicit variant="default" does not apply news-card--compact', () => {
+      const { container } = render(<NewsCard news={base} variant="default" />)
+      expect(container.querySelector('.news-card--compact')).toBeNull()
+    })
+
+    it('compact with image → inline backgroundImage set, no placeholder glyph (edge)', () => {
+      const { container } = render(
+        <NewsCard news={{ ...base, image: 'https://example.com/x.jpg' }} variant="compact" />,
+      )
+      const thumb = container.querySelector('.news-card__thumb')
+      expect(thumb.style.backgroundImage).toContain('example.com/x.jpg')
+      expect(container.querySelector('.news-card__placeholder-glyph')).toBeNull()
+    })
+
+    it('compact with no image → placeholder glyph rendered (edge)', () => {
+      const { container } = render(<NewsCard news={base} variant="compact" />)
+      expect(container.querySelector('.news-card__placeholder-glyph')).not.toBeNull()
+    })
+
+    it('compact title still renders (edge: very long title)', () => {
+      const longTitle = 'A'.repeat(200)
+      const { container } = render(
+        <NewsCard news={{ ...base, title: longTitle }} variant="compact" />,
+      )
+      expect(container.querySelector('.news-card__title')).not.toBeNull()
+    })
+  })
 })
