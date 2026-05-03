@@ -52,6 +52,24 @@ describe('themes contract', () => {
     expect(themes.roselia.tokens['--color-accent']).toBe('#d4af37')
   })
 
+  it('every theme defines --color-on-primary and --color-on-accent (badge contrast tokens)', () => {
+    for (const key of themeOrder) {
+      const tokens = themes[key].tokens
+      expect(tokens['--color-on-primary'], `${key} missing --color-on-primary`).toBeTruthy()
+      expect(tokens['--color-on-accent'], `${key} missing --color-on-accent`).toBeTruthy()
+    }
+  })
+
+  it('hhw overrides --color-on-primary to dark (yellow primary fails AA on white)', () => {
+    expect(themes.hhw.tokens['--color-on-primary']).toBe('rgba(0, 0, 0, 0.85)')
+  })
+
+  it('roselia / pastel / morfonica override --color-on-accent to dark (light accent fails AA on white)', () => {
+    expect(themes.roselia.tokens['--color-on-accent']).toBe('rgba(0, 0, 0, 0.85)')
+    expect(themes.pastel.tokens['--color-on-accent']).toBe('rgba(0, 0, 0, 0.85)')
+    expect(themes.morfonica.tokens['--color-on-accent']).toBe('rgba(0, 0, 0, 0.85)')
+  })
+
   it('DEFAULT_THEME_KEY is "neutral" and exists', () => {
     expect(DEFAULT_THEME_KEY).toBe('neutral')
     expect(themes[DEFAULT_THEME_KEY]).toBeDefined()
