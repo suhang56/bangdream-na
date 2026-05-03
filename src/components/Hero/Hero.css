@@ -32,23 +32,21 @@
   display: block;
   margin: 0 auto 1.5rem;
   border-radius: 50%;
-  background: white;
-  padding: 4px;
-  box-shadow: 0 0 28px color-mix(in srgb, var(--color-primary) 40%, transparent);
-  transition: box-shadow 200ms ease, transform 200ms ease;
+  filter: drop-shadow(0 0 28px color-mix(in srgb, var(--color-primary) 40%, transparent));
+  transition: filter 200ms ease, transform 200ms ease;
 }
 
 .hero-logo:hover {
   transform: scale(1.04);
-  box-shadow: 0 0 36px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  filter: drop-shadow(0 0 36px color-mix(in srgb, var(--color-primary) 60%, transparent));
 }
 
 @supports not (background: color-mix(in srgb, white 50%, transparent)) {
   .hero-logo {
-    box-shadow: 0 0 28px rgba(99, 102, 241, 0.4);
+    filter: drop-shadow(0 0 28px rgba(99, 102, 241, 0.4));
   }
   .hero-logo:hover {
-    box-shadow: 0 0 36px rgba(99, 102, 241, 0.6);
+    filter: drop-shadow(0 0 36px rgba(99, 102, 241, 0.6));
   }
 }
 
