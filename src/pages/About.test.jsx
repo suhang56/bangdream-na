@@ -44,10 +44,9 @@ describe('<About />', () => {
     expect(container.querySelectorAll('details').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('renders COC as collapsible details', () => {
+  it('does not render COC section (moved to /rules tab)', () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
-    const cocSection = container.querySelector('#coc')
-    expect(cocSection.querySelector('details')).not.toBeNull()
+    expect(container.querySelector('#coc')).toBeNull()
   })
 
   it('disclaimer always visible', () => {
@@ -60,10 +59,10 @@ describe('<About />', () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
     expect(container.querySelector('#mission')).not.toBeNull()
     expect(container.querySelector('#faq')).not.toBeNull()
-    expect(container.querySelector('#coc')).not.toBeNull()
     expect(container.querySelector('#disclaimer')).not.toBeNull()
     expect(container.querySelector('#join')).not.toBeNull()
     expect(container.querySelector('#history')).toBeNull()
+    expect(container.querySelector('#coc')).toBeNull()
   })
 
   it('JP/ZH/EN spans carry lang attributes', () => {

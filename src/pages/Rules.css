@@ -1,0 +1,77 @@
+.rules-page {
+  max-width: 800px;
+  margin-inline: auto;
+  padding: 4rem 2rem;
+}
+
+.rules-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.rules-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  margin: 0 0 0.75rem;
+}
+
+.rules-subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.rules-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  counter-reset: rule;
+}
+
+.rules-item {
+  position: relative;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem 1.5rem 1.5rem 1.5rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-text);
+  letter-spacing: 0.01em;
+  white-space: pre-line;
+}
+
+.rules-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 0;
+}
+
+.rules-footer-note {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.rules-footer-note p {
+  margin: 0;
+}
+
+@media (max-width: 540px) {
+  .rules-page {
+    padding: 2.5rem 1.25rem;
+  }
+  .rules-item {
+    padding: 1.25rem;
+    font-size: 0.9375rem;
+  }
+}
