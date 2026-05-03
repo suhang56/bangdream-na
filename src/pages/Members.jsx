@@ -62,9 +62,7 @@ export default function Members() {
     <main className="section">
       <div className="section-inner">
         <h1 className="section-title">{t('nav.members')}</h1>
-        <p className="section-subtitle">
-          Organizers, members, and cover bands across the BanG Dream! NA community.
-        </p>
+        <p className="section-subtitle">{t('members.subtitle')}</p>
         <MemberFilter
           bands={availableBands}
           selectedBands={selectedBands}

@@ -113,7 +113,7 @@ export default function ThemeSwitcher() {
                     'theme-swatch' + (isActive ? ' theme-swatch--active' : '')
                   }
                   style={{ background: themeDef.tokens['--gradient-hero'] }}
-                  aria-label={`${themeDef.name} theme`}
+                  aria-label={t('theme.swatchLabel', { name: themeDef.name })}
                   aria-pressed={isActive}
                   onClick={() => handleSelect(key)}
                 />

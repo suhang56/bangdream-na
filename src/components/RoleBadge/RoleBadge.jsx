@@ -1,28 +1,48 @@
+import { useSyncExternalStore } from 'react'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
 import './RoleBadge.css'
 
-const ROLE_LABELS = {
-  organizer: 'Organizer',
-  member: 'Member',
-  alumnus: 'Alumnus',
-  'cover-band-lead': 'Cover Band Lead',
+const ROLE_KEYS = {
+  organizer: 'role.organizer',
+  member: 'role.member',
+  alumnus: 'role.alumnus',
+  'cover-band-lead': 'role.coverBandLead',
+}
+
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
 }
 
 export default function RoleBadge({ role, alumnus = false }) {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+
   const isAlumnus = alumnus === true || role === 'alumnus'
   const effectiveKey = isAlumnus
     ? 'alumnus'
-    : ROLE_LABELS[role]
+    : ROLE_KEYS[role]
       ? role
       : 'unknown'
 
-  const label = isAlumnus
-    ? ROLE_LABELS.alumnus
-    : (ROLE_LABELS[role] ?? (role ?? ''))
+  let label
+  if (isAlumnus) {
+    label = t('role.alumnus')
+  } else if (ROLE_KEYS[role]) {
+    label = t(ROLE_KEYS[role])
+  } else {
+    label = role ?? ''
+  }
 
   return (
     <span
       className={`role-badge role-badge--${effectiveKey}`}
-      aria-label={label ? `Role: ${label}` : undefined}
+      aria-label={label ? t('roleBadge.aria', { label }) : undefined}
     >
       {label}
     </span>

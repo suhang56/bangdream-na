@@ -118,7 +118,14 @@
     "memberFilter.roleCoverBands": "Cover Bands",
     "memberCard.socialLinks": "Social links",
     "memberCard.discordUsername": "Discord username: {value}",
-    "empty.noMembersMatch": "No members match your filters."
+    "empty.noMembersMatch": "No members match your filters.",
+    "members.subtitle": "Organizers, members, and cover bands across the BanG Dream! NA community.",
+    "theme.swatchLabel": "{name} theme",
+    "role.organizer": "Organizer",
+    "role.member": "Member",
+    "role.alumnus": "Alumnus",
+    "role.coverBandLead": "Cover Band Lead",
+    "roleBadge.aria": "Role: {label}"
   },
   "zh": {
     "nav.home": "首页",
@@ -235,6 +242,13 @@
     "memberFilter.roleCoverBands": "翻奏乐队",
     "memberCard.socialLinks": "社交账号",
     "memberCard.discordUsername": "Discord 用户名：{value}",
-    "empty.noMembersMatch": "暂无符合条件的成员。"
+    "empty.noMembersMatch": "暂无符合条件的成员。",
+    "members.subtitle": "组织者、成员、翻唱乐队 — 北美 BanG Dream 社区一览",
+    "theme.swatchLabel": "{name} 主题",
+    "role.organizer": "组织者",
+    "role.member": "成员",
+    "role.alumnus": "前成员",
+    "role.coverBandLead": "翻唱乐队主理",
+    "roleBadge.aria": "角色：{label}"
   }
 }
