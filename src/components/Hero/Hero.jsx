@@ -17,13 +17,6 @@ export default function Hero({
     <section className="hero">
       <div className="hero-bg" aria-hidden="true" />
       <div className="hero-content">
-        <img
-          src="/logo.png"
-          alt="北美邦 — BanG Dream North America fan community emblem"
-          className="hero-logo"
-          width="200"
-          height="200"
-        />
         {hasJp ? (
           <p className="hero-name-jp" lang="ja">
             {communityNameJp}
