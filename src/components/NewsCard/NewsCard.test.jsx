@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import NewsCard from './NewsCard.jsx'
+
+const render = (ui, options) =>
+  rtlRender(ui, { wrapper: MemoryRouter, ...options })
 
 const base = {
   id: '2026-04-30-test',

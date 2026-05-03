@@ -5,6 +5,7 @@ import Home from './pages/Home.jsx'
 import Events from './pages/Events.jsx'
 import Members from './pages/Members.jsx'
 import News from './pages/News.jsx'
+import NewsDetail from './pages/NewsDetail.jsx'
 import About from './pages/About.jsx'
 import Admin from './pages/Admin.jsx'
 import './App.css'
@@ -18,6 +19,7 @@ function ChromeAndRoutes() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/news" element={<News />} />
+        <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/events" element={<Events />} />
         <Route path="/members" element={<Members />} />
         <Route path="/about" element={<About />} />
