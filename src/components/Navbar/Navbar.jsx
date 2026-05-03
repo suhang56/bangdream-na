@@ -9,6 +9,8 @@ import {
   t,
 } from '../../lib/uiLanguage.js'
 import site from '../../data/site.json'
+import socialData from '../../data/social.json'
+import { isForumEnabled } from '../../lib/forum.js'
 import './Navbar.css'
 
 const NAV_LINKS = [
@@ -17,6 +19,7 @@ const NAV_LINKS = [
   { to: '/events', key: 'nav.events' },
   { to: '/members', key: 'nav.members' },
   { to: '/about', key: 'nav.about' },
+  { to: 'https://forum.bangdream.org', key: 'nav.forum', external: true },
 ]
 
 function subscribe(cb) {
@@ -77,6 +80,10 @@ export default function Navbar() {
     }
   }, [location.pathname])
 
+  const navLinks = isForumEnabled(socialData)
+    ? NAV_LINKS
+    : NAV_LINKS.filter((l) => l.key !== 'nav.forum')
+
   const brandLabel =
     typeof site.communityName === 'string' && site.communityName.length > 0
       ? site.communityName + ' — Home'
@@ -102,17 +109,28 @@ export default function Navbar() {
             <span className="navbar-brand-text" lang="zh">北美炸梦同好会</span>
           </Link>
           <ul className="navbar-links">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <li key={link.to}>
-                <NavLink
-                  to={link.to}
-                  end={link.end}
-                  className={({ isActive }) =>
-                    'navbar-link' + (isActive ? ' navbar-link--active' : '')
-                  }
-                >
-                  {t(link.key)}
-                </NavLink>
+                {link.external ? (
+                  <a
+                    href={link.to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="navbar-link"
+                  >
+                    {t(link.key)}
+                  </a>
+                ) : (
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    className={({ isActive }) =>
+                      'navbar-link' + (isActive ? ' navbar-link--active' : '')
+                    }
+                  >
+                    {t(link.key)}
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>
@@ -156,18 +174,29 @@ export default function Navbar() {
           </button>
         </div>
         <ul className="mobile-drawer-nav">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <li key={link.to}>
-              <NavLink
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  'mobile-drawer-link' +
-                  (isActive ? ' mobile-drawer-link--active' : '')
-                }
-              >
-                {t(link.key)}
-              </NavLink>
+              {link.external ? (
+                <a
+                  href={link.to}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mobile-drawer-link"
+                >
+                  {t(link.key)}
+                </a>
+              ) : (
+                <NavLink
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) =>
+                    'mobile-drawer-link' +
+                    (isActive ? ' mobile-drawer-link--active' : '')
+                  }
+                >
+                  {t(link.key)}
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
