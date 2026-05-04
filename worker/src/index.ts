@@ -7,6 +7,8 @@ import {
   buildAdminMembersRoutes,
   buildAdminNewsRoutes,
 } from "./routes/admin";
+import { buildAdminSettingsRoutes } from "./routes/admin-settings";
+import { buildCommentRoutes } from "./routes/comments";
 import { buildHealthzRoutes } from "./routes/healthz";
 import { buildMeRoutes } from "./routes/me";
 import {
@@ -30,11 +32,13 @@ export function createApp() {
   app.route("/api/events", buildPublicEventsRoutes());
   app.route("/api/members", buildPublicMembersRoutes());
   app.route("/api/categories", buildPublicCategoriesRoutes());
+  app.route("/api/comments", buildCommentRoutes());
   app.route("/api/upload", buildUploadRoutes());
   app.route("/api/admin/news", buildAdminNewsRoutes());
   app.route("/api/admin/events", buildAdminEventsRoutes());
   app.route("/api/admin/members", buildAdminMembersRoutes());
   app.route("/api/admin/categories", buildAdminCategoriesRoutes());
+  app.route("/api/admin/settings", buildAdminSettingsRoutes());
 
   app.notFound((c) => {
     c.header("Cache-Control", "no-store");

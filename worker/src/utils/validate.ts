@@ -137,3 +137,47 @@ export const adminCategoryCreate = z.object({
 });
 
 export const adminCategoryUpdate = adminCategoryCreate.partial();
+
+// ── Comments / settings ──────────────────────────────────────────────────────
+
+export const COMMENT_BODY_MAX = 4000;
+
+export const commentTargetKindEnum = z.enum(["news", "event"]);
+
+export const commentListQuery = z.object({
+  targetKind: commentTargetKindEnum,
+  targetId: intFromQuery(0).pipe(z.number().int().min(1)),
+  limit: intFromQuery(100).pipe(z.number().int().min(1).max(200)),
+});
+
+export const commentCreate = z.object({
+  parent_id: z.number().int().min(1).nullish(),
+  target_kind: commentTargetKindEnum,
+  target_id: z.number().int().min(1),
+  body: z.string().min(1).max(COMMENT_BODY_MAX),
+});
+
+export const commentIdParam = z.object({
+  id: positiveId,
+});
+
+// Settings: keys are dot-namespaced lowercase ascii (`webhook.comment.url`).
+const settingsKeyString = z
+  .string()
+  .min(1)
+  .max(120)
+  .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i);
+
+export const settingsKeyParam = z.object({
+  key: settingsKeyString,
+});
+
+export const settingsBody = z.object({
+  value: z.string().max(2000),
+});
+
+export const webhookTestBody = z.object({
+  // Optional: caller may submit an explicit URL to test instead of using
+  // the persisted setting. Empty/missing → fall back to settings table.
+  url: z.string().url().max(2000).optional(),
+});

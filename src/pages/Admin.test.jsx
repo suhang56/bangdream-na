@@ -11,6 +11,9 @@ vi.mock('../lib/api.js', async () => {
     adminListEvents: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     adminListMembers: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     adminListCategories: vi.fn().mockResolvedValue({ items: [] }),
+    getAdminSetting: vi.fn().mockResolvedValue(null),
+    putAdminSetting: vi.fn(),
+    testAdminWebhook: vi.fn(),
   }
 })
 

@@ -317,4 +317,98 @@ export async function adminListCategories() {
   return res.json()
 }
 
+// ── Comments (R5.7) ─────────────────────────────────────────────────────────
+//
+// GET /api/comments?targetKind=news&targetId=… — public read, threaded.
+//   credentials: 'omit' (no cookie needed; cacheable).
+// POST /api/comments — auth required, returns 201 + new row.
+//   credentials: 'include' so the session cookie travels.
+// DELETE /api/comments/:id — auth required (author OR admin), returns 204.
+//   credentials: 'include'.
+
+/** GET threaded comments for a news/event target. Returns { items, total }. */
+export async function fetchComments({ targetKind, targetId, limit }) {
+  const params = new URLSearchParams({
+    targetKind: String(targetKind),
+    targetId: String(targetId),
+  })
+  if (limit != null) params.set('limit', String(limit))
+  const url = `/api/comments?${params.toString()}`
+  const res = await fetch(buildUrl(url), { credentials: 'omit' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+/**
+ * POST a new comment. Returns the inserted row.
+ * Throws ApiError on non-2xx; rate-limit responses surface as
+ * `err.code === 'rate_limited'` with `err.status === 429`.
+ */
+export async function postComment({ targetKind, targetId, body, parentId }) {
+  const payload = { target_kind: targetKind, target_id: targetId, body }
+  if (parentId != null) payload.parent_id = parentId
+  const res = await fetch(buildUrl('/api/comments'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  await throwForBadStatus(res, 'POST /api/comments')
+  return res.json()
+}
+
+/** DELETE a comment by id. Resolves on 204; throws ApiError otherwise. */
+export async function deleteComment(id) {
+  const res = await fetch(buildUrl(`/api/comments/${id}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (res.status === 204) return null
+  await throwForBadStatus(res, `DELETE /api/comments/${id}`)
+  return null
+}
+
+// ── Admin settings (R5.7) ───────────────────────────────────────────────────
+//
+// All endpoints require admin role; cookie auth via credentials:'include'.
+
+/** GET /api/admin/settings/:key — returns { key, value, updated_at } or null on 404. */
+export async function getAdminSetting(key) {
+  const res = await fetch(buildUrl(`/api/admin/settings/${encodeURIComponent(key)}`), {
+    method: 'GET',
+    credentials: 'include',
+  })
+  if (res.status === 404) return null
+  await throwForBadStatus(res, `GET /api/admin/settings/${key}`)
+  return res.json()
+}
+
+/** PUT /api/admin/settings/:key — upserts `value`. */
+export async function putAdminSetting(key, value) {
+  const res = await fetch(buildUrl(`/api/admin/settings/${encodeURIComponent(key)}`), {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
+  await throwForBadStatus(res, `PUT /api/admin/settings/${key}`)
+  return res.json()
+}
+
+/** POST /api/admin/settings/test-webhook — fires a test message via waitUntil. */
+export async function testAdminWebhook({ url } = {}) {
+  const init = {
+    method: 'POST',
+    credentials: 'include',
+    headers: {},
+  }
+  if (url) {
+    init.headers['Content-Type'] = 'application/json'
+    init.body = JSON.stringify({ url })
+  }
+  const res = await fetch(buildUrl('/api/admin/settings/test-webhook'), init)
+  await throwForBadStatus(res, 'POST /api/admin/settings/test-webhook')
+  return res.json()
+}
+
 export const __internals = { buildUrl, readApiBase, FALLBACK_API_BASE, PUBLIC_READ_TTL_MS, cacheKey }
