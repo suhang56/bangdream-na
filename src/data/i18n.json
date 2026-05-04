@@ -189,7 +189,10 @@
     "admin.uploader.tooLarge": "File too large ({mb} MB), max 5 MB",
     "admin.uploader.badType": "Only png / jpeg / webp / gif images supported",
     "admin.uploader.empty": "Please select a file",
-    "admin.uploader.failed": "Upload failed"
+    "admin.uploader.failed": "Upload failed",
+    "loading.message": "Loading…",
+    "error.loadFailed": "Failed to load",
+    "error.retry": "Retry"
   },
   "zh": {
     "nav.home": "首页",
@@ -377,6 +380,9 @@
     "admin.uploader.tooLarge": "文件过大 ({mb} MB),最大 5 MB",
     "admin.uploader.badType": "仅支持 png / jpeg / webp / gif 图片",
     "admin.uploader.empty": "请选择文件",
-    "admin.uploader.failed": "上传失败"
+    "admin.uploader.failed": "上传失败",
+    "loading.message": "加载中…",
+    "error.loadFailed": "加载失败",
+    "error.retry": "重试"
   }
 }

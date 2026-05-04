@@ -31,6 +31,7 @@ import {
   ApiError,
   API_BASE,
 } from './api.js'
+import { cache } from './cache.js'
 
 function jsonResponse(body, status = 200, headers = {}) {
   const blob = JSON.stringify(body)
@@ -49,9 +50,11 @@ describe('api.js', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
+    cache.clear()
   })
   afterEach(() => {
     vi.unstubAllGlobals()
+    cache.clear()
   })
 
   describe('API_BASE', () => {
@@ -384,6 +387,74 @@ describe('api.js', () => {
       const [url] = fetchMock.mock.calls[0]
       expect(url).toContain('limit=50')
       expect(url).toContain('offset=0')
+    })
+  })
+
+  describe('public-read cache', () => {
+    it('fetchNews returns cached body on second call within TTL (no second fetch)', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ items: [{ slug: 'a' }], total: 1 }))
+      const a = await fetchNews({ limit: 5 })
+      const b = await fetchNews({ limit: 5 })
+      expect(a).toEqual(b)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('different opts produce different cache keys', async () => {
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ items: [], total: 0 })))
+      await fetchNews({ limit: 5 })
+      await fetchNews({ limit: 10 })
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('cache.invalidate("news:") forces refetch', async () => {
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ items: [], total: 0 })))
+      await fetchNews({ limit: 5 })
+      cache.invalidate('news:')
+      await fetchNews({ limit: 5 })
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('non-2xx responses are NOT cached (next call refetches)', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'broken' }, 500))
+      await expect(fetchNews()).rejects.toBeInstanceOf(ApiError)
+      fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
+      await fetchNews()
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('fetchNewsBySlug caches single-row response', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ slug: 'a', title_zh: 'A' }))
+      await fetchNewsBySlug('a')
+      await fetchNewsBySlug('a')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('fetchNewsBySlug 404 returns null and is NOT cached', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'not_found' }, 404))
+      const a = await fetchNewsBySlug('missing')
+      expect(a).toBeNull()
+      fetchMock.mockResolvedValueOnce(jsonResponse({ slug: 'missing' }))
+      const b = await fetchNewsBySlug('missing')
+      expect(b).toEqual({ slug: 'missing' })
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('fetchEvents caches separately by scope', async () => {
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ items: [], total: 0 })))
+      await fetchEvents({ scope: 'upcoming' })
+      await fetchEvents({ scope: 'upcoming' })
+      await fetchEvents({ scope: 'past' })
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('fetchMembers + fetchCategories cached', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
+      fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }))
+      await fetchMembers()
+      await fetchMembers()
+      await fetchCategories()
+      await fetchCategories()
+      expect(fetchMock).toHaveBeenCalledTimes(2)
     })
   })
 })

@@ -1,9 +1,13 @@
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Mobile from '../components/Responsive/Mobile.jsx'
 import Desktop from '../components/Responsive/Desktop.jsx'
 import EventsMobile from './Events.mobile.jsx'
 import EventsDesktop from './Events.desktop.jsx'
+import LoadingState from '../components/LoadingState/LoadingState.jsx'
+import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import { fetchEvents } from '../lib/api.js'
+import { adaptEventList } from '../lib/apiAdapter.js'
 import {
   filterEvents,
   groupEventsByTime,
@@ -13,7 +17,6 @@ import {
   getLanguage,
   subscribeLanguage,
 } from '../lib/uiLanguage.js'
-import events from '../data/events.json'
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -85,12 +88,42 @@ export default function Events() {
     to: '',
     keyword: '',
   })
+  const [events, setEvents] = useState([])
+  const [status, setStatus] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
   const now = useMemo(() => new Date(), [])
-  const availableBands = useMemo(() => deriveBands(events), [])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      fetchEvents({ scope: 'upcoming' }),
+      fetchEvents({ scope: 'past' }),
+    ])
+      .then(([upcoming, past]) => {
+        if (cancelled) return
+        const merged = [...adaptEventList(upcoming), ...adaptEventList(past)]
+        setEvents(merged)
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
+
+  function retry() {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
+
+  const availableBands = useMemo(() => deriveBands(events), [events])
 
   const visible = useMemo(
     () => sortEventsByDate(applyFilters(events, filterState), 'asc'),
-    [filterState],
+    [filterState, events],
   )
 
   const groups = useMemo(
@@ -110,6 +143,13 @@ export default function Events() {
     if (nextScope === 'upcoming') sp.delete('scope')
     else sp.set('scope', nextScope)
     setSearchParams(sp, { replace: true })
+  }
+
+  if (status === 'loading') {
+    return <LoadingState className="events-loading" />
+  }
+  if (status === 'error') {
+    return <ErrorState className="events-error" onRetry={retry} />
   }
 
   const layoutProps = {

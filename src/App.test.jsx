@@ -13,19 +13,22 @@ describe('<App />', () => {
     setLanguage('en')
     window.history.replaceState(null, '', '/')
     vi.spyOn(api, 'fetchMe').mockResolvedValue(null)
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({ items: [], total: 0 })
+    vi.spyOn(api, 'fetchEvents').mockResolvedValue({ items: [], total: 0 })
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 0 })
   })
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  it('renders Navbar + Home + Footer at "/"', () => {
+  it('renders Navbar + Home + Footer at "/"', async () => {
     render(
       <ThemeProvider>
         <App />
       </ThemeProvider>,
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: site.communityNameZh }),
+      await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: /primary/i }),
@@ -33,7 +36,7 @@ describe('<App />', () => {
     expect(screen.getByText(/not affiliated/i)).toBeInTheDocument()
   })
 
-  it('renders Events page when initial pathname is /events', () => {
+  it('renders Events page when initial pathname is /events', async () => {
     window.history.replaceState(null, '', '/events')
     render(
       <ThemeProvider>
@@ -41,11 +44,11 @@ describe('<App />', () => {
       </ThemeProvider>,
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Events' }),
+      await screen.findByRole('heading', { level: 1, name: 'Events' }),
     ).toBeInTheDocument()
   })
 
-  it('renders Members page when initial pathname is /members', () => {
+  it('renders Members page when initial pathname is /members', async () => {
     window.history.replaceState(null, '', '/members')
     render(
       <ThemeProvider>
@@ -53,11 +56,11 @@ describe('<App />', () => {
       </ThemeProvider>,
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Members' }),
+      await screen.findByRole('heading', { level: 1, name: 'Members' }),
     ).toBeInTheDocument()
   })
 
-  it('renders News page when initial pathname is /news', () => {
+  it('renders News page when initial pathname is /news', async () => {
     window.history.replaceState(null, '', '/news')
     render(
       <ThemeProvider>
@@ -65,7 +68,7 @@ describe('<App />', () => {
       </ThemeProvider>,
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: /news|新闻/i }),
+      await screen.findByRole('heading', { level: 1, name: /news|新闻/i }),
     ).toBeInTheDocument()
   })
 

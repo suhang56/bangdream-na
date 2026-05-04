@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import membersData from '../data/members.json'
 import Mobile from '../components/Responsive/Mobile.jsx'
 import Desktop from '../components/Responsive/Desktop.jsx'
 import MembersMobile from './Members.mobile.jsx'
 import MembersDesktop from './Members.desktop.jsx'
+import LoadingState from '../components/LoadingState/LoadingState.jsx'
+import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import { fetchMembers } from '../lib/api.js'
+import { adaptMemberList } from '../lib/apiAdapter.js'
 import { filterMembers, sortMembersByName } from '../lib/members.js'
 import {
   getLanguage,
@@ -32,6 +35,31 @@ export default function Members() {
   const [selectedRole, setSelectedRole] = useState(null)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [members, setMembers] = useState([])
+  const [status, setStatus] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMembers()
+      .then((res) => {
+        if (cancelled) return
+        setMembers(adaptMemberList(res))
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
+
+  function retry() {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -44,31 +72,38 @@ export default function Members() {
     () =>
       Array.from(
         new Set(
-          membersData
+          members
             .map((m) => m.oshiBand)
             .filter((b) => typeof b === 'string' && b.trim() !== ''),
         ),
       ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
-    [],
+    [members],
   )
 
   const visibleMembers = useMemo(
     () =>
       sortMembersByName(
-        filterMembers(membersData, {
+        filterMembers(members, {
           bands: selectedBands,
           role: selectedRole,
           search: debouncedSearch,
         }),
       ),
-    [selectedBands, selectedRole, debouncedSearch],
+    [members, selectedBands, selectedRole, debouncedSearch],
   )
 
-  const rosterEmpty = membersData.length === 0
+  if (status === 'loading') {
+    return <LoadingState className="members-loading" />
+  }
+  if (status === 'error') {
+    return <ErrorState className="members-error" onRetry={retry} />
+  }
+
+  const rosterEmpty = members.length === 0
   const emptyMessage = rosterEmpty ? t('empty.noMembers') : t('empty.noMembersMatch')
 
   const layoutProps = {
-    totalMembers: membersData.length,
+    totalMembers: members.length,
     visibleMembers,
     availableBands,
     selectedBands,

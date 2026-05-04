@@ -1,11 +1,14 @@
-import { useSyncExternalStore, useMemo } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import LoadingState from '../components/LoadingState/LoadingState.jsx'
+import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import { fetchNewsBySlug } from '../lib/api.js'
+import { adaptNewsRow } from '../lib/apiAdapter.js'
 import { formatDate } from '../lib/dateFormat.js'
 import {
   getLanguage,
   subscribeLanguage,
 } from '../lib/uiLanguage.js'
-import news from '../data/news.json'
 import './NewsDetail.css'
 
 const CATEGORY_LABELS = {
@@ -51,12 +54,47 @@ export default function NewsDetail() {
     }
   }, [id])
 
-  const item = useMemo(
-    () => news.find((n) => n?.id === decodedId) ?? null,
-    [decodedId],
-  )
+  const initialStatus = decodedId ? 'loading' : 'notfound'
+  const [item, setItem] = useState(null)
+  const [status, setStatus] = useState(initialStatus)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  if (!item) {
+  useEffect(() => {
+    let cancelled = false
+    if (!decodedId) return undefined
+    fetchNewsBySlug(decodedId)
+      .then((row) => {
+        if (cancelled) return
+        if (row === null) {
+          setItem(null)
+          setStatus('notfound')
+          return
+        }
+        setItem(adaptNewsRow(row))
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [decodedId, reloadKey])
+
+  function retry() {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
+
+  if (status === 'loading') {
+    return <LoadingState className="news-detail__loading" />
+  }
+  if (status === 'error') {
+    return <ErrorState className="news-detail__error" onRetry={retry} />
+  }
+
+  if (status === 'notfound' || !item) {
     return (
       <main className="news-detail">
         <div className="news-detail__inner">
