@@ -17,7 +17,13 @@
     "worker:test:coverage": "npm --prefix worker run test:coverage",
     "worker:typecheck": "npm --prefix worker run typecheck",
     "d1:migrate:local": "npm --prefix worker run d1:migrate:local",
-    "d1:migrate:prod": "npm --prefix worker run d1:migrate:prod"
+    "d1:migrate:prod": "npm --prefix worker run d1:migrate:prod",
+    "migrate:categories": "node scripts/migrate/categories-to-d1.mjs --remote",
+    "migrate:news": "node scripts/migrate/news-to-d1.mjs --remote",
+    "migrate:events": "node scripts/migrate/events-to-d1.mjs --remote",
+    "migrate:members": "node scripts/migrate/members-to-d1.mjs --remote",
+    "migrate:all": "npm run migrate:categories && npm run migrate:news && npm run migrate:events && npm run migrate:members",
+    "migrate:dry-run": "node scripts/migrate/categories-to-d1.mjs --dry-run && node scripts/migrate/news-to-d1.mjs --dry-run && node scripts/migrate/events-to-d1.mjs --dry-run && node scripts/migrate/members-to-d1.mjs --dry-run"
   },
   "dependencies": {
     "react": "^19.2.4",
