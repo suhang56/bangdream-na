@@ -1,16 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AdminAssetUploader from './AdminAssetUploader.jsx'
-import * as githubApi from '../../lib/githubApi.js'
+import * as uploadModule from '../../lib/admin/uploadImage.js'
 
 const FIELD = {
-  key: 'image',
-  label: 'Image',
-  type: 'asset',
-  uploadDir: 'public/events/',
+  key: 'hero_image_url',
+  label: '主图',
+  uploadKind: 'events',
 }
 
-function pngFile(name = 'pic.png', size = 1000) {
+function pngFile(name = 'pic.png', size = 1024) {
   const f = new File([new Uint8Array(size)], name, { type: 'image/png' })
   Object.defineProperty(f, 'size', { value: size })
   return f
@@ -19,167 +18,89 @@ function pngFile(name = 'pic.png', size = 1000) {
 describe('<AdminAssetUploader />', () => {
   let uploadSpy
   beforeEach(() => {
-    uploadSpy = vi.spyOn(githubApi, 'uploadAsset').mockResolvedValue({ path: 'public/events/x.png', sha: 'sha' })
+    uploadSpy = vi.spyOn(uploadModule, 'uploadImageWithGuard').mockResolvedValue({
+      url: 'https://cdn.bangdream.org/events/x-123.png',
+      key: 'events/x-123.png',
+      size: 1024,
+      contentType: 'image/png',
+    })
   })
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('Edge 1: file >15MB rejected — no uploadAsset call, error visible', async () => {
+  it('renders dropzone in idle state', () => {
+    render(<AdminAssetUploader field={FIELD} value="" onChange={() => {}} />)
+    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeInTheDocument()
+  })
+
+  it('renders preview when value is set', () => {
+    render(
+      <AdminAssetUploader
+        field={FIELD}
+        value="https://cdn.bangdream.org/events/x.png"
+        onChange={() => {}}
+      />,
+    )
+    const img = screen.getByRole('img', { name: /主图/i })
+    expect(img).toHaveAttribute('src', 'https://cdn.bangdream.org/events/x.png')
+  })
+
+  it('drag-drop PNG calls uploadImageWithGuard with kind + slug', async () => {
     const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-1" onChange={onChange} />)
-    const big = pngFile('big.png', 16 * 1024 * 1024)
+    render(
+      <AdminAssetUploader
+        field={FIELD}
+        value=""
+        slugBase="My Event"
+        onChange={onChange}
+      />,
+    )
+    const dz = screen.getByRole('button', { name: /拖拽图片/ })
+    const file = pngFile('whatever.png')
+    fireEvent.dragOver(dz, { dataTransfer: { files: [file] } })
+    fireEvent.drop(dz, { dataTransfer: { files: [file] } })
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
+    const args = uploadSpy.mock.calls[0]
+    expect(args[1]).toBe('events')
+    expect(args[2]).toEqual({ slug: 'my-event' })
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith('https://cdn.bangdream.org/events/x-123.png'),
+    )
+  })
+
+  it('click-pick PNG triggers same flow', async () => {
+    const onChange = vi.fn()
+    render(
+      <AdminAssetUploader field={FIELD} value="" slugBase="ev" onChange={onChange} />,
+    )
     const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [big] } })
-    expect(uploadSpy).not.toHaveBeenCalled()
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
+    expect(onChange).toHaveBeenCalledWith('https://cdn.bangdream.org/events/x-123.png')
+  })
+
+  it('upload error displays message', async () => {
+    uploadSpy.mockRejectedValueOnce(Object.assign(new Error('文件过大'), { code: 'too_large' }))
+    const onChange = vi.fn()
+    render(
+      <AdminAssetUploader field={FIELD} value="" onChange={onChange} />,
+    )
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/文件过大/))
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('Edge 2: unsupported MIME (gif) rejected', async () => {
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-1" onChange={() => {}} />)
-    const gif = new File(['x'], 'pic.gif', { type: 'image/gif' })
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [gif] } })
-    expect(uploadSpy).not.toHaveBeenCalled()
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/不支持的文件类型/))
-  })
-
-  it('Edge 3 (drag-drop PNG): calls uploadAsset and onChange with /events/<slug>.png', async () => {
+  it('401 unauthorized → onAuthExpired called', async () => {
+    uploadSpy.mockRejectedValueOnce(Object.assign(new Error('登录已过期'), { code: 'unauthorized' }))
     const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="my-event" onChange={onChange} />)
-    const file = pngFile('whatever.png', 1000)
-    const dropzone = screen.getByRole('button', { name: /拖拽图片|上传中/ })
-    fireEvent.dragOver(dropzone, { dataTransfer: { files: [file] } })
-    fireEvent.drop(dropzone, { dataTransfer: { files: [file] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    const args = uploadSpy.mock.calls[0]
-    expect(args[1]).toBe('public/events/my-event.png')
-    expect(args[4]).toBe('content-updates')
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith('/events/my-event.png'))
-  })
-
-  it('Edge 4 (click-pick PNG): same flow', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-2" onChange={onChange} />)
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [pngFile('a.png')] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    expect(onChange).toHaveBeenCalledWith('/events/event-2.png')
-  })
-
-  it('Edge 5: SVG accepted (default mime list includes svg+xml)', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-3" onChange={onChange} />)
-    const svg = new File(['<svg/>'], 'a.svg', { type: 'image/svg+xml' })
-    Object.defineProperty(svg, 'size', { value: 100 })
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [svg] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    const args = uploadSpy.mock.calls[0]
-    expect(args[1]).toBe('public/events/event-3.svg')
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith('/events/event-3.svg'))
-  })
-
-  it('Edge 6: uploadAsset error → onError + no onChange', async () => {
-    uploadSpy.mockRejectedValueOnce(new Error('GitHub server error (500).'))
-    const onChange = vi.fn()
-    const onError = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="event-4" onChange={onChange} onError={onError} />)
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [pngFile()] } })
-    await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringContaining('server error')))
-    expect(onChange).not.toHaveBeenCalled()
-  })
-
-  it('Edge 7: filename with spaces + uppercase + special chars → slug normalized', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={onChange} />)
-    const f = pngFile('My Cool Pic!.png')
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [f] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    expect(uploadSpy.mock.calls[0][1]).toBe('public/events/my-cool-pic.png')
-  })
-
-  it('renders preview when value set', () => {
-    render(<AdminAssetUploader field={FIELD} value="/events/x.png" token="ghp_X" onChange={() => {}} />)
-    const img = screen.getByRole('img', { name: /image/i })
-    expect(img).toHaveAttribute('src', expect.stringContaining('/events/x.png'))
-  })
-
-  it('disables dropzone when no token', () => {
-    render(<AdminAssetUploader field={FIELD} value="" token="" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeDisabled()
-  })
-
-  it('jpeg extension normalized to jpg', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="ev" onChange={onChange} />)
-    const f = new File(['x'], 'a.jpeg', { type: 'image/jpeg' })
-    Object.defineProperty(f, 'size', { value: 100 })
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [f] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    expect(uploadSpy.mock.calls[0][1]).toBe('public/events/ev.jpg')
-  })
-
-  it('qrSuffix appends -qr to slug', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={{ ...FIELD, uploadDir: 'public/social/' }} value="" token="ghp_X" slugBase="wechat" qrSuffix onChange={onChange} />)
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [pngFile()] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    expect(uploadSpy.mock.calls[0][1]).toBe('public/social/wechat-qr.png')
-  })
-
-  it('drag-leave clears dragOver state', () => {
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={() => {}} />)
-    const dz = screen.getByRole('button', { name: /拖拽图片/ })
-    fireEvent.dragOver(dz)
-    fireEvent.dragLeave(dz)
-    expect(dz).not.toHaveClass('drag-over')
-  })
-
-  it('upload guard: dropzone is disabled when no token (button cannot trigger handleFile)', () => {
-    // The dropzone is disabled (verified by another test) when no token. handleFile is NOT entered
-    // via UI in this scenario. We assert disabled state instead.
-    render(<AdminAssetUploader field={FIELD} value="" token="" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: /拖拽图片/ })).toBeDisabled()
-  })
-
-  it('drop event with no files does nothing', () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" onChange={onChange} />)
-    const dz = screen.getByRole('button', { name: /拖拽图片/ })
-    fireEvent.drop(dz, { dataTransfer: { files: [] } })
-    expect(uploadSpy).not.toHaveBeenCalled()
-  })
-
-  it('webp accepted (mime list)', async () => {
-    const onChange = vi.fn()
-    render(<AdminAssetUploader field={FIELD} value="" token="ghp_X" slugBase="ev" onChange={onChange} />)
-    const f = new File(['x'], 'a.webp', { type: 'image/webp' })
-    Object.defineProperty(f, 'size', { value: 100 })
-    const hidden = document.querySelector('input[type=file]')
-    fireEvent.change(hidden, { target: { files: [f] } })
-    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
-    expect(uploadSpy.mock.calls[0][1]).toBe('public/events/ev.webp')
-  })
-
-  it('uploadAsset 401 calls onAuthExpired (S11) and skips onError + onChange', async () => {
-    uploadSpy.mockRejectedValueOnce(new Error('Unauthorized — token expired or revoked.'))
-    const onChange = vi.fn()
-    const onError = vi.fn()
     const onAuthExpired = vi.fn()
     render(
       <AdminAssetUploader
         field={FIELD}
         value=""
-        token="ghp_X"
-        slugBase="ev"
         onChange={onChange}
-        onError={onError}
         onAuthExpired={onAuthExpired}
       />,
     )
@@ -187,6 +108,65 @@ describe('<AdminAssetUploader />', () => {
     fireEvent.change(hidden, { target: { files: [pngFile()] } })
     await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
     expect(onChange).not.toHaveBeenCalled()
-    expect(onError).not.toHaveBeenCalled()
+  })
+
+  it('403 forbidden → onForbidden called', async () => {
+    uploadSpy.mockRejectedValueOnce(Object.assign(new Error('需要管理员权限'), { code: 'forbidden' }))
+    const onForbidden = vi.fn()
+    render(
+      <AdminAssetUploader
+        field={FIELD}
+        value=""
+        onChange={() => {}}
+        onForbidden={onForbidden}
+      />,
+    )
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
+    await waitFor(() => expect(onForbidden).toHaveBeenCalled())
+  })
+
+  it('drop with no files is a no-op', () => {
+    render(
+      <AdminAssetUploader field={FIELD} value="" onChange={() => {}} />,
+    )
+    const dz = screen.getByRole('button', { name: /拖拽图片/ })
+    fireEvent.drop(dz, { dataTransfer: { files: [] } })
+    expect(uploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('drag-leave clears dragOver state', () => {
+    render(
+      <AdminAssetUploader field={FIELD} value="" onChange={() => {}} />,
+    )
+    const dz = screen.getByRole('button', { name: /拖拽图片/ })
+    fireEvent.dragOver(dz)
+    fireEvent.dragLeave(dz)
+    expect(dz).not.toHaveClass('drag-over')
+  })
+
+  it('uses field.uploadKind to select the upload bucket prefix', async () => {
+    const onChange = vi.fn()
+    render(
+      <AdminAssetUploader
+        field={{ ...FIELD, uploadKind: 'members' }}
+        value=""
+        slugBase="member-1"
+        onChange={onChange}
+      />,
+    )
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
+    expect(uploadSpy.mock.calls[0][1]).toBe('members')
+  })
+
+  it('without slugBase, slug option is omitted', async () => {
+    const onChange = vi.fn()
+    render(<AdminAssetUploader field={FIELD} value="" onChange={onChange} />)
+    const hidden = document.querySelector('input[type=file]')
+    fireEvent.change(hidden, { target: { files: [pngFile()] } })
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled())
+    expect(uploadSpy.mock.calls[0][2]).toEqual({})
   })
 })

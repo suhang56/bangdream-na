@@ -1,6 +1,12 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "./custom-env";
 import { buildGithubAuthRoutes } from "./auth/github";
+import {
+  buildAdminCategoriesRoutes,
+  buildAdminEventsRoutes,
+  buildAdminMembersRoutes,
+  buildAdminNewsRoutes,
+} from "./routes/admin";
 import { buildHealthzRoutes } from "./routes/healthz";
 import { buildMeRoutes } from "./routes/me";
 import {
@@ -25,6 +31,10 @@ export function createApp() {
   app.route("/api/members", buildPublicMembersRoutes());
   app.route("/api/categories", buildPublicCategoriesRoutes());
   app.route("/api/upload", buildUploadRoutes());
+  app.route("/api/admin/news", buildAdminNewsRoutes());
+  app.route("/api/admin/events", buildAdminEventsRoutes());
+  app.route("/api/admin/members", buildAdminMembersRoutes());
+  app.route("/api/admin/categories", buildAdminCategoriesRoutes());
 
   app.notFound((c) => {
     c.header("Cache-Control", "no-store");

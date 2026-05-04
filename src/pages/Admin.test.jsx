@@ -1,149 +1,147 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+vi.mock('../lib/api.js', async () => {
+  const actual = await vi.importActual('../lib/api.js')
+  return {
+    ...actual,
+    fetchMe: vi.fn(),
+    logout: vi.fn(),
+    adminListNews: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    adminListEvents: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    adminListMembers: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    adminListCategories: vi.fn().mockResolvedValue({ items: [] }),
+  }
+})
+
 import Admin from './Admin.jsx'
-import { TOKEN_STORAGE_KEY } from '../components/AdminLogin/AdminLogin.jsx'
-import * as githubApi from '../lib/githubApi.js'
+import * as api from '../lib/api.js'
+
+const ADMIN_USER = {
+  id: 1,
+  github_login: 'admin-x',
+  display_name: 'Admin',
+  avatar_url: null,
+  role: 'admin',
+}
+
+const MEMBER_USER = {
+  id: 2,
+  github_login: 'member-x',
+  display_name: 'Member',
+  avatar_url: null,
+  role: 'member',
+}
 
 describe('<Admin />', () => {
+  let originalLocation
   beforeEach(() => {
-    window.sessionStorage.clear()
-    vi.spyOn(githubApi, 'ghGet').mockResolvedValue({ content: [], sha: 'sha', raw: '[]' })
+    originalLocation = window.location
+    delete window.location
+    window.location = { ...originalLocation, assign: vi.fn() }
+    api.logout.mockResolvedValue()
+    api.adminListNews.mockResolvedValue({ items: [], total: 0 })
+    api.adminListEvents.mockResolvedValue({ items: [], total: 0 })
+    api.adminListMembers.mockResolvedValue({ items: [], total: 0 })
+    api.adminListCategories.mockResolvedValue({ items: [] })
   })
-  afterEach(() => { vi.restoreAllMocks() })
-
-  it('renders login screen when no token', () => {
-    render(<Admin />)
-    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument()
-  })
-
-  it('renders shell + sidebar + default Events view when token present', async () => {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
-    render(<Admin />)
-    expect(screen.getByRole('button', { name: '活动', current: 'page' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
+  afterEach(() => {
+    vi.clearAllMocks()
+    window.location = originalLocation
   })
 
-  it('clicking nav button switches view', async () => {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
+  it('shows checking → login when fetchMe returns null (anon)', async () => {
+    api.fetchMe.mockResolvedValue(null)
     render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: '成员' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
+  })
+
+  it('shows admin shell + nav when admin user is logged in', async () => {
+    api.fetchMe.mockResolvedValue({ user: ADMIN_USER })
+    render(<Admin />)
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /资讯/, current: 'page' })).toBeInTheDocument(),
+    )
+    await waitFor(() => expect(screen.getByText(/还没有资讯/)).toBeInTheDocument())
+  })
+
+  it('shows member-blocked screen when role=member', async () => {
+    api.fetchMe.mockResolvedValue({ user: MEMBER_USER })
+    render(<Admin />)
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /需要管理员权限/ })).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/member-x/)).toBeInTheDocument()
+  })
+
+  it('member can click 登出 to clear and return to login', async () => {
+    api.fetchMe.mockResolvedValueOnce({ user: MEMBER_USER }).mockResolvedValue(null)
+    render(<Admin />)
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /需要管理员权限/ })).toBeInTheDocument(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^登出$/ }))
+    await waitFor(() => expect(api.logout).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
+  })
+
+  it('clicking nav switches view', async () => {
+    api.fetchMe.mockResolvedValue({ user: ADMIN_USER })
+    render(<Admin />)
+    await waitFor(() => expect(screen.getByText(/还没有资讯/)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /^成员$/ }))
     await waitFor(() => expect(screen.getByText(/还没有成员/)).toBeInTheDocument())
   })
 
-  it('logout clears token and returns to login', () => {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
+  it('admin logout calls api.logout and returns to login', async () => {
+    api.fetchMe.mockResolvedValueOnce({ user: ADMIN_USER }).mockResolvedValue(null)
     render(<Admin />)
-    fireEvent.click(screen.getByRole('button', { name: '登出' }))
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/还没有资讯/)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /^登出$/ }))
+    await waitFor(() => expect(api.logout).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
   })
 
-  it('login then submit sets token and shows shell', async () => {
+  it('login button click navigates to /api/auth/github', async () => {
+    api.fetchMe.mockResolvedValue(null)
     render(<Admin />)
-    fireEvent.change(screen.getByLabelText(/personal access token/i), { target: { value: 'ghp_TEST' } })
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument())
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_TEST')
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: /使用 GitHub 登录/ }))
+    expect(window.location.assign).toHaveBeenCalledWith(expect.stringContaining('/api/auth/github'))
   })
 
-  it('S11/S12: 401-style ghGet error auto-logs out, clears sessionStorage, shows expired banner', async () => {
-    githubApi.ghGet.mockReset().mockRejectedValue(new Error('Unauthorized — token expired or revoked.'))
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_stale')
+  it('fetchMe network error shows anon + auth error banner', async () => {
+    api.fetchMe.mockRejectedValue(new TypeError('Failed to fetch'))
     render(<Admin />)
-    await waitFor(() => expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument())
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/网络错误/),
+    )
+    expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument()
   })
 
-  it('S12: 403 forbidden-token error also auto-logs out', async () => {
-    githubApi.ghGet.mockReset().mockRejectedValue(new Error('Forbidden — token lacks required scope.'))
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_weak')
+  it('AdminEditor 401 from list triggers logout flow + expired banner', async () => {
+    api.fetchMe.mockResolvedValueOnce({ user: ADMIN_USER }).mockResolvedValue(null)
+    api.adminListNews.mockReset().mockRejectedValue(new api.ApiError('GET 401', { status: 401 }))
     render(<Admin />)
-    await waitFor(() => expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument())
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/登录已过期/)).toBeInTheDocument()
   })
 
-  it('non-auth error keeps user logged in and shows error banner (not auto-logout)', async () => {
-    githubApi.ghGet.mockReset().mockRejectedValue(new Error('GitHub server error (502).'))
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_good')
+  it('fetchMe with malformed body (no user) treated as anon', async () => {
+    api.fetchMe.mockResolvedValue({})
     render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/服务器错误/)).toBeInTheDocument())
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_good')
-    expect(screen.queryByRole('button', { name: '登录' })).toBeNull()
-  })
-
-  it('renders AdminTopBar with breadcrumb 后台 / 活动 by default', async () => {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
-    render(<Admin />)
-    expect(screen.getByLabelText('后台导航路径')).toBeInTheDocument()
-    expect(screen.getByText('查看网站 ↗')).toBeInTheDocument()
-    expect(screen.getByText('无待合并 PR')).toBeInTheDocument()
-  })
-
-  it('admin chrome contains no English leakage outside whitelist (per schema list view)', async () => {
-    githubApi.ghGet.mockReset().mockResolvedValue({ content: [], sha: 'sha', raw: '[]' })
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
-    render(<Admin />)
-    await waitFor(() => expect(screen.getByText(/还没有活动/)).toBeInTheDocument())
-    const schemaKeys = ['events', 'members', 'news', 'posts', 'social', 'site', 'about']
-    for (const key of schemaKeys) {
-      // Click nav button via its Chinese label (skip if already active)
-      const labelMap = {
-        events: '活动', members: '成员', news: '公告', posts: '首页轮播',
-        social: '社交平台', site: '站点信息', about: '关于页',
-      }
-      fireEvent.click(screen.getByRole('button', { name: labelMap[key] }))
-      await waitFor(() => {
-        const text = document.body.textContent ?? ''
-        const englishWords = text.match(/\b[A-Za-z]{3,}\b/g) ?? []
-        const ALLOWED = new Set([
-          // Brand / GitHub / token vocabulary
-          'BD', 'NA', 'GitHub', 'PAT', 'Personal', 'Access', 'Token', 'JSON', 'URL', 'PR',
-          'bangdream', 'repo', 'ghp', 'https',
-          // Schema field keys (English identifiers operator can recognize)
-          'id', 'title', 'date', 'name', 'role', 'tag', 'image', 'bands', 'type',
-          'platform', 'enabled', 'body', 'summary', 'bio', 'oshi', 'city',
-          'description', 'links', 'location', 'socials', 'avatar', 'qrImage',
-          'sourceUrl', 'ticketUrl', 'endDate', 'discordInvite', 'communityName',
-          'communityNameZh', 'communityNameJp', 'mission', 'history', 'faq',
-          'coc', 'joinInstructions', 'datePosted', 'label', 'url',
-          'TYPE', 'ID', 'DATE', 'TAG', 'TITLE', 'NAME', 'ROLE', 'CITY', 'PLATFORM',
-          // Enum option tokens
-          'concert', 'fanmeet', 'con', 'online', 'meetup',
-          'organizer', 'mod', 'member', 'cover',
-          'announcement', 'event', 'community', 'release', 'update',
-          'discord', 'qq', 'xiaohongshu', 'wechat',
-          'instagram', 'youtube', 'tiktok', 'bilibili',
-          // Help-text technical fragments
-          'ISO', 'lowercase', 'dashes', 'multi', 'day', 'YYYY', 'MM', 'DD',
-          'png', 'jpg', 'webp', 'svg', 'jpeg', 'public', 'src',
-          'Markdown', 'json',
-        ])
-        const ALLOWED_LOWER = new Set([...ALLOWED].map((w) => w.toLowerCase()))
-        const leaks = englishWords.filter((w) => !ALLOWED_LOWER.has(w.toLowerCase()))
-        expect(leaks, `English chrome leak for ${key}: ${leaks.join(', ')}`).toEqual([])
-      })
-    }
-  })
-
-  it('save flow surfaces save-status pill in TopBar', async () => {
-    githubApi.ghGet.mockReset().mockResolvedValue({
-      content: [{ id: 'a-1', title: 'Existing', date: '2025-09-15T19:00:00-07:00', type: 'concert', location: { city: 'LA' } }],
-      sha: 'sha1',
-      raw: '[]',
-    })
-    vi.spyOn(githubApi, 'commitContentChange').mockResolvedValue({
-      pr: { number: 12, htmlUrl: 'https://x/pull/12', created: false },
-      commit: { sha: 'c' },
-    })
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, 'ghp_test')
-    render(<Admin />)
-    await waitFor(() => expect(screen.getByText('Existing')).toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
-    fireEvent.change(screen.getByLabelText(/^标题/), { target: { value: 'Y' } })
-    fireEvent.click(screen.getByRole('button', { name: /保存（提交 PR）/ }))
-    await waitFor(() => expect(screen.getByText(/已保存 · PR #12/)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
+    )
   })
 })

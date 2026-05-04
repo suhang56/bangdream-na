@@ -1,91 +1,56 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import AdminLogin, { TOKEN_STORAGE_KEY } from './AdminLogin.jsx'
+import AdminLogin from './AdminLogin.jsx'
 
 describe('<AdminLogin />', () => {
+  let originalLocation
   beforeEach(() => {
-    window.sessionStorage.clear()
+    originalLocation = window.location
+    delete window.location
+    window.location = { ...originalLocation, assign: vi.fn() }
+  })
+  afterEach(() => {
+    window.location = originalLocation
   })
 
-  it('PAT input has type=password and autoComplete=off (S1)', () => {
+  it('renders login button', () => {
     render(<AdminLogin />)
-    const input = screen.getByLabelText(/personal access token/i)
-    expect(input).toHaveAttribute('type', 'password')
-    expect(input).toHaveAttribute('autocomplete', 'off')
-    expect(input).toHaveAttribute('spellcheck', 'false')
-    expect(input).not.toHaveAttribute('name')
+    expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument()
   })
 
-  it('empty submit does not call onLogin and does not write sessionStorage', async () => {
-    const user = userEvent.setup()
-    const onLogin = vi.fn()
-    render(<AdminLogin onLogin={onLogin} />)
-    await user.click(screen.getByRole('button', { name: '登录' }))
-    expect(onLogin).not.toHaveBeenCalled()
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
-    expect(screen.getByRole('alert')).toHaveTextContent(/请粘贴/)
+  it('clicking button navigates to /api/auth/github', () => {
+    render(<AdminLogin />)
+    fireEvent.click(screen.getByRole('button', { name: /使用 GitHub 登录/ }))
+    expect(window.location.assign).toHaveBeenCalledWith(
+      expect.stringContaining('/api/auth/github'),
+    )
   })
 
-  it('submit with token writes sessionStorage and calls onLogin', async () => {
-    const user = userEvent.setup()
-    const onLogin = vi.fn()
-    render(<AdminLogin onLogin={onLogin} />)
-    await user.type(screen.getByLabelText(/personal access token/i), 'ghp_AAA111')
-    await user.click(screen.getByRole('button', { name: '登录' }))
-    expect(window.sessionStorage.getItem(TOKEN_STORAGE_KEY)).toBe('ghp_AAA111')
-    expect(onLogin).toHaveBeenCalledWith('ghp_AAA111')
-  })
-
-  it('Enter key submits the form', async () => {
-    const user = userEvent.setup()
-    const onLogin = vi.fn()
-    render(<AdminLogin onLogin={onLogin} />)
-    const input = screen.getByLabelText(/personal access token/i)
-    await user.type(input, 'ghp_BBB222{Enter}')
-    expect(onLogin).toHaveBeenCalledWith('ghp_BBB222')
-  })
-
-  it('shows expired-token banner when prop is set', () => {
+  it('expiredBanner prop shows banner', () => {
     render(<AdminLogin expiredBanner />)
-    expect(screen.getByText(/已过期或被撤销/)).toBeInTheDocument()
+    expect(screen.getByText(/登录已过期/)).toBeInTheDocument()
   })
 
-  it('renders PAT scope guidance with target=_blank rel=noopener noreferrer (S16)', () => {
+  it('forbiddenBanner prop shows banner', () => {
+    render(<AdminLogin forbiddenBanner />)
+    expect(screen.getByText(/没有管理员权限/)).toBeInTheDocument()
+  })
+
+  it('without banners, no banner text rendered', () => {
     render(<AdminLogin />)
-    const link = screen.getByRole('link', { name: /GitHub Tokens 页面/ })
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.queryByText(/已过期/)).toBeNull()
+    expect(screen.queryByText(/没有管理员权限/)).toBeNull()
   })
 
-  it('does not log the token (S6)', async () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const user = userEvent.setup()
-    render(<AdminLogin onLogin={() => {}} />)
-    await user.type(screen.getByLabelText(/personal access token/i), 'ghp_SECRET')
-    await user.click(screen.getByRole('button', { name: '登录' }))
-    for (const call of spy.mock.calls) {
-      for (const arg of call) {
-        if (typeof arg === 'string') expect(arg).not.toContain('ghp_SECRET')
-      }
-    }
-    spy.mockRestore()
+  it('does not render any PAT text input (regression: no token paste UI)', () => {
+    render(<AdminLogin />)
+    expect(screen.queryByLabelText(/personal access token/i)).toBeNull()
+    expect(document.querySelector('input[type="password"]')).toBeNull()
   })
 
-  it('whitespace-only input shows error', () => {
-    render(<AdminLogin onLogin={() => {}} />)
-    const input = screen.getByLabelText(/personal access token/i)
-    fireEvent.change(input, { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: '登录' }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/请粘贴/)
-  })
-
-  it('clears input value after successful submit', async () => {
-    const user = userEvent.setup()
-    render(<AdminLogin onLogin={() => {}} />)
-    const input = screen.getByLabelText(/personal access token/i)
-    await user.type(input, 'ghp_X')
-    await user.click(screen.getByRole('button', { name: '登录' }))
-    expect(input).toHaveValue('')
+  it('renders accessible help section about OAuth', () => {
+    render(<AdminLogin />)
+    expect(screen.getByText(/关于登录/)).toBeInTheDocument()
+    expect(screen.getByText(/HttpOnly/)).toBeInTheDocument()
   })
 })

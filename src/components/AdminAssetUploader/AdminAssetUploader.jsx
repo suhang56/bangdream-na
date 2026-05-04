@@ -1,32 +1,27 @@
 import { useState, useRef, useId } from 'react'
-import { uploadAsset } from '../../lib/githubApi.js'
-import { slugify, __defaults } from '../../lib/adminSchemas.js'
+import { uploadImageWithGuard, __internals as guardInternals } from '../../lib/admin/uploadImage.js'
+import { generateSlug } from '../../lib/admin/slugify.js'
 import './AdminAssetUploader.css'
 
-function extFromFilename(name) {
-  const m = /\.([A-Za-z0-9]+)$/.exec(name || '')
-  if (!m) return ''
-  return m[1].toLowerCase().replace('jpeg', 'jpg')
-}
-
-function deriveSlug({ slugBase, file }) {
-  const base = slugify(slugBase ?? '')
-  if (base) return base
-  return slugify(file.name.replace(/\.[^.]+$/, ''))
-}
-
-const AUTH_EXPIRED_PATTERN = /unauthorized — token|forbidden — token/i
-
+/**
+ * Drag-drop / click-to-upload tile that PUTs to the Worker /api/upload endpoint
+ * (which streams to R2). On success, sets value to the absolute CDN URL.
+ *
+ * @param {object} props
+ * @param {{ uploadKind: 'news' | 'events' | 'members', label?: string }} props.field
+ * @param {string} props.value
+ * @param {string} [props.slugBase] - used to compose a slug for the R2 key
+ * @param {(url: string) => void} props.onChange
+ * @param {() => void} [props.onAuthExpired]
+ * @param {() => void} [props.onForbidden]
+ */
 export default function AdminAssetUploader({
   field,
   value,
-  token,
-  branch = 'content-updates',
   slugBase,
-  qrSuffix = false,
   onChange,
-  onError,
   onAuthExpired,
+  onForbidden,
 }) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -34,40 +29,30 @@ export default function AdminAssetUploader({
   const inputRef = useRef(null)
   const inputId = useId()
 
-  const acceptedMime = field?.acceptedMimeTypes ?? __defaults.assetMime
-  const maxBytes = field?.maxBytes ?? __defaults.assetMaxBytes
-  const acceptStr = acceptedMime.join(',')
+  const acceptStr = guardInternals.ALLOWED_MIME.join(',')
+  const maxBytes = guardInternals.MAX_BYTES
+  const kind = field?.uploadKind ?? 'news'
 
   async function handleFile(file) {
     if (!file) return
     setLocalError(null)
-    if (file.size > maxBytes) {
-      const mb = (file.size / (1024 * 1024)).toFixed(1)
-      setLocalError(`文件过大（${mb} MB）。最大 ${(maxBytes / 1024 / 1024).toFixed(0)} MB。`)
-      return
-    }
-    if (!acceptedMime.includes(file.type)) {
-      setLocalError('不支持的文件类型，仅支持 png · jpg · webp · svg。')
-      return
-    }
-    const ext = extFromFilename(file.name) || 'png'
-    let slug = deriveSlug({ slugBase, file })
-    if (!slug) slug = `pending-${Date.now().toString(36)}`
-    if (qrSuffix) slug = `${slug}-qr`
-    const repoPath = `${field.uploadDir}${slug}.${ext}`
     setUploading(true)
+    const slug = slugBase ? generateSlug(slugBase) : undefined
     try {
-      await uploadAsset(token, repoPath, file, `chore(asset): upload ${slug}.${ext}`, branch)
-      const sitePath = '/' + repoPath.replace(/^public\//, '')
-      onChange?.(sitePath)
-    } catch (e) {
-      if (typeof e?.message === 'string' && AUTH_EXPIRED_PATTERN.test(e.message)) {
+      const result = await uploadImageWithGuard(file, kind, slug ? { slug } : {})
+      onChange?.(result.url)
+    } catch (err) {
+      if (err?.code === 'unauthorized') {
         setUploading(false)
         onAuthExpired?.()
         return
       }
-      onError?.(e.message)
-      setLocalError(e.message)
+      if (err?.code === 'forbidden') {
+        setUploading(false)
+        onForbidden?.()
+        return
+      }
+      setLocalError(err?.message ?? '上传失败')
     } finally {
       setUploading(false)
     }
@@ -103,13 +88,19 @@ export default function AdminAssetUploader({
           readOnly
           className="admin-asset-path-input"
           value={value ?? ''}
-          aria-label={`${field?.label ?? '资源'} 路径`}
+          aria-label={`${field?.label ?? '资源'} URL`}
         />
       </div>
 
       {value && (
         <div className="admin-asset-preview">
-          <img src={value} alt={field?.label ?? '预览'} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img
+            src={value}
+            alt={field?.label ?? '预览'}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
         </div>
       )}
 
@@ -120,7 +111,7 @@ export default function AdminAssetUploader({
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        disabled={uploading || !token}
+        disabled={uploading}
         aria-busy={uploading ? 'true' : 'false'}
       >
         {uploading ? (
@@ -128,8 +119,10 @@ export default function AdminAssetUploader({
         ) : (
           <>
             <span className="admin-asset-dropzone-icon">⬆</span>
-            <span>拖拽图片至此，或点击上传</span>
-            <span className="admin-asset-dropzone-hint">png · jpg · webp · svg · ≤{(maxBytes / 1024 / 1024).toFixed(0)}MB</span>
+            <span>拖拽图片至此,或点击上传</span>
+            <span className="admin-asset-dropzone-hint">
+              png · jpg · webp · gif · ≤{(maxBytes / 1024 / 1024).toFixed(0)}MB
+            </span>
           </>
         )}
       </button>
@@ -145,7 +138,9 @@ export default function AdminAssetUploader({
       />
 
       {localError && (
-        <p className="admin-asset-error" role="alert" aria-live="polite">{localError}</p>
+        <p className="admin-asset-error" role="alert" aria-live="polite">
+          {localError}
+        </p>
       )}
     </div>
   )

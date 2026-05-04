@@ -1,39 +1,71 @@
-import { useState, useEffect } from 'react'
-import AdminLogin, { TOKEN_STORAGE_KEY } from '../components/AdminLogin/AdminLogin.jsx'
+import { useState, useEffect, useCallback } from 'react'
+import AdminLogin from '../components/AdminLogin/AdminLogin.jsx'
 import AdminNav from '../components/AdminNav/AdminNav.jsx'
 import AdminTopBar from '../components/AdminTopBar/AdminTopBar.jsx'
 import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
-import { listSchemaKeys } from '../lib/adminSchemas.js'
+import { listD1SchemaKeys, getD1Schema } from '../lib/admin/d1Schemas.js'
+import { fetchMe, logout, ApiError } from '../lib/api.js'
 import './Admin.css'
 
-const DEFAULT_VIEW = 'events'
+const DEFAULT_VIEW = 'news'
 const SAVED_BANNER_TIMEOUT_MS = 5000
 
+const AUTH_STATES = Object.freeze({
+  CHECKING: 'checking',
+  ANON: 'anon',
+  MEMBER: 'member',
+  ADMIN: 'admin',
+})
+
+function navItems() {
+  return listD1SchemaKeys().map((k) => ({ key: k, title: getD1Schema(k).title }))
+}
+
 export default function Admin() {
-  const [token, setToken] = useState(() => {
-    try {
-      return window.sessionStorage.getItem(TOKEN_STORAGE_KEY) ?? ''
-    } catch {
-      return ''
-    }
-  })
+  const [authState, setAuthState] = useState(AUTH_STATES.CHECKING)
+  const [user, setUser] = useState(null)
+  const [authError, setAuthError] = useState(null)
   const [expiredBanner, setExpiredBanner] = useState(false)
+  const [forbiddenBanner, setForbiddenBanner] = useState(false)
   const [activeKey, setActiveKey] = useState(DEFAULT_VIEW)
-  const [openPR, setOpenPR] = useState(null)
   const [saveStatus, setSaveStatus] = useState({ status: 'idle' })
 
   useEffect(() => {
-    if (!token) return
-    function onStorage(e) {
-      if (e.key === TOKEN_STORAGE_KEY && !e.newValue) {
-        setToken('')
+    let cancelled = false
+    async function run() {
+      try {
+        const result = await fetchMe()
+        if (cancelled) return
+        if (!result || !result.user) {
+          setUser(null)
+          setAuthState(AUTH_STATES.ANON)
+          return
+        }
+        setUser(result.user)
+        if (result.user.role === 'admin') {
+          setAuthState(AUTH_STATES.ADMIN)
+          setForbiddenBanner(false)
+        } else {
+          setAuthState(AUTH_STATES.MEMBER)
+        }
+      } catch (err) {
+        if (cancelled) return
+        setUser(null)
+        if (err instanceof ApiError) {
+          setAuthError(`登录检查失败 (${err.status})`)
+        } else {
+          setAuthError('网络错误,无法检查登录状态')
+        }
+        setAuthState(AUTH_STATES.ANON)
       }
     }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [token])
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  // Auto-clear "saved" pill after a few seconds so it doesn't persist forever.
+  // Auto-clear "saved" pill after a few seconds
   useEffect(() => {
     if (saveStatus.status !== 'saved') return undefined
     const t = setTimeout(() => {
@@ -42,62 +74,115 @@ export default function Admin() {
     return () => clearTimeout(t)
   }, [saveStatus])
 
-  function handleLogin(t) {
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout()
+    } catch {
+      // ignore — we'll re-check anyway
+    }
+    setUser(null)
+    setAuthState(AUTH_STATES.ANON)
     setExpiredBanner(false)
-    setToken(t)
-  }
-
-  function handleLogout() {
-    try { window.sessionStorage.removeItem(TOKEN_STORAGE_KEY) } catch { /* ignore */ }
-    setToken('')
-    setOpenPR(null)
+    setForbiddenBanner(false)
     setActiveKey(DEFAULT_VIEW)
     setSaveStatus({ status: 'idle' })
-  }
+  }, [])
 
-  function handleAuthExpired() {
-    try { window.sessionStorage.removeItem(TOKEN_STORAGE_KEY) } catch { /* ignore */ }
-    setToken('')
-    setOpenPR(null)
-    setActiveKey(DEFAULT_VIEW)
+  const handleAuthExpired = useCallback(async () => {
     setExpiredBanner(true)
+    setForbiddenBanner(false)
+    setUser(null)
+    setAuthState(AUTH_STATES.ANON)
     setSaveStatus({ status: 'idle' })
-  }
+    // Best-effort logout to clear the cookie server-side
+    try {
+      await logout()
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const handleForbidden = useCallback(() => {
+    setForbiddenBanner(true)
+    setAuthState(AUTH_STATES.MEMBER)
+  }, [])
 
   function handleSelect(key) {
-    if (!listSchemaKeys().includes(key)) return
+    if (!listD1SchemaKeys().includes(key)) return
     setActiveKey(key)
     setSaveStatus({ status: 'idle' })
   }
 
-  function handleSavedPR(pr) {
-    if (pr) setOpenPR({ number: pr.number, htmlUrl: pr.htmlUrl })
+  if (authState === AUTH_STATES.CHECKING) {
+    return (
+      <div className="admin-shell">
+        <main className="admin-content" aria-busy="true">
+          <p className="admin-editor-loading">加载中…</p>
+        </main>
+      </div>
+    )
   }
 
-  if (!token) {
-    return <AdminLogin onLogin={handleLogin} expiredBanner={expiredBanner} />
+  if (authState === AUTH_STATES.ANON) {
+    return (
+      <>
+        {authError && (
+          <div className="admin-login-banner" role="alert">
+            {authError}
+          </div>
+        )}
+        <AdminLogin
+          expiredBanner={expiredBanner}
+          forbiddenBanner={forbiddenBanner}
+        />
+      </>
+    )
   }
 
+  if (authState === AUTH_STATES.MEMBER) {
+    return (
+      <div className="admin-shell admin-shell-member">
+        <main className="admin-content">
+          <section className="admin-editor">
+            <header className="admin-editor-header">
+              <h2>需要管理员权限</h2>
+            </header>
+            <p>当前账号 ({user?.github_login}) 没有编辑权限。</p>
+            <p>请联系管理员获取权限,或切换至授权账号。</p>
+            <button
+              type="button"
+              className="admin-editor-btn"
+              onClick={handleLogout}
+            >
+              登出
+            </button>
+          </section>
+        </main>
+      </div>
+    )
+  }
+
+  // ADMIN
   return (
     <div className="admin-shell">
       <AdminNav
         activeKey={activeKey}
         onSelect={handleSelect}
         onSignOut={handleLogout}
+        items={navItems()}
       />
       <div className="admin-main-column">
         <AdminTopBar
           schemaKey={activeKey}
           editing={null}
           saveStatus={saveStatus}
-          openPR={openPR}
+          openPR={null}
         />
         <main className="admin-content" key={activeKey}>
           <AdminEditor
             schemaKey={activeKey}
-            token={token}
-            onSavedPR={handleSavedPR}
             onAuthExpired={handleAuthExpired}
+            onForbidden={handleForbidden}
             onSaveStatus={setSaveStatus}
           />
         </main>
