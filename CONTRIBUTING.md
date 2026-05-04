@@ -1,6 +1,6 @@
 # Contributing to bangdream-na
 
-欢迎贡献！这份文档面向想添加功能的朋友。**你不需要安装 Cloudflare、wrangler，也不需要碰任何生产配置** — 整个流程就是 fork → branch → push → PR，剩下的自动化搞定。
+欢迎贡献！这份文档面向想添加功能的朋友。**你不需要安装 Cloudflare、wrangler，也不需要碰任何生产配置** — 整个流程就是 fork → branch → push → PR，剩下的自动化会搞定。
 
 Welcome! This guide is written for friends adding features. **You never need to install wrangler, touch the Cloudflare dashboard, or run any migrations** — the full flow is fork → branch → push → PR, and automation handles the rest.
 
