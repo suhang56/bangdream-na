@@ -42,3 +42,7 @@ worker/.wrangler/
 
 # R6 backup exports (D1 SQL dumps + R2 object listings)
 backups/
+
+# Worker build artifacts
+worker/dist/
+worker/coverage/

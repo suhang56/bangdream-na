@@ -10,7 +10,14 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "worker:dev": "npm --prefix worker run dev",
+    "worker:build": "npm --prefix worker run build",
+    "worker:test": "npm --prefix worker test",
+    "worker:test:coverage": "npm --prefix worker run test:coverage",
+    "worker:typecheck": "npm --prefix worker run typecheck",
+    "d1:migrate:local": "npm --prefix worker run d1:migrate:local",
+    "d1:migrate:prod": "npm --prefix worker run d1:migrate:prod"
   },
   "dependencies": {
     "react": "^19.2.4",
