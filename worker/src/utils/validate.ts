@@ -53,3 +53,87 @@ export const uploadFormParts = z.object({
   kind: uploadKindEnum,
   slug: z.string().min(1).max(200).optional(),
 });
+
+const optionalSlug = z
+  .string()
+  .min(1)
+  .max(120)
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i)
+  .optional();
+
+const tagsArray = z
+  .array(z.string().min(1).max(40))
+  .max(20)
+  .optional();
+
+const intSecondsTimestamp = z.number().int().min(0);
+const positiveId = z.coerce.number().int().min(1);
+
+export const adminIdParam = z.object({
+  id: positiveId,
+});
+
+export const adminCheckSlugQuery = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+});
+
+export const adminNewsCreate = z.object({
+  slug: optionalSlug,
+  title_zh: z.string().min(1).max(200),
+  title_en: z.string().max(200).nullish(),
+  body_md: z.string().min(1).max(200000),
+  category: z.string().min(1).max(80).regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  hero_image_url: z.string().url().max(1000).nullish(),
+  tags: tagsArray,
+  published_at: intSecondsTimestamp,
+  draft: z.boolean().optional(),
+});
+
+export const adminNewsUpdate = adminNewsCreate.partial();
+
+export const adminEventCreate = z.object({
+  slug: optionalSlug,
+  title_zh: z.string().min(1).max(200),
+  title_en: z.string().max(200).nullish(),
+  description_md: z.string().max(200000).nullish(),
+  hero_image_url: z.string().url().max(1000).nullish(),
+  start_at: intSecondsTimestamp,
+  end_at: intSecondsTimestamp.nullish(),
+  venue: z.string().max(200).nullish(),
+  city: z.string().max(120).nullish(),
+  scope: z.enum(["upcoming", "past"]).nullish(),
+  ticket_url: z.string().url().max(1000).nullish(),
+  band_theme: z.string().max(80).nullish(),
+});
+
+export const adminEventUpdate = adminEventCreate.partial();
+
+export const adminMemberCreate = z.object({
+  display_name: z.string().min(1).max(120),
+  city: z.string().max(120).nullish(),
+  oshi_character: z.string().max(120).nullish(),
+  oshi_band: z.string().max(120).nullish(),
+  avatar_url: z.string().url().max(1000).nullish(),
+  expedition_member: z.boolean().optional(),
+});
+
+export const adminMemberUpdate = adminMemberCreate.partial();
+
+export const adminCategoryCreate = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  display_zh: z.string().min(1).max(120),
+  display_en: z.string().max(120).nullish(),
+  accent_color: z.string().max(40).nullish(),
+  sort_order: z.number().int().min(0).max(10000).optional(),
+  active: z.boolean().optional(),
+});
+
+export const adminCategoryUpdate = adminCategoryCreate.partial();
