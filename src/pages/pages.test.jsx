@@ -26,7 +26,12 @@ import {
   fetchSite,
   fetchSocial,
 } from '../lib/api.js'
-import siteJson from '../data/site.json'
+const siteJson = {
+  discordInvite: 'https://discord.gg/WfMBKaW8Br',
+  communityName: 'BanG Dream North America Chinese Community',
+  communityNameZh: '北美炸梦同好会',
+  communityNameJp: 'バンドリ北米華人コミュニティ',
+}
 import Events from './Events.jsx'
 import Members from './Members.jsx'
 import News from './News.jsx'

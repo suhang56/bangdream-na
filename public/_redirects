@@ -8,17 +8,32 @@ https://xn--6oqz0h9uah3nn8uf8kujz.org/*           https://bangdream.org/:splat  
 https://www.xn--6oqz0h9uah3nn8uf8kujz.org/*       https://bangdream.org/:splat  301
 https://www.bangdream.org/*                        https://bangdream.org/:splat  301
 
-# 2) Asset directories — explicit 404 on miss, NEVER fall through to SPA fallback.
-# Without this, deploy-race fetches (Discord/Telegram link previews, admin self-verify,
-# search crawlers hitting a URL while CF Pages is mid-build) get rewritten to index.html,
-# cached as text/html on edge under /news/<file>.png keys, then persist up to 24h per
-# /*.png cache-control rule. Returning a clean 404 keeps the cache uncontaminated; the
-# next fetch after deploy completes resolves to the real file.
-/news/*       /news/:splat       404
-/events/*     /events/:splat     404
-/posts/*      /posts/:splat      404
-/members/*    /members/:splat    404
+# 2) Legacy image redirects — public/{news,events,posts,members}/ dirs removed in R6.
+# Image-extension-scoped only (no broad /news/(.*) which would catch SPA routes).
+# These rules MUST appear before the SPA fallback below.
+/news/:file.png       https://cdn.bangdream.org/news/:file.png       301
+/news/:file.jpg       https://cdn.bangdream.org/news/:file.jpg       301
+/news/:file.jpeg      https://cdn.bangdream.org/news/:file.jpeg      301
+/news/:file.webp      https://cdn.bangdream.org/news/:file.webp      301
+/news/:file.gif       https://cdn.bangdream.org/news/:file.gif       301
+/events/:file.png     https://cdn.bangdream.org/events/:file.png     301
+/events/:file.jpg     https://cdn.bangdream.org/events/:file.jpg     301
+/events/:file.jpeg    https://cdn.bangdream.org/events/:file.jpeg    301
+/events/:file.webp    https://cdn.bangdream.org/events/:file.webp    301
+/events/:file.gif     https://cdn.bangdream.org/events/:file.gif     301
+/posts/:file.png      https://cdn.bangdream.org/posts/:file.png      301
+/posts/:file.jpg      https://cdn.bangdream.org/posts/:file.jpg      301
+/posts/:file.jpeg     https://cdn.bangdream.org/posts/:file.jpeg     301
+/posts/:file.webp     https://cdn.bangdream.org/posts/:file.webp     301
+/posts/:file.gif      https://cdn.bangdream.org/posts/:file.gif      301
+/members/:file.png    https://cdn.bangdream.org/members/:file.png    301
+/members/:file.jpg    https://cdn.bangdream.org/members/:file.jpg    301
+/members/:file.jpeg   https://cdn.bangdream.org/members/:file.jpeg   301
+/members/:file.webp   https://cdn.bangdream.org/members/:file.webp   301
+/members/:file.gif    https://cdn.bangdream.org/members/:file.gif    301
+
+# 3) Asset directory — explicit 404 on miss, NEVER fall through to SPA fallback.
 /assets/*     /assets/:splat     404
 
-# 3) SPA fallback — every other non-asset path → index.html (200, NOT 301)
+# 4) SPA fallback — every other non-asset path → index.html (200, NOT 301)
 /*    /index.html   200
