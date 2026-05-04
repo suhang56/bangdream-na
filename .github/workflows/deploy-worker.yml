@@ -3,6 +3,10 @@ name: deploy-worker
 on:
   push:
     branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:  # allow manual re-deploy from Actions tab
 
 jobs:
   deploy:
