@@ -20,5 +20,8 @@ database_name = "bangdream-na-content"
 database_id = "cc268885-f913-4539-8529-70fc0e5e09e9"
 migrations_dir = "migrations"
 
-# Custom domain (api.bangdream.org) handled via dashboard, not here.
+[[routes]]
+pattern = "api.bangdream.org"
+custom_domain = true
+
 # Secrets set via `wrangler secret put GITHUB_CLIENT_SECRET` and `wrangler secret put JWT_SECRET`
