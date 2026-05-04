@@ -5,6 +5,9 @@ import AdminTopBar from '../components/AdminTopBar/AdminTopBar.jsx'
 import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
 import AdminSettings from '../components/AdminSettings/AdminSettings.jsx'
 import { listD1SchemaKeys, getD1Schema } from '../lib/admin/d1Schemas.js'
+import { adminSchemas as legacySchemas } from '../lib/adminSchemas.js'
+
+const LEGACY_KINDS = ['posts', 'social', 'site', 'about']
 import { fetchMe, logout, ApiError } from '../lib/api.js'
 import { t } from '../lib/uiLanguage.js'
 import '../components/AdminSettings/AdminSettings.css'
@@ -22,19 +25,25 @@ const AUTH_STATES = Object.freeze({
 })
 
 function navItems() {
-  const schemas = listD1SchemaKeys().map((k) => ({
+  const d1 = listD1SchemaKeys().map((k) => ({
     key: k,
     title: getD1Schema(k).title,
   }))
+  const legacy = LEGACY_KINDS.filter((k) => legacySchemas[k]).map((k) => ({
+    key: k,
+    title: legacySchemas[k].title,
+  }))
   return [
-    ...schemas,
+    ...d1,
+    ...legacy,
     { key: SETTINGS_KEY, title: t('admin.settings.tabTitle') },
   ]
 }
 
 function isValidNavKey(key) {
   if (key === SETTINGS_KEY) return true
-  return listD1SchemaKeys().includes(key)
+  if (listD1SchemaKeys().includes(key)) return true
+  return LEGACY_KINDS.includes(key) && Boolean(legacySchemas[key])
 }
 
 export default function Admin() {
