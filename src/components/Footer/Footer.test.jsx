@@ -4,8 +4,20 @@ import { renderWithProviders } from '../../test/utils.jsx'
 import Footer from './Footer.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
 import { cache } from '../../lib/cache.js'
-import siteJson from '../../data/site.json'
-import socialJson from '../../data/social.json'
+const siteJson = {
+  discordInvite: 'https://discord.gg/WfMBKaW8Br',
+  communityName: 'BanG Dream North America Chinese Community',
+  communityNameZh: '北美炸梦同好会',
+  communityNameJp: 'バンドリ北米華人コミュニティ',
+}
+const socialJson = [
+  { platform: 'discord', label: 'Discord', url: 'https://discord.gg/WfMBKaW8Br', enabled: true },
+  { platform: 'qq', label: 'QQ群', url: 'https://qm.qq.com/q/Dir9OC5TYA', enabled: true },
+  { platform: 'xiaohongshu', label: 'Xiaohongshu', url: 'https://xhslink.com/m/1s9XmQRoAug', enabled: true },
+  { platform: 'x', label: 'X', url: 'https://x.com/BandoriNACC', enabled: true },
+  { platform: 'wechat', label: '微信', url: '', enabled: false },
+  { platform: 'forum', label: 'Forum', url: 'https://forum.bangdream.org', enabled: true },
+]
 
 vi.mock('../../lib/api.js', async () => {
   const actual = await vi.importActual('../../lib/api.js')

@@ -5,9 +5,26 @@ import { renderWithProviders } from '../test/utils.jsx'
 import About from './About.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
-import siteJson from '../data/site.json'
-import aboutJson from '../data/about.json'
-import socialJson from '../data/social.json'
+const siteJson = {
+  discordInvite: 'https://discord.gg/WfMBKaW8Br',
+  communityName: 'BanG Dream North America Chinese Community',
+  communityNameZh: '北美炸梦同好会',
+  communityNameJp: 'バンドリ北米華人コミュニティ',
+}
+const aboutJson = {
+  mission: '北美炸梦同好会 / バンドリ北米華人コミュニティ — 北美华人 BanG Dream! 粉丝社群。',
+  faq: [
+    { q: '怎么加入？', a: '点击下方「加入 QQ 群」按钮直接进群即可。' },
+    { q: '需要会中文或日语吗？', a: '中文为主，英文 / 日文也都欢迎。' },
+  ],
+  coc: '① 禁止恶意攻击作品相关声优、角色、团体。',
+  joinInstructions: '加入我们就直接加 QQ 群即可。',
+}
+const socialJson = [
+  { platform: 'discord', label: 'Discord', url: 'https://discord.gg/WfMBKaW8Br', enabled: true },
+  { platform: 'qq', label: 'QQ群', url: 'https://qm.qq.com/q/Dir9OC5TYA', enabled: true },
+  { platform: 'forum', label: 'Forum', url: 'https://forum.bangdream.org', enabled: true },
+]
 
 vi.mock('../lib/api.js', async () => {
   const actual = await vi.importActual('../lib/api.js')

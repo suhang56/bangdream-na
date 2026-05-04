@@ -4,9 +4,24 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../test/utils.jsx'
 import { useIsMobile } from '../lib/useBreakpoint.js'
 import Home from './Home.jsx'
-import site from '../data/site.json'
-import posts from '../data/posts.json'
-import socialJson from '../data/social.json'
+const site = {
+  discordInvite: 'https://discord.gg/WfMBKaW8Br',
+  communityName: 'BanG Dream North America Chinese Community',
+  communityNameZh: '北美炸梦同好会',
+  communityNameJp: 'バンドリ北米華人コミュニティ',
+}
+const posts = [
+  { id: '邦多利十周年', image: '/posts/0e58054c3933d25162576c8d62e7bc86.jpg', title: '邦多利十周年', url: '', datePosted: '2026-02-28' },
+  { id: '北美邦最长的一天', image: '/posts/b5aa6b5cbdbd9f14b15df108f6e51e26.jpg', title: '北美邦最长的一天', url: '', datePosted: '2026-05-01' },
+]
+const socialJson = [
+  { platform: 'discord', label: 'Discord', url: 'https://discord.gg/WfMBKaW8Br', enabled: true },
+  { platform: 'qq', label: 'QQ群', url: 'https://qm.qq.com/q/Dir9OC5TYA', enabled: true },
+  { platform: 'xiaohongshu', label: 'Xiaohongshu', url: 'https://xhslink.com/m/1s9XmQRoAug', enabled: true },
+  { platform: 'x', label: 'X', url: 'https://x.com/BandoriNACC', enabled: true },
+  { platform: 'wechat', label: '微信', url: '', enabled: false },
+  { platform: 'forum', label: 'Forum', url: 'https://forum.bangdream.org', enabled: true },
+]
 import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
 
