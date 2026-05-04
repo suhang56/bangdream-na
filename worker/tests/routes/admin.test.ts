@@ -1011,6 +1011,134 @@ describe("Admin /api/admin/members", () => {
     );
     expect(missing.status).toBe(404);
   });
+
+  // ── R5.5 role field ────────────────────────────────────────────────────
+  it("POST without role defaults to 'member'", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_MEMBER),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { role: string };
+    expect(body.role).toBe("member");
+  });
+
+  it("POST with explicit role round-trips", async () => {
+    const cookie = await adminCookie();
+    for (const role of ["organizer", "alumnus", "cover-band-lead"] as const) {
+      const res = await createApp().request(
+        "https://x/api/admin/members",
+        {
+          method: "POST",
+          headers: adminHeaders(cookie),
+          body: JSON.stringify({
+            ...VALID_MEMBER,
+            display_name: `name-${role}`,
+            role,
+          }),
+        },
+        env,
+      );
+      expect(res.status).toBe(201);
+      const body = (await res.json()) as { role: string };
+      expect(body.role).toBe(role);
+    }
+  });
+
+  it("POST rejects invalid role with 400", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_MEMBER, role: "supreme-leader" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("PUT updates role only, leaves other fields unchanged", async () => {
+    const cookie = await adminCookie();
+    const post = await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_MEMBER),
+      },
+      env,
+    );
+    const seeded = (await post.json()) as { id: number; display_name: string };
+    const res = await createApp().request(
+      `https://x/api/admin/members/${seeded.id}`,
+      {
+        method: "PUT",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ role: "organizer" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { role: string; display_name: string };
+    expect(body.role).toBe("organizer");
+    expect(body.display_name).toBe(seeded.display_name);
+  });
+
+  it("PUT with role omitted does not overwrite existing role", async () => {
+    const cookie = await adminCookie();
+    const post = await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_MEMBER, role: "alumnus" }),
+      },
+      env,
+    );
+    const seeded = (await post.json()) as { id: number };
+    const res = await createApp().request(
+      `https://x/api/admin/members/${seeded.id}`,
+      {
+        method: "PUT",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ display_name: "renamed" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { role: string; display_name: string };
+    expect(body.role).toBe("alumnus");
+    expect(body.display_name).toBe("renamed");
+  });
+
+  it("public GET /api/members exposes role", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_MEMBER, role: "organizer" }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/members",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: Array<{ role: string }> };
+    expect(body.items[0]?.role).toBe("organizer");
+  });
 });
 
 describe("Admin /api/admin/categories", () => {

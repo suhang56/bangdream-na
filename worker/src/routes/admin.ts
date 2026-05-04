@@ -156,6 +156,7 @@ interface MemberRowOut {
   oshi_band: string | null;
   avatar_url: string | null;
   expedition_member: number;
+  role: "organizer" | "member" | "alumnus" | "cover-band-lead";
   created_at: number;
   updated_at: number;
 }
@@ -169,6 +170,7 @@ function memberRowToOut(row: typeof members.$inferSelect): MemberRowOut {
     oshi_band: row.oshiBand,
     avatar_url: row.avatarUrl,
     expedition_member: row.expeditionMember,
+    role: row.role,
     created_at: row.createdAt,
     updated_at: row.updatedAt,
   };
@@ -465,6 +467,7 @@ export function buildAdminMembersRoutes() {
         oshiBand: data.oshi_band ?? null,
         avatarUrl: data.avatar_url ?? null,
         expeditionMember: data.expedition_member ? 1 : 0,
+        role: data.role,
         createdAt: now,
         updatedAt: now,
       })
@@ -500,6 +503,7 @@ export function buildAdminMembersRoutes() {
     if (data.expedition_member !== undefined) {
       patch.expeditionMember = data.expedition_member ? 1 : 0;
     }
+    if (data.role !== undefined) patch.role = data.role;
 
     const updated = await db
       .update(members)

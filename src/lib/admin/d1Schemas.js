@@ -16,6 +16,7 @@ import { generateSlug } from './slugify.js'
 
 const NEWS_CATEGORIES = ['announcement', 'event', 'community', 'release', 'update']
 const EVENT_SCOPES = ['upcoming', 'past']
+export const MEMBER_ROLES = ['organizer', 'member', 'alumnus', 'cover-band-lead']
 
 function toUnixSeconds(input) {
   if (input == null || input === '') return null
@@ -37,6 +38,17 @@ function emptyToNull(v) {
   if (v == null) return null
   if (typeof v === 'string' && v.trim() === '') return null
   return v
+}
+
+const ROLE_LABELS_ZH = {
+  organizer: '组织者',
+  member: '成员',
+  alumnus: '校友',
+  'cover-band-lead': '翻唱乐队主理',
+}
+
+function roleDisplayLabel(role) {
+  return ROLE_LABELS_ZH[role] ?? role
 }
 
 export const d1Schemas = {
@@ -203,12 +215,23 @@ export const d1Schemas = {
     listColumns: [
       { key: 'id', label: 'ID', labelEn: 'ID' },
       { key: 'display_name', label: '昵称', labelEn: 'Name' },
+      { key: 'role_display', label: '角色', labelEn: 'Role' },
       { key: 'city', label: '城市', labelEn: 'City' },
       { key: 'oshi_band', label: '推乐队', labelEn: 'Oshi Band' },
       { key: 'expedition_member_display', label: '远征组', labelEn: 'Expedition' },
     ],
     fields: [
       { key: 'display_name', type: 'text', label: '昵称', labelEn: 'Display name', required: true },
+      {
+        key: 'role',
+        type: 'select',
+        label: '角色 (Role)',
+        labelEn: 'Role',
+        required: true,
+        options: MEMBER_ROLES,
+        help: '组织者 / 普通成员 / 校友 / 翻唱乐队主理',
+        helpEn: 'Organizer / Member / Alumnus / Cover Band Lead',
+      },
       { key: 'city', type: 'text', label: '城市', labelEn: 'City' },
       { key: 'oshi_character', type: 'text', label: '推角色', labelEn: 'Oshi character' },
       { key: 'oshi_band', type: 'text', label: '推乐队', labelEn: 'Oshi band' },
@@ -216,9 +239,12 @@ export const d1Schemas = {
       { key: 'expedition_member', type: 'boolean', label: '北美邦远征组', labelEn: 'Expedition member' },
     ],
     mapRowToForm(row) {
+      const role = MEMBER_ROLES.includes(row.role) ? row.role : 'member'
       return {
         id: row.id,
         display_name: row.display_name ?? '',
+        role,
+        role_display: roleDisplayLabel(role),
         city: row.city ?? '',
         oshi_character: row.oshi_character ?? '',
         oshi_band: row.oshi_band ?? '',
@@ -231,6 +257,7 @@ export const d1Schemas = {
     mapFormToCreate(form) {
       return {
         display_name: form.display_name,
+        role: MEMBER_ROLES.includes(form.role) ? form.role : 'member',
         city: emptyToNull(form.city),
         oshi_character: emptyToNull(form.oshi_character),
         oshi_band: emptyToNull(form.oshi_band),
@@ -244,6 +271,7 @@ export const d1Schemas = {
     emptyForm() {
       return {
         display_name: '',
+        role: 'member',
         city: '',
         oshi_character: '',
         oshi_band: '',

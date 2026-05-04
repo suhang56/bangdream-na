@@ -117,12 +117,22 @@ export function parseEventRow(item, nowSec) {
   };
 }
 
+const VALID_MEMBER_ROLES = new Set([
+  'organizer',
+  'member',
+  'alumnus',
+  'cover-band-lead',
+]);
+
 /**
  * Map a members JSON row → D1 members row object.
+ * `role` falls back to 'member' when missing or unrecognised — matches
+ * the 0003_add_members_role.sql DEFAULT and CHECK constraint.
  */
 export function parseMemberRow(item, nowSec) {
   const externalId = normalizeSlug(item.id);
   if (!externalId) throw new Error(`member item missing id: ${JSON.stringify(item)}`);
+  const role = VALID_MEMBER_ROLES.has(item.role) ? item.role : 'member';
   return {
     display_name: item.name ?? '',
     city: null,
@@ -131,6 +141,7 @@ export function parseMemberRow(item, nowSec) {
     avatar_url: null,
     expedition_member: 0,
     external_id: externalId,
+    role,
     created_at: nowSec,
     updated_at: nowSec,
   };

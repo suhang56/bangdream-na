@@ -205,6 +205,51 @@ describe('members schema', () => {
     expect(body.city).toBeNull()
     expect(body.expedition_member).toBe(true)
   })
+
+  // ── R5.5 role field ─────────────────────────────────────────────────────
+  it('mapRowToForm preserves valid role + renders zh display label', () => {
+    expect(schema.mapRowToForm({ role: 'organizer' }).role).toBe('organizer')
+    expect(schema.mapRowToForm({ role: 'organizer' }).role_display).toBe('组织者')
+    expect(schema.mapRowToForm({ role: 'cover-band-lead' }).role_display).toBe('翻唱乐队主理')
+    expect(schema.mapRowToForm({ role: 'alumnus' }).role_display).toBe('校友')
+    expect(schema.mapRowToForm({ role: 'member' }).role_display).toBe('成员')
+  })
+
+  it('mapRowToForm falls back to "member" for unknown role', () => {
+    expect(schema.mapRowToForm({ role: 'supreme-leader' }).role).toBe('member')
+    expect(schema.mapRowToForm({}).role).toBe('member')
+    expect(schema.mapRowToForm({ role: null }).role).toBe('member')
+  })
+
+  it('mapFormToCreate sends role through when valid, falls back to member otherwise', () => {
+    const valid = schema.mapFormToCreate({ display_name: 'X', role: 'organizer' })
+    expect(valid.role).toBe('organizer')
+    const bogus = schema.mapFormToCreate({ display_name: 'X', role: 'supreme-leader' })
+    expect(bogus.role).toBe('member')
+    const missing = schema.mapFormToCreate({ display_name: 'X' })
+    expect(missing.role).toBe('member')
+  })
+
+  it('emptyForm initializes role to member', () => {
+    expect(schema.emptyForm().role).toBe('member')
+  })
+
+  it('listColumns includes role_display column', () => {
+    expect(schema.listColumns.some((c) => c.key === 'role_display')).toBe(true)
+  })
+
+  it('fields include a required role select with 4 options', () => {
+    const roleField = schema.fields.find((f) => f.key === 'role')
+    expect(roleField).toBeDefined()
+    expect(roleField.type).toBe('select')
+    expect(roleField.required).toBe(true)
+    expect(roleField.options).toEqual([
+      'organizer',
+      'member',
+      'alumnus',
+      'cover-band-lead',
+    ])
+  })
 })
 
 describe('categories schema', () => {

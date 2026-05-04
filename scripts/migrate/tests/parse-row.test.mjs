@@ -309,6 +309,25 @@ describe('parseMemberRow', () => {
     const row = parseMemberRow(base, NOW);
     expect(row.expedition_member).toBe(0);
   });
+
+  // ── R5.5 role field ─────────────────────────────────────────────────────
+  it('preserves role when valid', () => {
+    expect(parseMemberRow({ ...base, role: 'organizer' }, NOW).role).toBe('organizer');
+    expect(parseMemberRow({ ...base, role: 'alumnus' }, NOW).role).toBe('alumnus');
+    expect(parseMemberRow({ ...base, role: 'cover-band-lead' }, NOW).role).toBe('cover-band-lead');
+    expect(parseMemberRow({ ...base, role: 'member' }, NOW).role).toBe('member');
+  });
+
+  it('defaults role to member when missing', () => {
+    expect(parseMemberRow({ ...base, role: undefined }, NOW).role).toBe('member');
+    expect(parseMemberRow(base, NOW).role).toBe('member');
+  });
+
+  it('rejects unknown role into member fallback', () => {
+    expect(parseMemberRow({ ...base, role: 'supreme-leader' }, NOW).role).toBe('member');
+    expect(parseMemberRow({ ...base, role: '' }, NOW).role).toBe('member');
+    expect(parseMemberRow({ ...base, role: null }, NOW).role).toBe('member');
+  });
 });
 
 // ─── parseCategoryRow ─────────────────────────────────────────────────────────

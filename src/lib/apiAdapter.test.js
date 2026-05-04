@@ -224,6 +224,17 @@ describe('apiAdapter', () => {
       const out = adaptMemberRow({ id: 1 })
       expect(out.name).toBe('')
     })
+
+    it('passes role through when present (R5.5)', () => {
+      expect(adaptMemberRow({ id: 1, role: 'organizer' }).role).toBe('organizer')
+      expect(adaptMemberRow({ id: 1, role: 'alumnus' }).role).toBe('alumnus')
+      expect(adaptMemberRow({ id: 1, role: 'cover-band-lead' }).role).toBe('cover-band-lead')
+    })
+
+    it('falls back to "member" when role missing or null (R5.5)', () => {
+      expect(adaptMemberRow({ id: 1 }).role).toBe('member')
+      expect(adaptMemberRow({ id: 1, role: null }).role).toBe('member')
+    })
   })
 
   describe('list adapters', () => {
