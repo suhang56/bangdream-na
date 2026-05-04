@@ -65,6 +65,7 @@ export const members = sqliteTable("members", {
   oshiBand: text("oshi_band"),
   avatarUrl: text("avatar_url"),
   expeditionMember: integer("expedition_member").notNull().default(0),
+  externalId: text("external_id"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
