@@ -4,10 +4,11 @@ compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_ID = "Ov23liBzmTUNtJYieymD"
 R2_BUCKET_NAME = "bangdream-na-images"
 CDN_ORIGIN = "https://cdn.bangdream.org"
 ADMIN_GITHUB_LOGINS = "suhang56"
+ALLOWED_ORIGINS = "https://bangdream.org,http://localhost:5173,http://localhost:4173"
 
 [[r2_buckets]]
 binding = "IMAGES"
@@ -16,7 +17,8 @@ bucket_name = "bangdream-na-images"
 [[d1_databases]]
 binding = "DB"
 database_name = "bangdream-na-content"
-database_id = "REPLACE_WITH_OUTPUT_OF_wrangler_d1_create"
+database_id = "cc268885-f913-4539-8529-70fc0e5e09e9"
+migrations_dir = "migrations"
 
-# Custom domain handled via dashboard, not here.
+# Custom domain (api.bangdream.org) handled via dashboard, not here.
 # Secrets set via `wrangler secret put GITHUB_CLIENT_SECRET` and `wrangler secret put JWT_SECRET`

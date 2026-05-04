@@ -13,6 +13,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     css: true,
+    exclude: ['**/node_modules/**', '**/dist/**', 'worker/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],
