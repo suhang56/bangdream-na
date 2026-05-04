@@ -1,136 +1,167 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
+import { cache } from '../lib/cache.js'
 
-// Mock useIsMobile so tests can flip the breakpoint before rendering Members.
 vi.mock('../lib/useBreakpoint.js', () => ({
   useIsMobile: vi.fn(),
 }))
 
-// Mock members.json with a small fixture so we don't depend on the real 700+
-// roster (and keep tests fast + deterministic).
-vi.mock('../data/members.json', () => ({
-  default: [
-    {
-      id: '1',
-      name: 'Kanade',
-      role: 'organizer',
-      oshiBand: 'roselia',
-      oshiCharacter: 'Yukina',
-      city: 'Seattle',
-    },
-    {
-      id: '2',
-      name: 'Sora',
-      role: 'member',
-      oshiBand: 'mygo',
-      oshiCharacter: 'Tomori',
-      city: 'Vancouver',
-    },
-    {
-      id: '3',
-      name: 'Mei',
-      role: 'alumnus',
-      city: 'Portland',
-    },
-  ],
-}))
+vi.mock('../lib/api.js', async () => {
+  const actual = await vi.importActual('../lib/api.js')
+  return {
+    ...actual,
+    fetchMembers: vi.fn(),
+  }
+})
 
 import { useIsMobile } from '../lib/useBreakpoint.js'
+import { fetchMembers } from '../lib/api.js'
 import Members from './Members.jsx'
 
+const sampleApiRows = [
+  {
+    id: 1,
+    external_id: '1',
+    display_name: 'Kanade',
+    city: 'Seattle',
+    oshi_character: 'Yukina',
+    oshi_band: 'roselia',
+    avatar_url: null,
+    expedition_member: 0,
+  },
+  {
+    id: 2,
+    external_id: '2',
+    display_name: 'Sora',
+    city: 'Vancouver',
+    oshi_character: 'Tomori',
+    oshi_band: 'mygo',
+    avatar_url: null,
+    expedition_member: 0,
+  },
+  {
+    id: 3,
+    external_id: '3',
+    display_name: 'Mei',
+    city: 'Portland',
+    oshi_character: null,
+    oshi_band: null,
+    avatar_url: null,
+    expedition_member: 0,
+  },
+]
+
 beforeEach(() => {
-  vi.useFakeTimers()
+  cache.clear()
+  vi.mocked(fetchMembers).mockReset()
+  vi.mocked(fetchMembers).mockResolvedValue({
+    items: sampleApiRows,
+    total: sampleApiRows.length,
+  })
 })
 
 afterEach(() => {
-  vi.useRealTimers()
+  cache.clear()
   vi.clearAllMocks()
 })
 
 describe('Members shell — breakpoint routing', () => {
-  it('mounts mobile track when useIsMobile returns true', () => {
+  it('mounts mobile track when useIsMobile returns true', async () => {
     useIsMobile.mockReturnValue(true)
     const { container } = render(<Members />)
-    expect(container.querySelector('.members-mobile')).not.toBeNull()
+    await waitFor(() => {
+      expect(container.querySelector('.members-mobile')).not.toBeNull()
+    })
     expect(container.querySelector('main.section')).toBeNull()
   })
 
-  it('mounts desktop track when useIsMobile returns false', () => {
+  it('mounts desktop track when useIsMobile returns false', async () => {
     useIsMobile.mockReturnValue(false)
     const { container } = render(<Members />)
+    await waitFor(() => {
+      expect(container.querySelector('main.section')).not.toBeNull()
+    })
     expect(container.querySelector('.members-mobile')).toBeNull()
-    expect(container.querySelector('main.section')).not.toBeNull()
   })
 
-  it('passes the full members fixture into desktop track', () => {
+  it('passes the full members fixture into desktop track', async () => {
     useIsMobile.mockReturnValue(false)
     render(<Members />)
-    expect(screen.getByText('Kanade')).toBeInTheDocument()
+    await screen.findByText('Kanade')
     expect(screen.getByText('Sora')).toBeInTheDocument()
     expect(screen.getByText('Mei')).toBeInTheDocument()
   })
 
-  it('passes the full members fixture into mobile track', () => {
+  it('passes the full members fixture into mobile track', async () => {
     useIsMobile.mockReturnValue(true)
     render(<Members />)
-    expect(screen.getByText('Kanade')).toBeInTheDocument()
+    await screen.findByText('Kanade')
     expect(screen.getByText('Sora')).toBeInTheDocument()
     expect(screen.getByText('Mei')).toBeInTheDocument()
   })
 
-  it('mobile track shows count pill with total/total at start', () => {
+  it('mobile track shows count pill with total/total at start', async () => {
     useIsMobile.mockReturnValue(true)
     const { container } = render(<Members />)
+    await screen.findByText('Kanade')
     expect(container.querySelector('.members-mobile-count').textContent).toMatch(
       /3 \/ 3/,
     )
   })
 
-  it('clicking a band chip filters the visible members (desktop)', () => {
+  it('clicking a band chip filters the visible members (desktop)', async () => {
     useIsMobile.mockReturnValue(false)
     render(<Members />)
+    await screen.findByText('Kanade')
     fireEvent.click(screen.getByRole('button', { name: 'Roselia' }))
     expect(screen.getByText('Kanade')).toBeInTheDocument()
     expect(screen.queryByText('Sora')).not.toBeInTheDocument()
   })
 
-  it('typing in search input debounces filtering (200ms)', () => {
+  it('typing in search input debounces filtering (200ms)', async () => {
     useIsMobile.mockReturnValue(false)
     render(<Members />)
-    const input = screen.getByLabelText('Search')
-    fireEvent.change(input, { target: { value: 'Kan' } })
-    // Before debounce fires: nothing filtered yet (still see Sora)
-    expect(screen.getByText('Sora')).toBeInTheDocument()
-    // Advance debounce timer
-    act(() => {
-      vi.advanceTimersByTime(250)
-    })
-    expect(screen.getByText('Kanade')).toBeInTheDocument()
-    expect(screen.queryByText('Sora')).not.toBeInTheDocument()
+    await screen.findByText('Kanade')
+    vi.useFakeTimers()
+    try {
+      const input = screen.getByLabelText('Search')
+      fireEvent.change(input, { target: { value: 'Kan' } })
+      expect(screen.getByText('Sora')).toBeInTheDocument()
+      act(() => {
+        vi.advanceTimersByTime(250)
+      })
+      expect(screen.getByText('Kanade')).toBeInTheDocument()
+      expect(screen.queryByText('Sora')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('selecting role=Organizers filters to only organizers', () => {
+  it('selecting role=Organizers filters to zero (D1 has no role yet)', async () => {
     useIsMobile.mockReturnValue(false)
     render(<Members />)
+    await screen.findByText('Kanade')
     fireEvent.click(screen.getByLabelText('Organizers'))
-    expect(screen.getByText('Kanade')).toBeInTheDocument()
+    // R5b: adapter sets all members role='member'; Organizers filter → empty.
+    expect(screen.queryByText('Kanade')).not.toBeInTheDocument()
     expect(screen.queryByText('Sora')).not.toBeInTheDocument()
     expect(screen.queryByText('Mei')).not.toBeInTheDocument()
   })
 
-  it('mobile count pill reflects filtered shown / total', () => {
+  it('mobile count pill reflects filtered shown / total', async () => {
     useIsMobile.mockReturnValue(true)
     const { container } = render(<Members />)
+    await screen.findByText('Kanade')
     fireEvent.click(screen.getByRole('button', { name: 'Roselia' }))
     expect(container.querySelector('.members-mobile-count').textContent).toMatch(
       /1 \/ 3/,
     )
   })
 
-  it('availableBands skips members with empty/missing oshiBand', () => {
+  it('availableBands skips members with empty/missing oshiBand', async () => {
     useIsMobile.mockReturnValue(false)
     render(<Members />)
-    // Mei has no oshiBand → should not contribute a chip; only roselia + mygo
+    await screen.findByText('Kanade')
     expect(screen.getByRole('button', { name: 'Roselia' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'MyGO!!!!!' })).toBeInTheDocument()
     expect(
@@ -138,9 +169,10 @@ describe('Members shell — breakpoint routing', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('exactly one main element renders regardless of which track mounts', () => {
+  it('exactly one main element renders regardless of which track mounts', async () => {
     useIsMobile.mockReturnValue(false)
     const { container, rerender } = render(<Members />)
+    await screen.findByText('Kanade')
     expect(container.querySelectorAll('main').length).toBe(1)
     useIsMobile.mockReturnValue(true)
     rerender(<Members />)

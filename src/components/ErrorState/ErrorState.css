@@ -1,0 +1,39 @@
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-secondary, #6b7280);
+  text-align: center;
+}
+
+.error-state__message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-primary, #111827);
+}
+
+.error-state__retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 999px;
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #111827);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.error-state__retry:hover {
+  background: var(--surface-hover, #f3f4f6);
+}
+
+.error-state__retry:focus-visible {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 2px;
+}

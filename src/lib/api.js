@@ -9,7 +9,11 @@
  * environments where the var is absent, falls back to the production origin.
  */
 
+import { cache } from './cache.js'
+
 const FALLBACK_API_BASE = 'https://api.bangdream.org'
+
+const PUBLIC_READ_TTL_MS = 15_000
 
 function readApiBase() {
   // Vite injects import.meta.env at build time; tests stub it.
@@ -173,10 +177,24 @@ export async function uploadImage(file, kind, slug) {
   return res.json()
 }
 
-// ── Public reads (used by R5b later; included now for completeness) ─────────
+// ── Public reads (cached via TTL — see lib/cache.js) ────────────────────────
+//
+// Each wrapper checks the in-memory cache first. On miss, it fetches and
+// stores the parsed JSON for PUBLIC_READ_TTL_MS (15s, mirrors the Worker's
+// `Cache-Control: max-age=15` header). Non-2xx responses bypass the cache.
+// Admin write paths can call `cache.invalidate('news:')` etc. to clear keys.
+
+function cacheKey(prefix, opts) {
+  if (!opts || typeof opts !== 'object') return `${prefix}:`
+  return `${prefix}:${JSON.stringify(opts)}`
+}
 
 /** GET /api/news?limit=&offset=&category=&q= — returns { items, total }. */
 export async function fetchNews(opts = {}) {
+  const key = cacheKey('news:list', opts)
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const params = new URLSearchParams()
   if (opts.limit != null) params.set('limit', String(opts.limit))
   if (opts.offset != null) params.set('offset', String(opts.offset))
@@ -186,18 +204,30 @@ export async function fetchNews(opts = {}) {
   const url = qs ? `/api/news?${qs}` : '/api/news'
   const res = await fetch(buildUrl(url), { credentials: 'omit' })
   await throwForBadStatus(res, `GET ${url}`)
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 export async function fetchNewsBySlug(slug) {
+  const key = `news:slug:${slug}`
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const url = `/api/news/${encodeURIComponent(slug)}`
   const res = await fetch(buildUrl(url), { credentials: 'omit' })
   if (res.status === 404) return null
   await throwForBadStatus(res, `GET ${url}`)
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 export async function fetchEvents(opts = {}) {
+  const key = cacheKey('events:list', opts)
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const params = new URLSearchParams()
   if (opts.limit != null) params.set('limit', String(opts.limit))
   if (opts.offset != null) params.set('offset', String(opts.offset))
@@ -206,27 +236,47 @@ export async function fetchEvents(opts = {}) {
   const url = qs ? `/api/events?${qs}` : '/api/events'
   const res = await fetch(buildUrl(url), { credentials: 'omit' })
   await throwForBadStatus(res, `GET ${url}`)
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 export async function fetchEventBySlug(slug) {
+  const key = `events:slug:${slug}`
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const url = `/api/events/${encodeURIComponent(slug)}`
   const res = await fetch(buildUrl(url), { credentials: 'omit' })
   if (res.status === 404) return null
   await throwForBadStatus(res, `GET ${url}`)
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 export async function fetchMembers() {
+  const key = 'members:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const res = await fetch(buildUrl('/api/members'), { credentials: 'omit' })
   await throwForBadStatus(res, 'GET /api/members')
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 export async function fetchCategories() {
+  const key = 'categories:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+
   const res = await fetch(buildUrl('/api/categories'), { credentials: 'omit' })
   await throwForBadStatus(res, 'GET /api/categories')
-  return res.json()
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
 }
 
 /** Admin variant: list all rows including drafts. Falls back to public + ?t cache-bust. */
@@ -267,4 +317,4 @@ export async function adminListCategories() {
   return res.json()
 }
 
-export const __internals = { buildUrl, readApiBase, FALLBACK_API_BASE }
+export const __internals = { buildUrl, readApiBase, FALLBACK_API_BASE, PUBLIC_READ_TTL_MS, cacheKey }
