@@ -3,6 +3,13 @@ import type { AppVariables, Env } from "./custom-env";
 import { buildGithubAuthRoutes } from "./auth/github";
 import { buildHealthzRoutes } from "./routes/healthz";
 import { buildMeRoutes } from "./routes/me";
+import {
+  buildPublicCategoriesRoutes,
+  buildPublicEventsRoutes,
+  buildPublicMembersRoutes,
+  buildPublicNewsRoutes,
+} from "./routes/public";
+import { buildUploadRoutes } from "./routes/upload";
 import { corsMiddleware } from "./utils/cors";
 
 export function createApp() {
@@ -13,6 +20,11 @@ export function createApp() {
   app.route("/api/healthz", buildHealthzRoutes());
   app.route("/api/me", buildMeRoutes());
   app.route("/api/auth", buildGithubAuthRoutes());
+  app.route("/api/news", buildPublicNewsRoutes());
+  app.route("/api/events", buildPublicEventsRoutes());
+  app.route("/api/members", buildPublicMembersRoutes());
+  app.route("/api/categories", buildPublicCategoriesRoutes());
+  app.route("/api/upload", buildUploadRoutes());
 
   app.notFound((c) => {
     c.header("Cache-Control", "no-store");
