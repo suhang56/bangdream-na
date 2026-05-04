@@ -1,0 +1,11 @@
+# Default: all changes require review by repo owner
+*                            @suhang56
+
+# Infra files: must be reviewed by repo owner
+/worker/migrations/          @suhang56
+/worker/wrangler.toml        @suhang56
+/public/_redirects           @suhang56
+/public/_headers             @suhang56
+/cloudflare/                 @suhang56
+/.github/                    @suhang56
+/CLAUDE.md                   @suhang56
