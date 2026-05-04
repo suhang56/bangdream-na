@@ -227,9 +227,23 @@ describe("GET /api/news/:slug", () => {
     expect(res.status).toBe(404);
   });
 
-  it("rejects malformed slug → 400", async () => {
-    const res = await createApp().request("https://x/api/news/-bad-", {}, env);
+  it("rejects slug exceeding 120-char length cap → 400", async () => {
+    // Length-only validator (PR #82): only constraint is min(1)/max(120).
+    // URL-reserved chars (/?#) get path-normalized before route matching so can't reach validator.
+    const tooLong = "a".repeat(121);
+    const res = await createApp().request(`https://x/api/news/${tooLong}`, {}, env);
     expect(res.status).toBe(400);
+  });
+
+  it("accepts CJK fullwidth punctuation in slug (regression: PR #82)", async () => {
+    // U+FF5C (｜) FULLWIDTH VERTICAL LINE is \p{P} not \p{L}; old Unicode-letter-only
+    // regex rejected legitimate stored slug 北美邦活动｜328-记录北美邦最长的一天.
+    await seedNews([
+      { slug: "北美邦活动｜328-x", titleZh: "测试", publishedAt: 1 },
+    ]);
+    const slug = encodeURIComponent("北美邦活动｜328-x");
+    const res = await createApp().request(`https://x/api/news/${slug}`, {}, env);
+    expect(res.status).toBe(200);
   });
 
   it("returns 304 on If-None-Match for single post", async () => {
@@ -329,8 +343,9 @@ describe("GET /api/events/:slug", () => {
     expect(res.status).toBe(404);
   });
 
-  it("rejects malformed slug → 400", async () => {
-    const res = await createApp().request("https://x/api/events/--bad", {}, env);
+  it("rejects slug exceeding 120-char length cap → 400", async () => {
+    const tooLong = "b".repeat(121);
+    const res = await createApp().request(`https://x/api/events/${tooLong}`, {}, env);
     expect(res.status).toBe(400);
   });
 });
