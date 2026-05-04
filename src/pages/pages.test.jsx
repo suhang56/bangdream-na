@@ -12,10 +12,21 @@ vi.mock('../lib/api.js', async () => {
     fetchNews: vi.fn(),
     fetchEvents: vi.fn(),
     fetchMembers: vi.fn(),
+    fetchAbout: vi.fn(),
+    fetchSite: vi.fn(),
+    fetchSocial: vi.fn(),
   }
 })
 
-import { fetchNews, fetchEvents, fetchMembers } from '../lib/api.js'
+import {
+  fetchNews,
+  fetchEvents,
+  fetchMembers,
+  fetchAbout,
+  fetchSite,
+  fetchSocial,
+} from '../lib/api.js'
+import siteJson from '../data/site.json'
 import Events from './Events.jsx'
 import Members from './Members.jsx'
 import News from './News.jsx'
@@ -44,6 +55,19 @@ describe('routes smoke', () => {
     vi.mocked(fetchNews).mockResolvedValue({ items: [], total: 0 })
     vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 0 })
     vi.mocked(fetchMembers).mockResolvedValue({ items: [], total: 0 })
+    const siteItems = []
+    for (const [k, v] of Object.entries(siteJson)) {
+      if (typeof v === 'string' && v.length > 0) {
+        siteItems.push({ key: `site.${k}`, value: v })
+      }
+    }
+    vi.mocked(fetchAbout).mockResolvedValue({
+      items: [
+        { id: 1, slug: 'mission', title_zh: '使命', body_md: 'mission', sort_order: 0 },
+      ],
+    })
+    vi.mocked(fetchSite).mockResolvedValue({ items: siteItems })
+    vi.mocked(fetchSocial).mockResolvedValue({ items: [], total: 0 })
   })
 
   afterEach(() => {
@@ -71,10 +95,10 @@ describe('routes smoke', () => {
     ).toBeInTheDocument()
   })
 
-  it('About page renders ZH heading via /about route', () => {
+  it('About page renders ZH heading via /about route', async () => {
     renderWithProviders(<RoutesUnderTest />, { route: '/about' })
     expect(
-      screen.getByRole('heading', { level: 1, name: /北美炸梦同好会/ }),
+      await screen.findByRole('heading', { level: 1, name: /北美炸梦同好会/ }),
     ).toBeInTheDocument()
   })
 

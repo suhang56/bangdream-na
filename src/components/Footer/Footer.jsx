@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import {
   getLanguage,
@@ -6,8 +6,11 @@ import {
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
-import site from '../../data/site.json'
-import socialData from '../../data/social.json'
+import { fetchSite, fetchSocial } from '../../lib/api.js'
+import {
+  adaptSiteSettings,
+  adaptSocialList,
+} from '../../lib/apiAdapter.js'
 import './Footer.css'
 
 const QUICK_LINKS = [
@@ -25,6 +28,13 @@ const ABOUT_LINKS = [
   { href: '/about#disclaimer', key: 'footer.disclaimerLink' },
 ]
 
+const EMPTY_SITE = {
+  discordInvite: '',
+  communityName: '',
+  communityNameZh: '',
+  communityNameJp: '',
+}
+
 function isHttpsUrl(url) {
   return typeof url === 'string' && /^https:\/\//i.test(url.trim())
 }
@@ -38,6 +48,26 @@ function getSnapshot() {
 
 export default function Footer() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const [site, setSite] = useState(EMPTY_SITE)
+  const [socialData, setSocialData] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([fetchSite(), fetchSocial()])
+      .then(([siteRes, socialRes]) => {
+        if (cancelled) return
+        setSite(adaptSiteSettings(siteRes))
+        setSocialData(adaptSocialList(socialRes))
+      })
+      .catch(() => {
+        // Footer renders gracefully on error: no community names + no
+        // community links section.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const year = new Date().getFullYear()
   const hasJp =
     typeof site.communityNameJp === 'string' && site.communityNameJp.length > 0

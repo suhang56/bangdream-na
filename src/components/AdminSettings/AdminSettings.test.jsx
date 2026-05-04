@@ -8,6 +8,7 @@ vi.mock('../../lib/api.js', async () => {
     getAdminSetting: vi.fn(),
     putAdminSetting: vi.fn(),
     testAdminWebhook: vi.fn(),
+    adminListSettings: vi.fn(),
   }
 })
 
@@ -22,6 +23,9 @@ describe('<AdminSettings />', () => {
     api.getAdminSetting.mockReset()
     api.putAdminSetting.mockReset()
     api.testAdminWebhook.mockReset()
+    api.adminListSettings.mockReset()
+    // Default empty site settings list — individual tests override.
+    api.adminListSettings.mockResolvedValue({ items: [] })
   })
   afterEach(() => {
     _resetForTests()
@@ -56,12 +60,16 @@ describe('<AdminSettings />', () => {
       value: 'https://x.com/h',
       updated_at: 1,
     })
-    render(<AdminSettings />)
+    const { container } = render(<AdminSettings />)
     await waitFor(() => expect(screen.getByLabelText(/评论 Webhook URL/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/评论 Webhook URL/), {
       target: { value: 'https://x.com/h' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /^保存$/ }))
+    // Submit the webhook form via its <button type="submit">. Site-row
+    // save buttons are type="button" and live outside this form.
+    const submitBtn = container.querySelector('button[type="submit"]')
+    expect(submitBtn).not.toBeNull()
+    fireEvent.click(submitBtn)
     await waitFor(() =>
       expect(api.putAdminSetting).toHaveBeenCalledWith(
         'webhook.comment.url',
@@ -76,12 +84,14 @@ describe('<AdminSettings />', () => {
     api.putAdminSetting.mockRejectedValue(
       new api.ApiError('400', { status: 400, code: 'bad_request' }),
     )
-    render(<AdminSettings />)
+    const { container } = render(<AdminSettings />)
     await waitFor(() => expect(screen.getByLabelText(/评论 Webhook URL/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/评论 Webhook URL/), {
       target: { value: 'https://example.com/bad' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /^保存$/ }))
+    const submitBtn = container.querySelector('button[type="submit"]')
+    expect(submitBtn).not.toBeNull()
+    fireEvent.click(submitBtn)
     await waitFor(() => expect(api.putAdminSetting).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/保存失败/))
   })
@@ -146,5 +156,49 @@ describe('<AdminSettings />', () => {
     )
     render(<AdminSettings onForbidden={onForbidden} />)
     await waitFor(() => expect(onForbidden).toHaveBeenCalled())
+  })
+
+  // ── R7: site.* settings list ────────────────────────────────────────────
+  it('hydrates site.* keys from adminListSettings', async () => {
+    api.getAdminSetting.mockResolvedValue(null)
+    api.adminListSettings.mockResolvedValue({
+      items: [
+        { key: 'site.communityName', value: 'BanG NA' },
+        { key: 'site.communityNameZh', value: '北美邦' },
+      ],
+    })
+    render(<AdminSettings />)
+    await waitFor(() =>
+      expect(screen.getByLabelText(/site\.communityName$/)).toHaveValue('BanG NA'),
+    )
+    expect(screen.getByLabelText(/site\.communityNameZh$/)).toHaveValue('北美邦')
+    expect(api.adminListSettings).toHaveBeenCalledWith('site.')
+  })
+
+  it('saves a single site.* key via putAdminSetting on row save', async () => {
+    api.getAdminSetting.mockResolvedValue(null)
+    api.adminListSettings.mockResolvedValue({ items: [] })
+    api.putAdminSetting.mockResolvedValue({
+      key: 'site.communityName',
+      value: 'New Name',
+      updated_at: 1,
+    })
+    render(<AdminSettings />)
+    await waitFor(() =>
+      expect(screen.getByLabelText(/site\.communityName$/)).toBeInTheDocument(),
+    )
+    fireEvent.change(screen.getByLabelText(/site\.communityName$/), {
+      target: { value: 'New Name' },
+    })
+    // Click the save button next to that input. It's the closest `button`
+    // sibling of the input — find via the row container.
+    const input = screen.getByLabelText(/site\.communityName$/)
+    const row = input.closest('.admin-settings__row')
+    expect(row).not.toBeNull()
+    const saveBtn = row.querySelector('button')
+    fireEvent.click(saveBtn)
+    await waitFor(() =>
+      expect(api.putAdminSetting).toHaveBeenCalledWith('site.communityName', 'New Name'),
+    )
   })
 })

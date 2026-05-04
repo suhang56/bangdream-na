@@ -9,10 +9,20 @@ import {
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
-import site from '../../data/site.json'
-import socialData from '../../data/social.json'
+import { fetchSite, fetchSocial } from '../../lib/api.js'
+import {
+  adaptSiteSettings,
+  adaptSocialList,
+} from '../../lib/apiAdapter.js'
 import { isForumEnabled } from '../../lib/forum.js'
 import './Navbar.css'
+
+const EMPTY_SITE = {
+  discordInvite: '',
+  communityName: '',
+  communityNameZh: '',
+  communityNameJp: '',
+}
 
 const NAV_LINKS = [
   { to: '/', key: 'nav.home', end: true },
@@ -80,6 +90,8 @@ function CloseIcon() {
 export default function Navbar() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [site, setSite] = useState(EMPTY_SITE)
+  const [socialData, setSocialData] = useState([])
   const triggerRef = useRef(null)
   const location = useLocation()
 
@@ -91,6 +103,22 @@ export default function Navbar() {
       setDrawerOpen(false)
     }
   }, [location.pathname])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([fetchSite(), fetchSocial()])
+      .then(([siteRes, socialRes]) => {
+        if (cancelled) return
+        setSite(adaptSiteSettings(siteRes))
+        setSocialData(adaptSocialList(socialRes))
+      })
+      .catch(() => {
+        // Render with placeholder strings on error; navbar still functional.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const navLinks = isForumEnabled(socialData)
     ? NAV_LINKS

@@ -6,6 +6,13 @@ import {
   adaptNewsList,
   adaptEventList,
   adaptMemberList,
+  adaptPostRow,
+  adaptPostList,
+  adaptSocialRow,
+  adaptSocialList,
+  adaptAboutSections,
+  adaptAboutRow,
+  adaptSiteSettings,
   __internals,
 } from './apiAdapter.js'
 
@@ -311,6 +318,260 @@ describe('apiAdapter', () => {
 
     it('trims trailing whitespace from first paragraph', () => {
       expect(__internals.firstParagraphSummary('hello   \n\nworld')).toBe('hello')
+    })
+  })
+
+  // ── R7 adapters ───────────────────────────────────────────────────────────
+
+  describe('adaptPostRow', () => {
+    it('returns null for null/non-object input', () => {
+      expect(adaptPostRow(null)).toBeNull()
+      expect(adaptPostRow(undefined)).toBeNull()
+      expect(adaptPostRow(42)).toBeNull()
+    })
+
+    it('maps full row to legacy posts.json shape', () => {
+      const row = {
+        id: 7,
+        slug: 'hero-2026',
+        title_zh: '十周年',
+        image_url: 'https://cdn/x.jpg',
+        link_url: 'https://example.com/news',
+        published_at: 1700000000,
+      }
+      const out = adaptPostRow(row)
+      expect(out.id).toBe('hero-2026')
+      expect(out.title).toBe('十周年')
+      expect(out.image).toBe('https://cdn/x.jpg')
+      expect(out.url).toBe('https://example.com/news')
+      expect(out.datePosted).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    })
+
+    it('handles missing optional fields gracefully', () => {
+      const out = adaptPostRow({ id: 1, slug: 's', title_zh: 't' })
+      expect(out.image).toBeNull()
+      expect(out.url).toBe('')
+      expect(out.datePosted).toBe('')
+    })
+
+    it('falls back to title_en when title_zh missing', () => {
+      const out = adaptPostRow({ slug: 'x', title_en: 'EN Title' })
+      expect(out.title).toBe('EN Title')
+    })
+
+    it('uses id as slug fallback when slug missing', () => {
+      const out = adaptPostRow({ id: 42 })
+      expect(out.id).toBe('42')
+    })
+  })
+
+  describe('adaptPostList', () => {
+    it('returns [] for non-object/empty input', () => {
+      expect(adaptPostList(null)).toEqual([])
+      expect(adaptPostList({})).toEqual([])
+      expect(adaptPostList({ items: 'not-array' })).toEqual([])
+    })
+
+    it('maps an array of rows', () => {
+      const out = adaptPostList({ items: [{ id: 1, slug: 'a' }, { id: 2, slug: 'b' }] })
+      expect(out.length).toBe(2)
+      expect(out[0].id).toBe('a')
+    })
+  })
+
+  describe('adaptSocialRow', () => {
+    it('returns null for null/missing platform', () => {
+      expect(adaptSocialRow(null)).toBeNull()
+      expect(adaptSocialRow({})).toBeNull()
+      expect(adaptSocialRow({ platform: '' })).toBeNull()
+    })
+
+    it('maps full row to legacy social shape', () => {
+      const out = adaptSocialRow({
+        platform: 'discord',
+        label_zh: 'Discord',
+        url: 'https://discord.gg/abc',
+        icon: null,
+        active: 1,
+      })
+      expect(out.platform).toBe('discord')
+      expect(out.label).toBe('Discord')
+      expect(out.url).toBe('https://discord.gg/abc')
+      expect(out.qrImage).toBeNull()
+      expect(out.enabled).toBe(true)
+    })
+
+    it('falls back to platform name when label missing', () => {
+      const out = adaptSocialRow({ platform: 'qq', url: 'https://qm.qq.com' })
+      expect(out.label).toBe('qq')
+    })
+
+    it('treats active=0 as enabled=false', () => {
+      const out = adaptSocialRow({ platform: 'wechat', label_zh: '微信', url: '', active: 0 })
+      expect(out.enabled).toBe(false)
+    })
+
+    it('defaults enabled=true when active field missing entirely', () => {
+      // Public endpoint omits `active` (it always returns active=1).
+      const out = adaptSocialRow({ platform: 'x', label_zh: 'X', url: 'https://x.com' })
+      expect(out.enabled).toBe(true)
+    })
+  })
+
+  describe('adaptSocialList', () => {
+    it('returns [] for non-object', () => {
+      expect(adaptSocialList(null)).toEqual([])
+      expect(adaptSocialList({ items: [] })).toEqual([])
+    })
+
+    it('drops rows with empty platform', () => {
+      const out = adaptSocialList({
+        items: [
+          { platform: 'discord', label_zh: 'D', url: 'https://discord.gg/x' },
+          { platform: '', label_zh: 'X', url: 'https://x' },
+        ],
+      })
+      expect(out.length).toBe(1)
+    })
+  })
+
+  describe('adaptAboutSections', () => {
+    it('returns empty stub for null/non-object', () => {
+      const out = adaptAboutSections(null)
+      expect(out.mission).toBe('')
+      expect(out.faq).toEqual([])
+      expect(out.coc).toBe('')
+      expect(out.joinInstructions).toBe('')
+    })
+
+    it('flattens slug=mission/coc/joinInstructions into top-level strings', () => {
+      const out = adaptAboutSections({
+        items: [
+          { slug: 'mission', body_md: 'Mission body' },
+          { slug: 'coc', body_md: 'COC body' },
+          { slug: 'joinInstructions', body_md: 'How to join' },
+        ],
+      })
+      expect(out.mission).toBe('Mission body')
+      expect(out.coc).toBe('COC body')
+      expect(out.joinInstructions).toBe('How to join')
+    })
+
+    it('parses faq slug body as JSON array of {q,a}', () => {
+      const out = adaptAboutSections({
+        items: [
+          {
+            slug: 'faq',
+            body_md: '[{"q":"Q1","a":"A1"},{"q":"Q2","a":"A2"}]',
+          },
+        ],
+      })
+      expect(out.faq).toEqual([
+        { q: 'Q1', a: 'A1' },
+        { q: 'Q2', a: 'A2' },
+      ])
+    })
+
+    it('faq with malformed JSON falls back to empty array', () => {
+      const out = adaptAboutSections({
+        items: [{ slug: 'faq', body_md: 'not-json' }],
+      })
+      expect(out.faq).toEqual([])
+    })
+
+    it('faq filters non-{q,a} entries defensively', () => {
+      const out = adaptAboutSections({
+        items: [
+          {
+            slug: 'faq',
+            body_md: '[{"q":"Q","a":"A"},{"x":1},{"q":"Q2"}]',
+          },
+        ],
+      })
+      expect(out.faq).toEqual([{ q: 'Q', a: 'A' }])
+    })
+
+    it('ignores unknown slugs', () => {
+      const out = adaptAboutSections({
+        items: [{ slug: 'random', body_md: 'whatever' }],
+      })
+      expect(out.mission).toBe('')
+      expect(out.coc).toBe('')
+    })
+  })
+
+  describe('adaptAboutRow', () => {
+    it('returns null for null/missing slug', () => {
+      expect(adaptAboutRow(null)).toBeNull()
+      expect(adaptAboutRow({})).toBeNull()
+    })
+
+    it('maps a section row to admin-friendly shape', () => {
+      const out = adaptAboutRow({
+        id: 5,
+        slug: 'mission',
+        title_zh: '使命',
+        title_en: 'Mission',
+        body_md: 'body',
+        sort_order: 0,
+      })
+      expect(out.id).toBe(5)
+      expect(out.slug).toBe('mission')
+      expect(out.title_zh).toBe('使命')
+    })
+  })
+
+  describe('adaptSiteSettings', () => {
+    it('returns empty default object for null/non-object', () => {
+      const out = adaptSiteSettings(null)
+      expect(out).toEqual({
+        discordInvite: '',
+        communityName: '',
+        communityNameZh: '',
+        communityNameJp: '',
+      })
+    })
+
+    it('flattens site.* keys to legacy field names', () => {
+      const out = adaptSiteSettings({
+        items: [
+          { key: 'site.communityName', value: 'BanG Dream NA' },
+          { key: 'site.communityNameZh', value: '北美邦' },
+          { key: 'site.communityNameJp', value: 'バンドリ' },
+          { key: 'site.discordInvite', value: 'https://discord.gg/abc' },
+        ],
+      })
+      expect(out.communityName).toBe('BanG Dream NA')
+      expect(out.communityNameZh).toBe('北美邦')
+      expect(out.communityNameJp).toBe('バンドリ')
+      expect(out.discordInvite).toBe('https://discord.gg/abc')
+    })
+
+    it('ignores rows without site. prefix', () => {
+      const out = adaptSiteSettings({
+        items: [
+          { key: 'site.communityName', value: 'X' },
+          { key: 'webhook.comment.url', value: 'https://hook/' },
+        ],
+      })
+      expect(out.communityName).toBe('X')
+      // No leakage into the flat object.
+      expect(Object.values(out)).not.toContain('https://hook/')
+    })
+
+    it('handles missing values defensively', () => {
+      const out = adaptSiteSettings({
+        items: [{ key: 'site.communityName' }],
+      })
+      // No throw; missing string value treated as ''.
+      expect(out.communityName).toBe('')
+    })
+
+    it('preserves arbitrary site.* short keys (forward-compatible)', () => {
+      const out = adaptSiteSettings({
+        items: [{ key: 'site.tagline', value: 'forever bandori' }],
+      })
+      expect(out.tagline).toBe('forever bandori')
     })
   })
 })

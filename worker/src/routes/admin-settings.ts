@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { eq } from "drizzle-orm";
+import { asc, eq, like } from "drizzle-orm";
 import type { AppVariables, Env } from "../custom-env";
 import { requireAdmin } from "../auth/middleware";
 import { getDb } from "../db/client";
@@ -8,6 +8,7 @@ import { respondAdmin } from "../utils/respond";
 import {
   settingsBody,
   settingsKeyParam,
+  settingsListQuery,
   webhookTestBody,
 } from "../utils/validate";
 import {
@@ -28,6 +29,29 @@ function badRequest(c: AppContext, detail: unknown): Response {
 export function buildAdminSettingsRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
+
+  // List settings whose key starts with `prefix`. Used by the admin UI to
+  // render all `site.*` keys at once. The prefix is regex-restricted in
+  // settingsListQuery to prevent LIKE-pattern injection.
+  router.get("/", async (c) => {
+    const parsed = settingsListQuery.safeParse({ prefix: c.req.query("prefix") });
+    if (!parsed.success) return badRequest(c, parsed.error.flatten());
+    const escaped = parsed.data.prefix.replace(/[%_]/g, "");
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(settings)
+      .where(like(settings.key, `${escaped}%`))
+      .orderBy(asc(settings.key))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map((r) => ({
+        key: r.key,
+        value: r.value,
+        updated_at: r.updatedAt,
+      })),
+    });
+  });
 
   router.get("/:key", async (c) => {
     const parsed = settingsKeyParam.safeParse({ key: c.req.param("key") });

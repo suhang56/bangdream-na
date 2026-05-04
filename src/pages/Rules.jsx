@@ -1,10 +1,13 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../lib/uiLanguage.js'
-import about from '../data/about.json'
+import LoadingState from '../components/LoadingState/LoadingState.jsx'
+import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import { fetchAbout } from '../lib/api.js'
+import { adaptAboutSections } from '../lib/apiAdapter.js'
 import './Rules.css'
 
 function subscribe(cb) {
@@ -21,8 +24,37 @@ function paragraphs(body) {
 
 export default function Rules() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const cocText = typeof about.coc === 'string' ? about.coc : ''
-  const items = paragraphs(cocText)
+  const [coc, setCoc] = useState('')
+  const [status, setStatus] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAbout()
+      .then((aboutRes) => {
+        if (cancelled) return
+        const sections = adaptAboutSections(aboutRes)
+        setCoc(typeof sections.coc === 'string' ? sections.coc : '')
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
+
+  function retry() {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
+
+  if (status === 'loading') return <LoadingState className="rules-loading" />
+  if (status === 'error') return <ErrorState className="rules-error" onRetry={retry} />
+
+  const items = paragraphs(coc)
 
   return (
     <main className="rules-page" aria-labelledby="rules-title">

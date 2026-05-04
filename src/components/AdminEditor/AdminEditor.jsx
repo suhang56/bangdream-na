@@ -5,6 +5,9 @@ import {
   adminListEvents,
   adminListMembers,
   adminListCategories,
+  adminListFeaturedPosts,
+  adminListSocialLinks,
+  adminListAboutSections,
   createNews,
   updateNews,
   deleteNews,
@@ -17,6 +20,15 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  createFeaturedPost,
+  updateFeaturedPost,
+  deleteFeaturedPost,
+  createSocialLink,
+  updateSocialLink,
+  deleteSocialLink,
+  createAboutSection,
+  updateAboutSection,
+  deleteAboutSection,
   checkSlug,
   ApiError,
 } from '../../lib/api.js'
@@ -35,6 +47,9 @@ const LIST_FETCHERS = {
   events: adminListEvents,
   members: adminListMembers,
   categories: adminListCategories,
+  featuredPosts: adminListFeaturedPosts,
+  socialLinks: adminListSocialLinks,
+  aboutSections: adminListAboutSections,
 }
 
 const CRUD = {
@@ -45,6 +60,21 @@ const CRUD = {
     create: createCategory,
     update: updateCategory,
     remove: deleteCategory,
+  },
+  featuredPosts: {
+    create: createFeaturedPost,
+    update: updateFeaturedPost,
+    remove: deleteFeaturedPost,
+  },
+  socialLinks: {
+    create: createSocialLink,
+    update: updateSocialLink,
+    remove: deleteSocialLink,
+  },
+  aboutSections: {
+    create: createAboutSection,
+    update: updateAboutSection,
+    remove: deleteAboutSection,
   },
 }
 

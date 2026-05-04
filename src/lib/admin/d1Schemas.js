@@ -281,6 +281,194 @@ export const d1Schemas = {
     },
   },
 
+  featuredPosts: {
+    key: 'featuredPosts',
+    title: '首页轮播',
+    titleEn: 'Featured Posts',
+    listColumns: [
+      { key: 'id', label: 'ID', labelEn: 'ID' },
+      { key: 'slug', label: '别名', labelEn: 'Slug' },
+      { key: 'title_zh', label: '标题', labelEn: 'Title' },
+      { key: 'sort_order', label: '排序', labelEn: 'Sort' },
+      { key: 'active_display', label: '启用', labelEn: 'Active' },
+    ],
+    fields: [
+      { key: 'slug', type: 'text', label: '别名 (Slug)', labelEn: 'Slug', help: '留空则根据中文标题自动生成', helpEn: 'Auto-generated from title if empty' },
+      { key: 'title_zh', type: 'text', label: '中文标题', labelEn: 'Title (zh)' },
+      { key: 'title_en', type: 'text', label: '英文标题', labelEn: 'Title (en)' },
+      { key: 'body_md', type: 'textarea', label: '正文 (Markdown)', labelEn: 'Body (Markdown)', rows: 6 },
+      { key: 'image_url', type: 'asset', label: '主图', labelEn: 'Image', uploadKind: 'news' },
+      { key: 'link_url', type: 'url', label: '跳转链接', labelEn: 'Link URL' },
+      { key: 'published_at', type: 'datetime', label: '发布时间', labelEn: 'Published at' },
+      { key: 'sort_order', type: 'number', label: '排序权重', labelEn: 'Sort order' },
+      { key: 'active', type: 'boolean', label: '启用', labelEn: 'Active' },
+    ],
+    mapRowToForm(row) {
+      return {
+        id: row.id,
+        slug: row.slug ?? '',
+        title_zh: row.title_zh ?? '',
+        title_en: row.title_en ?? '',
+        body_md: row.body_md ?? '',
+        image_url: row.image_url ?? '',
+        link_url: row.link_url ?? '',
+        published_at: fromUnixSeconds(row.published_at),
+        sort_order: row.sort_order ?? 0,
+        active: row.active === 1 || row.active === true,
+        active_display: row.active === 1 || row.active === true ? '是' : '否',
+      }
+    },
+    mapFormToCreate(form) {
+      const slug = form.slug && form.slug.trim() !== ''
+        ? form.slug.trim()
+        : generateSlug(form.title_zh ?? `featured-${Date.now()}`)
+      return {
+        slug,
+        title_zh: emptyToNull(form.title_zh),
+        title_en: emptyToNull(form.title_en),
+        body_md: emptyToNull(form.body_md),
+        image_url: emptyToNull(form.image_url),
+        link_url: emptyToNull(form.link_url),
+        published_at: toUnixSeconds(form.published_at),
+        sort_order: typeof form.sort_order === 'number' ? form.sort_order : Number(form.sort_order ?? 0),
+        active: form.active !== false,
+      }
+    },
+    mapFormToUpdate(form) {
+      return this.mapFormToCreate(form)
+    },
+    emptyForm() {
+      return {
+        slug: '',
+        title_zh: '',
+        title_en: '',
+        body_md: '',
+        image_url: '',
+        link_url: '',
+        published_at: '',
+        sort_order: 0,
+        active: true,
+      }
+    },
+  },
+
+  socialLinks: {
+    key: 'socialLinks',
+    title: '社群链接',
+    titleEn: 'Social Links',
+    listColumns: [
+      { key: 'id', label: 'ID', labelEn: 'ID' },
+      { key: 'platform', label: '平台', labelEn: 'Platform' },
+      { key: 'label_zh', label: '中文显示', labelEn: 'Label (zh)' },
+      { key: 'url', label: '链接', labelEn: 'URL' },
+      { key: 'sort_order', label: '排序', labelEn: 'Sort' },
+      { key: 'active_display', label: '启用', labelEn: 'Active' },
+    ],
+    fields: [
+      { key: 'platform', type: 'text', label: '平台标识', labelEn: 'Platform', required: true, help: '小写英文与短横线 (discord/qq/x...)', helpEn: 'lowercase + hyphens' },
+      { key: 'label_zh', type: 'text', label: '中文显示', labelEn: 'Label (zh)', required: true },
+      { key: 'label_en', type: 'text', label: '英文显示', labelEn: 'Label (en)' },
+      { key: 'url', type: 'url', label: '链接', labelEn: 'URL', required: true },
+      { key: 'icon', type: 'url', label: '图标 URL', labelEn: 'Icon URL' },
+      { key: 'sort_order', type: 'number', label: '排序权重', labelEn: 'Sort order' },
+      { key: 'active', type: 'boolean', label: '启用', labelEn: 'Active' },
+    ],
+    mapRowToForm(row) {
+      return {
+        id: row.id,
+        platform: row.platform ?? '',
+        label_zh: row.label_zh ?? '',
+        label_en: row.label_en ?? '',
+        url: row.url ?? '',
+        icon: row.icon ?? '',
+        sort_order: row.sort_order ?? 0,
+        active: row.active === 1 || row.active === true,
+        active_display: row.active === 1 || row.active === true ? '是' : '否',
+      }
+    },
+    mapFormToCreate(form) {
+      return {
+        platform: form.platform,
+        label_zh: form.label_zh,
+        label_en: emptyToNull(form.label_en),
+        url: form.url,
+        icon: emptyToNull(form.icon),
+        sort_order: typeof form.sort_order === 'number' ? form.sort_order : Number(form.sort_order ?? 0),
+        active: form.active !== false,
+      }
+    },
+    mapFormToUpdate(form) {
+      return this.mapFormToCreate(form)
+    },
+    emptyForm() {
+      return {
+        platform: '',
+        label_zh: '',
+        label_en: '',
+        url: '',
+        icon: '',
+        sort_order: 0,
+        active: true,
+      }
+    },
+  },
+
+  aboutSections: {
+    key: 'aboutSections',
+    title: '关于页章节',
+    titleEn: 'About Sections',
+    listColumns: [
+      { key: 'id', label: 'ID', labelEn: 'ID' },
+      { key: 'slug', label: '别名', labelEn: 'Slug' },
+      { key: 'title_zh', label: '标题', labelEn: 'Title' },
+      { key: 'sort_order', label: '排序', labelEn: 'Sort' },
+      { key: 'active_display', label: '启用', labelEn: 'Active' },
+    ],
+    fields: [
+      { key: 'slug', type: 'text', label: '别名 (Slug)', labelEn: 'Slug', required: true, help: '内置 slug:mission/faq/coc/joinInstructions; 其它为自定义', helpEn: 'Built-ins: mission/faq/coc/joinInstructions; others are custom' },
+      { key: 'title_zh', type: 'text', label: '中文标题', labelEn: 'Title (zh)', required: true },
+      { key: 'title_en', type: 'text', label: '英文标题', labelEn: 'Title (en)' },
+      { key: 'body_md', type: 'textarea', label: '正文 (Markdown)', labelEn: 'Body (Markdown)', required: true, rows: 12, help: 'FAQ 章节请填写 JSON: [{"q":"...","a":"..."}]', helpEn: 'For FAQ section, write JSON: [{"q":"…","a":"…"}]' },
+      { key: 'sort_order', type: 'number', label: '排序权重', labelEn: 'Sort order' },
+      { key: 'active', type: 'boolean', label: '启用', labelEn: 'Active' },
+    ],
+    mapRowToForm(row) {
+      return {
+        id: row.id,
+        slug: row.slug ?? '',
+        title_zh: row.title_zh ?? '',
+        title_en: row.title_en ?? '',
+        body_md: row.body_md ?? '',
+        sort_order: row.sort_order ?? 0,
+        active: row.active === 1 || row.active === true,
+        active_display: row.active === 1 || row.active === true ? '是' : '否',
+      }
+    },
+    mapFormToCreate(form) {
+      return {
+        slug: form.slug,
+        title_zh: form.title_zh,
+        title_en: emptyToNull(form.title_en),
+        body_md: form.body_md,
+        sort_order: typeof form.sort_order === 'number' ? form.sort_order : Number(form.sort_order ?? 0),
+        active: form.active !== false,
+      }
+    },
+    mapFormToUpdate(form) {
+      return this.mapFormToCreate(form)
+    },
+    emptyForm() {
+      return {
+        slug: '',
+        title_zh: '',
+        title_en: '',
+        body_md: '',
+        sort_order: 0,
+        active: true,
+      }
+    },
+  },
+
   categories: {
     key: 'categories',
     title: '分类',

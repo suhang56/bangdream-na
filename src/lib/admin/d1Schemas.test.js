@@ -9,13 +9,24 @@ import {
 } from './d1Schemas.js'
 
 describe('d1Schemas registry', () => {
-  it('listD1SchemaKeys returns the four core keys', () => {
-    expect(listD1SchemaKeys().sort()).toEqual(['categories', 'events', 'members', 'news'])
+  it('listD1SchemaKeys includes the 7 D1-backed keys (R7 added 3)', () => {
+    expect(listD1SchemaKeys().sort()).toEqual([
+      'aboutSections',
+      'categories',
+      'events',
+      'featuredPosts',
+      'members',
+      'news',
+      'socialLinks',
+    ])
   })
 
   it('getD1Schema returns schema by key, undefined for unknown', () => {
     expect(getD1Schema('news')).toBe(d1Schemas.news)
     expect(getD1Schema('events')).toBe(d1Schemas.events)
+    expect(getD1Schema('featuredPosts')).toBe(d1Schemas.featuredPosts)
+    expect(getD1Schema('socialLinks')).toBe(d1Schemas.socialLinks)
+    expect(getD1Schema('aboutSections')).toBe(d1Schemas.aboutSections)
     expect(getD1Schema('unknown')).toBeUndefined()
   })
 
@@ -286,6 +297,149 @@ describe('categories schema', () => {
   })
 
   it('emptyForm defaults active=true', () => {
+    expect(schema.emptyForm().active).toBe(true)
+  })
+})
+
+describe('featuredPosts schema (R7)', () => {
+  const schema = d1Schemas.featuredPosts
+
+  it('mapRowToForm handles missing optional fields', () => {
+    const f = schema.mapRowToForm({})
+    expect(f.title_zh).toBe('')
+    expect(f.image_url).toBe('')
+    expect(f.published_at).toBe('')
+    expect(f.active).toBe(false)
+  })
+
+  it('mapRowToForm round-trips active=1, sort_order, image_url', () => {
+    const f = schema.mapRowToForm({
+      id: 5,
+      slug: 'hero-2026',
+      title_zh: '十周年',
+      image_url: 'https://cdn.bangdream.org/posts/x.jpg',
+      sort_order: 3,
+      active: 1,
+      published_at: 1700000000,
+    })
+    expect(f.active).toBe(true)
+    expect(f.active_display).toBe('是')
+    expect(f.sort_order).toBe(3)
+    expect(f.image_url).toBe('https://cdn.bangdream.org/posts/x.jpg')
+  })
+
+  it('mapFormToCreate auto-generates slug when blank', () => {
+    const body = schema.mapFormToCreate({
+      slug: '',
+      title_zh: 'Hello World',
+      sort_order: 0,
+      active: true,
+    })
+    expect(typeof body.slug).toBe('string')
+    expect(body.slug.length).toBeGreaterThan(0)
+  })
+
+  it('mapFormToCreate strips empty strings to null', () => {
+    const body = schema.mapFormToCreate({
+      slug: 'x',
+      title_zh: '',
+      title_en: '',
+      body_md: '',
+      image_url: '',
+      link_url: '',
+      published_at: '',
+      sort_order: 0,
+      active: true,
+    })
+    expect(body.title_zh).toBeNull()
+    expect(body.image_url).toBeNull()
+    expect(body.link_url).toBeNull()
+    expect(body.published_at).toBeNull()
+  })
+
+  it('emptyForm has expected defaults', () => {
+    const e = schema.emptyForm()
+    expect(e.active).toBe(true)
+    expect(e.sort_order).toBe(0)
+  })
+})
+
+describe('socialLinks schema (R7)', () => {
+  const schema = d1Schemas.socialLinks
+
+  it('mapRowToForm handles missing fields', () => {
+    expect(schema.mapRowToForm({}).platform).toBe('')
+    expect(schema.mapRowToForm({}).active).toBe(false)
+  })
+
+  it('mapFormToCreate keeps required platform/url, strips optional empties', () => {
+    const body = schema.mapFormToCreate({
+      platform: 'discord',
+      label_zh: 'Discord',
+      label_en: '',
+      url: 'https://discord.gg/abc',
+      icon: '',
+      sort_order: 1,
+      active: true,
+    })
+    expect(body.platform).toBe('discord')
+    expect(body.url).toBe('https://discord.gg/abc')
+    expect(body.label_en).toBeNull()
+    expect(body.icon).toBeNull()
+  })
+
+  it('mapFormToCreate sort_order coerces from string', () => {
+    const body = schema.mapFormToCreate({
+      platform: 'qq',
+      label_zh: 'QQ',
+      url: 'https://qm.qq.com/',
+      sort_order: '7',
+      active: true,
+    })
+    expect(body.sort_order).toBe(7)
+  })
+
+  it('emptyForm initializes active=true, sort_order=0', () => {
+    const e = schema.emptyForm()
+    expect(e.active).toBe(true)
+    expect(e.sort_order).toBe(0)
+  })
+
+  it('listColumns include platform + url', () => {
+    expect(schema.listColumns.some((c) => c.key === 'platform')).toBe(true)
+    expect(schema.listColumns.some((c) => c.key === 'url')).toBe(true)
+  })
+})
+
+describe('aboutSections schema (R7)', () => {
+  const schema = d1Schemas.aboutSections
+
+  it('validateForm flags missing slug/title_zh/body_md', () => {
+    const errors = validateForm(schema, {})
+    expect(errors.map((e) => e.key).sort()).toEqual(['body_md', 'slug', 'title_zh'])
+  })
+
+  it('mapRowToForm handles all-empty input', () => {
+    const f = schema.mapRowToForm({})
+    expect(f.slug).toBe('')
+    expect(f.title_zh).toBe('')
+    expect(f.body_md).toBe('')
+  })
+
+  it('mapFormToCreate preserves required body_md, strips empty optional', () => {
+    const body = schema.mapFormToCreate({
+      slug: 'mission',
+      title_zh: '使命',
+      title_en: '',
+      body_md: '我们的使命……',
+      sort_order: 0,
+      active: true,
+    })
+    expect(body.body_md).toBe('我们的使命……')
+    expect(body.title_en).toBeNull()
+  })
+
+  it('emptyForm sets active=true', () => {
     expect(schema.emptyForm().active).toBe(true)
   })
 })

@@ -10,9 +10,20 @@ import AboutArt from './about.jsx'
 import DefaultArt from './_default.jsx'
 
 describe('illustration registry', () => {
-  it('exposes all 7 schema keys', () => {
+  it('exposes legacy + R7 D1 schema keys', () => {
     expect(ILLUSTRATION_KEYS.sort()).toEqual(
-      ['about', 'events', 'members', 'news', 'posts', 'site', 'social'].sort(),
+      [
+        'about',
+        'aboutSections',
+        'events',
+        'featuredPosts',
+        'members',
+        'news',
+        'posts',
+        'site',
+        'social',
+        'socialLinks',
+      ].sort(),
     )
   })
 
@@ -24,6 +35,10 @@ describe('illustration registry', () => {
     expect(getIllustration('social')).toBe(SocialArt)
     expect(getIllustration('site')).toBe(SiteArt)
     expect(getIllustration('about')).toBe(AboutArt)
+    // R7 D1 keys reuse the closest legacy illustration.
+    expect(getIllustration('featuredPosts')).toBe(PostsArt)
+    expect(getIllustration('socialLinks')).toBe(SocialArt)
+    expect(getIllustration('aboutSections')).toBe(AboutArt)
   })
 
   it('returns the default component for unknown schema keys', () => {

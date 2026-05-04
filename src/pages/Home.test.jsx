@@ -6,6 +6,7 @@ import { useIsMobile } from '../lib/useBreakpoint.js'
 import Home from './Home.jsx'
 import site from '../data/site.json'
 import posts from '../data/posts.json'
+import socialJson from '../data/social.json'
 import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
 
@@ -19,10 +20,64 @@ vi.mock('../lib/api.js', async () => {
     ...actual,
     fetchNews: vi.fn(),
     fetchEvents: vi.fn(),
+    fetchPosts: vi.fn(),
+    fetchSocial: vi.fn(),
+    fetchSite: vi.fn(),
   }
 })
 
-import { fetchNews, fetchEvents } from '../lib/api.js'
+import {
+  fetchNews,
+  fetchEvents,
+  fetchPosts,
+  fetchSocial,
+  fetchSite,
+} from '../lib/api.js'
+
+// Helpers to seed the mocked API with rows that match the legacy fixtures.
+function siteRowsFromFixture() {
+  const items = []
+  for (const [k, v] of Object.entries(site)) {
+    if (typeof v !== 'string' || v.length === 0) continue
+    items.push({ key: `site.${k}`, value: v })
+  }
+  return { items }
+}
+
+function postsRowsFromFixture() {
+  const items = posts.map((p, i) => ({
+    id: i + 1,
+    slug: p.id,
+    title_zh: p.title,
+    title_en: null,
+    body_md: null,
+    image_url: p.image,
+    link_url: p.url || null,
+    published_at: Math.floor(new Date(p.datePosted).getTime() / 1000),
+    sort_order: i,
+  }))
+  return { items, total: items.length }
+}
+
+function socialRowsFromFixture() {
+  // Mirror legacy behaviour: PlatformTileRow renders ALL platforms,
+  // including disabled ones (the tile guards `enabled` itself). Public
+  // /api/social only returns active=1, so we filter out the disabled
+  // ones here, matching the production response shape.
+  const items = socialJson
+    .filter((s) => s.enabled)
+    .map((s, i) => ({
+      id: i + 1,
+      platform: s.platform,
+      label_zh: s.label,
+      label_en: null,
+      url: s.url,
+      icon: null,
+      sort_order: i,
+      active: 1,
+    }))
+  return { items, total: items.length }
+}
 
 describe('<Home /> (shell)', () => {
   beforeEach(() => {
@@ -33,8 +88,14 @@ describe('<Home /> (shell)', () => {
     cache.clear()
     vi.mocked(fetchNews).mockReset()
     vi.mocked(fetchEvents).mockReset()
+    vi.mocked(fetchPosts).mockReset()
+    vi.mocked(fetchSocial).mockReset()
+    vi.mocked(fetchSite).mockReset()
     vi.mocked(fetchNews).mockResolvedValue({ items: [], total: 0 })
     vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 0 })
+    vi.mocked(fetchPosts).mockResolvedValue(postsRowsFromFixture())
+    vi.mocked(fetchSocial).mockResolvedValue(socialRowsFromFixture())
+    vi.mocked(fetchSite).mockResolvedValue(siteRowsFromFixture())
   })
 
   afterEach(() => {
@@ -110,7 +171,8 @@ describe('<Home /> (shell)', () => {
       const { container } = renderWithProviders(<Home />, { route: '/' })
       await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
       expect(container.querySelector('.platform-tile-row')).not.toBeNull()
-      expect(container.querySelectorAll('.platform-tile').length).toBe(6)
+      // Only active=1 social rows reach the row (5 of 6 in fixture; wechat disabled).
+      expect(container.querySelectorAll('.platform-tile').length).toBe(5)
     })
 
     it('only desktop track is mounted (no .home-mobile element)', async () => {
