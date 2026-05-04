@@ -15,6 +15,9 @@ const REGISTRY = {
   social: SocialArt,
   site: SiteArt,
   about: AboutArt,
+  featuredPosts: PostsArt,
+  socialLinks: SocialArt,
+  aboutSections: AboutArt,
 }
 
 /**

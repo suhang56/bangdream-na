@@ -106,5 +106,45 @@ export const categories = sqliteTable("categories", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+export const featuredPosts = sqliteTable("featured_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  titleZh: text("title_zh"),
+  titleEn: text("title_en"),
+  bodyMd: text("body_md"),
+  imageUrl: text("image_url"),
+  linkUrl: text("link_url"),
+  publishedAt: integer("published_at"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: integer("active").notNull().default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const socialLinks = sqliteTable("social_links", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  platform: text("platform").notNull().unique(),
+  labelZh: text("label_zh").notNull(),
+  labelEn: text("label_en"),
+  url: text("url").notNull(),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: integer("active").notNull().default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const aboutSections = sqliteTable("about_sections", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  titleZh: text("title_zh").notNull(),
+  titleEn: text("title_en"),
+  bodyMd: text("body_md").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: integer("active").notNull().default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

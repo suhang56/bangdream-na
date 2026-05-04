@@ -1,18 +1,66 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '../../test/utils.jsx'
 import Footer from './Footer.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
+import { cache } from '../../lib/cache.js'
+import siteJson from '../../data/site.json'
+import socialJson from '../../data/social.json'
+
+vi.mock('../../lib/api.js', async () => {
+  const actual = await vi.importActual('../../lib/api.js')
+  return {
+    ...actual,
+    fetchSite: vi.fn(),
+    fetchSocial: vi.fn(),
+  }
+})
+
+import { fetchSite, fetchSocial } from '../../lib/api.js'
+
+function siteRows() {
+  const items = []
+  for (const [k, v] of Object.entries(siteJson)) {
+    if (typeof v !== 'string' || v.length === 0) continue
+    items.push({ key: `site.${k}`, value: v })
+  }
+  return { items }
+}
+
+function socialRows({ forumEnabled = true } = {}) {
+  const items = socialJson
+    .filter((s) => {
+      if (!s.enabled) return false
+      if (s.platform === 'forum' && !forumEnabled) return false
+      return true
+    })
+    .map((s, i) => ({
+      id: i + 1,
+      platform: s.platform,
+      label_zh: s.label,
+      url: s.url,
+      icon: null,
+      sort_order: i,
+      active: 1,
+    }))
+  return { items, total: items.length }
+}
 
 describe('<Footer />', () => {
   beforeEach(() => {
     _resetForTests()
     window.localStorage.clear()
     setLanguage('en')
+    cache.clear()
+    vi.mocked(fetchSite).mockReset()
+    vi.mocked(fetchSocial).mockReset()
+    vi.mocked(fetchSite).mockResolvedValue(siteRows())
+    vi.mocked(fetchSocial).mockResolvedValue(socialRows())
   })
 
-  it('renders 3 column headings (Quick Links + Communities + About & Legal) when communities enabled', () => {
+  it('renders 3 column headings (Quick Links + Communities + About & Legal) when communities enabled', async () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
+    await screen.findByRole('heading', { level: 3, name: /^communities$/i })
     const headings = container.querySelectorAll('.footer-heading')
     expect(headings.length).toBe(3)
     expect(
@@ -26,14 +74,16 @@ describe('<Footer />', () => {
     ).toBeInTheDocument()
   })
 
-  it('does NOT render legacy PlatformIcon list inside footer', () => {
+  it('does NOT render legacy PlatformIcon list inside footer', async () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
+    await screen.findByRole('heading', { level: 3, name: /^communities$/i })
     expect(container.querySelector('.footer-platform-list')).toBeNull()
     expect(container.querySelector('.platform-icon')).toBeNull()
   })
 
-  it('renders tri-lingual brand line with lang attrs', () => {
+  it('renders tri-lingual brand line with lang attrs', async () => {
     const { container } = renderWithProviders(<Footer />, { route: '/' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
     const triRow = container.querySelector('.footer-brand-tri')
     expect(triRow).not.toBeNull()
     expect(triRow.querySelector('[lang="ja"]')).not.toBeNull()
@@ -62,9 +112,9 @@ describe('<Footer />', () => {
     expect(links.length).toBe(5)
   })
 
-  it('Communities column shows 5 enabled platforms by default (wechat disabled)', () => {
+  it('Communities column shows 5 enabled platforms by default (wechat disabled)', async () => {
     renderWithProviders(<Footer />, { route: '/' })
-    const communitiesHeading = screen.getByRole('heading', {
+    const communitiesHeading = await screen.findByRole('heading', {
       level: 3,
       name: /^communities$/i,
     })
@@ -81,9 +131,9 @@ describe('<Footer />', () => {
     expect(labels).not.toContain('WeChat')
   })
 
-  it('Communities column links open in new tab with correct rel attrs', () => {
+  it('Communities column links open in new tab with correct rel attrs', async () => {
     renderWithProviders(<Footer />, { route: '/' })
-    const communitiesHeading = screen.getByRole('heading', {
+    const communitiesHeading = await screen.findByRole('heading', {
       level: 3,
       name: /^communities$/i,
     })
@@ -96,20 +146,18 @@ describe('<Footer />', () => {
     })
   })
 
-  it('Communities column shows forum link when forum.enabled === true (default ship)', () => {
+  it('Communities column shows forum link when forum.enabled === true (default ship)', async () => {
     renderWithProviders(<Footer />, { route: '/' })
-    expect(screen.getAllByRole('link', { name: 'Forum' }).length).toBeGreaterThan(0)
+    const links = await screen.findAllByRole('link', { name: 'Forum' })
+    expect(links.length).toBeGreaterThan(0)
   })
 
-  it('LangToggle re-render: ZH switches headings', () => {
+  it('LangToggle re-render: ZH switches headings', async () => {
     setLanguage('zh')
     renderWithProviders(<Footer />, { route: '/' })
+    await screen.findByRole('heading', { level: 3, name: /^社群$/ })
     expect(
       screen.getByRole('heading', { level: 3, name: /快速导航/ }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { level: 3, name: /^社群$/ }),
-    ).toBeInTheDocument()
   })
 })
-

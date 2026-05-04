@@ -2,7 +2,16 @@ import { Hono, type Context } from "hono";
 import { and, asc, desc, eq, gte, isNull, like, lt, or, sql } from "drizzle-orm";
 import type { AppVariables, Env } from "../custom-env";
 import { getDb } from "../db/client";
-import { categories, events, members, newsPosts } from "../db/schema";
+import {
+  aboutSections,
+  categories,
+  events,
+  featuredPosts,
+  members,
+  newsPosts,
+  settings,
+  socialLinks,
+} from "../db/schema";
 import {
   eventListQuery,
   newsListQuery,
@@ -314,6 +323,155 @@ export function buildPublicCategoriesRoutes() {
       .orderBy(asc(categories.sortOrder), asc(categories.id))
       .all();
     return respondPublic(c, { items: rows.map(categoryRowToOut) });
+  });
+  return router;
+}
+
+// ── R7: featured_posts / social_links / about_sections / settings (site.*) ──
+
+interface FeaturedPostPublicOut {
+  id: number;
+  slug: string;
+  title_zh: string | null;
+  title_en: string | null;
+  body_md: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  published_at: number | null;
+  sort_order: number;
+}
+
+function featuredPostPublicOut(
+  row: typeof featuredPosts.$inferSelect,
+): FeaturedPostPublicOut {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title_zh: row.titleZh,
+    title_en: row.titleEn,
+    body_md: row.bodyMd,
+    image_url: row.imageUrl,
+    link_url: row.linkUrl,
+    published_at: row.publishedAt,
+    sort_order: row.sortOrder,
+  };
+}
+
+export function buildPublicPostsRoutes() {
+  const router = new Hono<AppType>();
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(featuredPosts)
+      .where(eq(featuredPosts.active, 1))
+      .orderBy(asc(featuredPosts.sortOrder), asc(featuredPosts.id))
+      .all();
+    return respondPublic(c, {
+      items: rows.map(featuredPostPublicOut),
+      total: rows.length,
+    });
+  });
+  return router;
+}
+
+interface SocialLinkPublicOut {
+  id: number;
+  platform: string;
+  label_zh: string;
+  label_en: string | null;
+  url: string;
+  icon: string | null;
+  sort_order: number;
+}
+
+function socialLinkPublicOut(
+  row: typeof socialLinks.$inferSelect,
+): SocialLinkPublicOut {
+  return {
+    id: row.id,
+    platform: row.platform,
+    label_zh: row.labelZh,
+    label_en: row.labelEn,
+    url: row.url,
+    icon: row.icon,
+    sort_order: row.sortOrder,
+  };
+}
+
+export function buildPublicSocialRoutes() {
+  const router = new Hono<AppType>();
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(socialLinks)
+      .where(eq(socialLinks.active, 1))
+      .orderBy(asc(socialLinks.sortOrder), asc(socialLinks.id))
+      .all();
+    return respondPublic(c, {
+      items: rows.map(socialLinkPublicOut),
+      total: rows.length,
+    });
+  });
+  return router;
+}
+
+interface AboutSectionPublicOut {
+  id: number;
+  slug: string;
+  title_zh: string;
+  title_en: string | null;
+  body_md: string;
+  sort_order: number;
+}
+
+function aboutSectionPublicOut(
+  row: typeof aboutSections.$inferSelect,
+): AboutSectionPublicOut {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title_zh: row.titleZh,
+    title_en: row.titleEn,
+    body_md: row.bodyMd,
+    sort_order: row.sortOrder,
+  };
+}
+
+export function buildPublicAboutRoutes() {
+  const router = new Hono<AppType>();
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(aboutSections)
+      .where(eq(aboutSections.active, 1))
+      .orderBy(asc(aboutSections.sortOrder), asc(aboutSections.id))
+      .all();
+    return respondPublic(c, {
+      items: rows.map(aboutSectionPublicOut),
+      total: rows.length,
+    });
+  });
+  return router;
+}
+
+export function buildPublicSiteRoutes() {
+  const router = new Hono<AppType>();
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    // Read settings rows where key starts with `site.`. The leading prefix
+    // is hard-coded — public callers can't broaden the slice.
+    const rows = await db
+      .select()
+      .from(settings)
+      .where(like(settings.key, "site.%"))
+      .orderBy(asc(settings.key))
+      .all();
+    return respondPublic(c, {
+      items: rows.map((r) => ({ key: r.key, value: r.value })),
+    });
   });
   return router;
 }

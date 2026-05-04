@@ -1,13 +1,27 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../lib/uiLanguage.js'
-import about from '../data/about.json'
-import site from '../data/site.json'
-import socialData from '../data/social.json'
+import LoadingState from '../components/LoadingState/LoadingState.jsx'
+import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import { fetchAbout, fetchSite, fetchSocial } from '../lib/api.js'
+import {
+  adaptAboutSections,
+  adaptSiteSettings,
+  adaptSocialList,
+} from '../lib/apiAdapter.js'
 import './About.css'
+
+const EMPTY_SITE = {
+  discordInvite: '',
+  communityName: '',
+  communityNameZh: '',
+  communityNameJp: '',
+}
+
+const EMPTY_ABOUT = { mission: '', faq: [], coc: '', joinInstructions: '' }
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -23,6 +37,39 @@ function paragraphs(body) {
 
 export default function About() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const [about, setAbout] = useState(EMPTY_ABOUT)
+  const [site, setSite] = useState(EMPTY_SITE)
+  const [socialData, setSocialData] = useState([])
+  const [status, setStatus] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([fetchAbout(), fetchSite(), fetchSocial()])
+      .then(([aboutRes, siteRes, socialRes]) => {
+        if (cancelled) return
+        setAbout(adaptAboutSections(aboutRes))
+        setSite(adaptSiteSettings(siteRes))
+        setSocialData(adaptSocialList(socialRes))
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
+
+  function retry() {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
+
+  if (status === 'loading') return <LoadingState className="about-loading" />
+  if (status === 'error') return <ErrorState className="about-error" onRetry={retry} />
+
   const faq = Array.isArray(about.faq) ? about.faq : []
   const hasJp =
     typeof site.communityNameJp === 'string' && site.communityNameJp.length > 0

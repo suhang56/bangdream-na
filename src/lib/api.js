@@ -140,6 +140,18 @@ export const createCategory = (data) => adminFetch('POST', '/api/admin/categorie
 export const updateCategory = (id, data) => adminFetch('PUT', `/api/admin/categories/${id}`, data)
 export const deleteCategory = (id) => adminFetch('DELETE', `/api/admin/categories/${id}`)
 
+export const createFeaturedPost = (data) => adminFetch('POST', '/api/admin/featured-posts', data)
+export const updateFeaturedPost = (id, data) => adminFetch('PUT', `/api/admin/featured-posts/${id}`, data)
+export const deleteFeaturedPost = (id) => adminFetch('DELETE', `/api/admin/featured-posts/${id}`)
+
+export const createSocialLink = (data) => adminFetch('POST', '/api/admin/social-links', data)
+export const updateSocialLink = (id, data) => adminFetch('PUT', `/api/admin/social-links/${id}`, data)
+export const deleteSocialLink = (id) => adminFetch('DELETE', `/api/admin/social-links/${id}`)
+
+export const createAboutSection = (data) => adminFetch('POST', '/api/admin/about-sections', data)
+export const updateAboutSection = (id, data) => adminFetch('PUT', `/api/admin/about-sections/${id}`, data)
+export const deleteAboutSection = (id) => adminFetch('DELETE', `/api/admin/about-sections/${id}`)
+
 /** Server-side slug uniqueness check. Resolves to { available: bool }. */
 export async function checkSlug(kind, slug) {
   if (kind !== 'news') {
@@ -279,6 +291,50 @@ export async function fetchCategories() {
   return body
 }
 
+export async function fetchPosts() {
+  const key = 'posts:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const res = await fetch(buildUrl('/api/posts'), { credentials: 'omit' })
+  await throwForBadStatus(res, 'GET /api/posts')
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
+export async function fetchSocial() {
+  const key = 'social:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const res = await fetch(buildUrl('/api/social'), { credentials: 'omit' })
+  await throwForBadStatus(res, 'GET /api/social')
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
+export async function fetchAbout() {
+  const key = 'about:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const res = await fetch(buildUrl('/api/about'), { credentials: 'omit' })
+  await throwForBadStatus(res, 'GET /api/about')
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
+export async function fetchSite() {
+  const key = 'site:list:'
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const res = await fetch(buildUrl('/api/site'), { credentials: 'omit' })
+  await throwForBadStatus(res, 'GET /api/site')
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
 /** Admin variant: list all rows including drafts. Falls back to public + ?t cache-bust. */
 export async function adminListNews(opts = {}) {
   const ts = Date.now()
@@ -313,6 +369,44 @@ export async function adminListCategories() {
   const ts = Date.now()
   const url = `/api/categories?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+export async function adminListFeaturedPosts() {
+  const ts = Date.now()
+  const url = `/api/posts?t=${ts}`
+  const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+export async function adminListSocialLinks() {
+  const ts = Date.now()
+  const url = `/api/social?t=${ts}`
+  const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+export async function adminListAboutSections() {
+  const ts = Date.now()
+  const url = `/api/about?t=${ts}`
+  const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+/** GET /api/admin/settings?prefix=site. — admin list of settings rows under prefix. */
+export async function adminListSettings(prefix) {
+  if (typeof prefix !== 'string' || prefix.length === 0) {
+    throw new Error('adminListSettings: prefix required')
+  }
+  const url = `/api/admin/settings?prefix=${encodeURIComponent(prefix)}`
+  const res = await fetch(buildUrl(url), {
+    method: 'GET',
+    credentials: 'include',
+  })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
 }

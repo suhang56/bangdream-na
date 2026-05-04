@@ -12,6 +12,9 @@ const NEW_NOUN = {
   social: '社交平台',
   site: '站点信息',
   about: '关于页',
+  featuredPosts: '首页轮播',
+  socialLinks: '社群链接',
+  aboutSections: '关于页章节',
 }
 
 function resolveSchema(schemaKey) {

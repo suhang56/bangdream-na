@@ -7,6 +7,10 @@ import {
   parseEventRow,
   parseMemberRow,
   parseCategoryRow,
+  parseFeaturedPostRow,
+  parseSocialLinkRow,
+  parseAboutSectionRows,
+  parseSiteSettings,
   rewriteImageUrl,
 } from '../shared/parse-row.mjs';
 
@@ -350,5 +354,231 @@ describe('parseCategoryRow', () => {
   it('defaults sort_order to 0', () => {
     const row = parseCategoryRow({ ...base, sort_order: undefined }, NOW);
     expect(row.sort_order).toBe(0);
+  });
+});
+
+// ─── R7 parsers ───────────────────────────────────────────────────────────────
+
+describe('parseFeaturedPostRow', () => {
+  const VALID = {
+    id: 'hero-2026',
+    title: '十周年',
+    image: '/posts/abc.jpg',
+    url: 'https://example.com',
+    datePosted: '2026-05-03',
+  };
+
+  it('maps full row, rewrites image to CDN, parses date', () => {
+    const row = parseFeaturedPostRow(VALID, NOW, 0);
+    expect(row.slug).toBe('hero-2026');
+    expect(row.title_zh).toBe('十周年');
+    expect(row.image_url).toBe('https://cdn.bangdream.org/posts/abc.jpg');
+    expect(row.link_url).toBe('https://example.com');
+    expect(row.published_at).toBe(1777766400);
+    expect(row.sort_order).toBe(0);
+    expect(row.active).toBe(1);
+  });
+
+  it('throws when id is missing/empty', () => {
+    expect(() => parseFeaturedPostRow({ ...VALID, id: '' }, NOW, 0)).toThrow();
+    expect(() => parseFeaturedPostRow({ ...VALID, id: null }, NOW, 0)).toThrow();
+  });
+
+  it('whitespace-only title becomes null', () => {
+    const row = parseFeaturedPostRow({ ...VALID, title: '   ' }, NOW, 0);
+    expect(row.title_zh).toBeNull();
+  });
+
+  it('empty/missing url becomes null', () => {
+    const row1 = parseFeaturedPostRow({ ...VALID, url: '' }, NOW, 0);
+    expect(row1.link_url).toBeNull();
+    const row2 = parseFeaturedPostRow({ ...VALID, url: undefined }, NOW, 0);
+    expect(row2.link_url).toBeNull();
+  });
+
+  it('invalid datePosted yields null published_at', () => {
+    const row = parseFeaturedPostRow({ ...VALID, datePosted: 'not-a-date' }, NOW, 0);
+    expect(row.published_at).toBeNull();
+  });
+
+  it('non-numeric sortOrder defaults to 0', () => {
+    const row = parseFeaturedPostRow(VALID, NOW, 'oops');
+    expect(row.sort_order).toBe(0);
+  });
+});
+
+describe('parseSocialLinkRow', () => {
+  const VALID = {
+    platform: 'discord',
+    label: 'Discord',
+    url: 'https://discord.gg/abc',
+    qrImage: null,
+    enabled: true,
+  };
+
+  it('maps full enabled row to active=1', () => {
+    const row = parseSocialLinkRow(VALID, NOW, 1);
+    expect(row.platform).toBe('discord');
+    expect(row.label_zh).toBe('Discord');
+    expect(row.url).toBe('https://discord.gg/abc');
+    expect(row.active).toBe(1);
+    expect(row.sort_order).toBe(1);
+  });
+
+  it('throws when platform is missing', () => {
+    expect(() => parseSocialLinkRow({ ...VALID, platform: '' }, NOW, 0)).toThrow();
+  });
+
+  it('disabled row → active=0', () => {
+    const row = parseSocialLinkRow({ ...VALID, enabled: false }, NOW, 0);
+    expect(row.active).toBe(0);
+  });
+
+  it('empty url → active=0 even if enabled=true', () => {
+    const row = parseSocialLinkRow({ ...VALID, url: '' }, NOW, 0);
+    expect(row.active).toBe(0);
+  });
+
+  it('label falls back to platform when missing', () => {
+    const row = parseSocialLinkRow({ ...VALID, label: undefined }, NOW, 0);
+    expect(row.label_zh).toBe('discord');
+  });
+
+  it('qrImage non-string preserved as null', () => {
+    const row = parseSocialLinkRow({ ...VALID, qrImage: 42 }, NOW, 0);
+    expect(row.icon).toBeNull();
+  });
+});
+
+describe('parseAboutSectionRows', () => {
+  it('returns empty array for null/non-object', () => {
+    expect(parseAboutSectionRows(null, NOW)).toEqual([]);
+    expect(parseAboutSectionRows(undefined, NOW)).toEqual([]);
+    expect(parseAboutSectionRows('string', NOW)).toEqual([]);
+  });
+
+  it('emits 4 rows for full about.json', () => {
+    const rows = parseAboutSectionRows(
+      {
+        mission: 'M',
+        joinInstructions: 'J',
+        coc: 'C',
+        faq: [
+          { q: 'Q1', a: 'A1' },
+          { q: 'Q2', a: 'A2' },
+        ],
+      },
+      NOW,
+    );
+    const slugs = rows.map((r) => r.slug);
+    expect(slugs).toEqual(['mission', 'joinInstructions', 'coc', 'faq']);
+    expect(rows[3].body_md).toContain('Q1');
+    expect(rows[3].body_md).toContain('A1');
+    expect(rows[0].sort_order).toBe(0);
+    expect(rows[3].sort_order).toBe(30);
+  });
+
+  it('skips empty mission/coc/joinInstructions', () => {
+    const rows = parseAboutSectionRows(
+      { mission: '', coc: '   ', joinInstructions: undefined, faq: [] },
+      NOW,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('drops malformed faq entries (missing q or a)', () => {
+    const rows = parseAboutSectionRows(
+      {
+        mission: 'M',
+        faq: [
+          { q: 'Q', a: 'A' },
+          { q: 'NoAns' },
+          { a: 'NoQ' },
+          'string',
+        ],
+      },
+      NOW,
+    );
+    const faqRow = rows.find((r) => r.slug === 'faq');
+    expect(faqRow).toBeDefined();
+    const parsed = JSON.parse(faqRow.body_md);
+    expect(parsed).toEqual([{ q: 'Q', a: 'A' }]);
+  });
+
+  it('skips faq row entirely when array is empty after filtering', () => {
+    const rows = parseAboutSectionRows(
+      { mission: 'M', faq: [{ q: 1 }] },
+      NOW,
+    );
+    expect(rows.find((r) => r.slug === 'faq')).toBeUndefined();
+  });
+
+  it('all rows carry created_at + updated_at + active=1', () => {
+    const rows = parseAboutSectionRows({ mission: 'M' }, NOW);
+    expect(rows[0].created_at).toBe(NOW);
+    expect(rows[0].updated_at).toBe(NOW);
+    expect(rows[0].active).toBe(1);
+  });
+});
+
+describe('parseSiteSettings', () => {
+  it('returns [] for null/non-object', () => {
+    expect(parseSiteSettings(null, NOW)).toEqual([]);
+    expect(parseSiteSettings(42, NOW)).toEqual([]);
+  });
+
+  it('flattens flat string values to site.* keys', () => {
+    const rows = parseSiteSettings(
+      {
+        communityName: 'BanG NA',
+        communityNameZh: '北美邦',
+        communityNameJp: '',
+      },
+      NOW,
+    );
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    expect(map['site.communityName']).toBe('BanG NA');
+    expect(map['site.communityNameZh']).toBe('北美邦');
+    // Empty string skipped — no site.communityNameJp row.
+    expect(map['site.communityNameJp']).toBeUndefined();
+  });
+
+  it('flattens nested objects with dotted paths', () => {
+    const rows = parseSiteSettings(
+      { ui: { tagline: { zh: '一起炸', en: 'Bandori' } } },
+      NOW,
+    );
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    expect(map['site.ui.tagline.zh']).toBe('一起炸');
+    expect(map['site.ui.tagline.en']).toBe('Bandori');
+  });
+
+  it('serialises arrays as JSON', () => {
+    const rows = parseSiteSettings({ tags: ['a', 'b'] }, NOW);
+    expect(rows[0].key).toBe('site.tags');
+    expect(JSON.parse(rows[0].value)).toEqual(['a', 'b']);
+  });
+
+  it('coerces numbers/booleans to strings', () => {
+    const rows = parseSiteSettings({ year: 2026, active: true }, NOW);
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    expect(map['site.year']).toBe('2026');
+    expect(map['site.active']).toBe('true');
+  });
+
+  it('drops null and undefined values', () => {
+    const rows = parseSiteSettings(
+      { a: null, b: undefined, c: 'keep' },
+      NOW,
+    );
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    expect(map['site.a']).toBeUndefined();
+    expect(map['site.b']).toBeUndefined();
+    expect(map['site.c']).toBe('keep');
+  });
+
+  it('updated_at carried on every row', () => {
+    const rows = parseSiteSettings({ x: 'y' }, NOW);
+    expect(rows[0].updated_at).toBe(NOW);
   });
 });

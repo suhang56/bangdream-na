@@ -3,7 +3,16 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { signJwt } from "../../src/auth/jwt";
 import { getDb } from "../../src/db/client";
-import { categories, events, members, newsPosts, users } from "../../src/db/schema";
+import {
+  aboutSections,
+  categories,
+  events,
+  featuredPosts,
+  members,
+  newsPosts,
+  socialLinks,
+  users,
+} from "../../src/db/schema";
 import { createApp } from "../../src/index";
 import { SESSION_COOKIE } from "../../src/utils/cookies";
 
@@ -15,6 +24,9 @@ async function clearAll() {
   await db.delete(events).run();
   await db.delete(members).run();
   await db.delete(categories).run();
+  await db.delete(featuredPosts).run();
+  await db.delete(socialLinks).run();
+  await db.delete(aboutSections).run();
   await db.delete(users).run();
 }
 
@@ -1386,6 +1398,498 @@ describe("Admin /api/admin/categories", () => {
     const cookie = await adminCookie();
     const res = await createApp().request(
       "https://x/api/admin/categories/9999",
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+// ── R7: featured_posts / social_links / about_sections ──────────────────────
+
+const VALID_FEATURED_POST = {
+  slug: "carousel-2026-jp",
+  title_zh: "邦多利十周年",
+  title_en: "BanG Dream 10th",
+  body_md: "庆祝十周年",
+  image_url: "https://cdn.bangdream.org/posts/x.jpg",
+  link_url: "https://example.com/news",
+  published_at: 1700000000,
+  sort_order: 5,
+};
+
+const VALID_SOCIAL_LINK = {
+  platform: "discord",
+  label_zh: "Discord",
+  label_en: "Discord",
+  url: "https://discord.gg/example",
+  icon: "https://cdn.bangdream.org/icons/discord.svg",
+  sort_order: 1,
+};
+
+const VALID_ABOUT_SECTION = {
+  slug: "mission",
+  title_zh: "使命",
+  title_en: "Mission",
+  body_md: "北美邦使命……",
+  sort_order: 0,
+};
+
+describe("Admin /api/admin/featured-posts", () => {
+  it("returns 401 without cookie on POST", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for member role", async () => {
+    const cookie = await memberCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("creates a row on POST", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const row = (await res.json()) as Record<string, unknown>;
+    expect(row.slug).toBe("carousel-2026-jp");
+    expect(row.title_zh).toBe("邦多利十周年");
+    expect(row.image_url).toBe("https://cdn.bangdream.org/posts/x.jpg");
+    expect(row.sort_order).toBe(5);
+    expect(row.active).toBe(1);
+  });
+
+  it("returns 400 for invalid url", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          ...VALID_FEATURED_POST,
+          image_url: "not-a-url",
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 409 on slug collision", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    const dup = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    expect(dup.status).toBe(409);
+  });
+
+  it("PUT updates a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const updated = await createApp().request(
+      `https://x/api/admin/featured-posts/${seeded.id}`,
+      {
+        method: "PUT",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ title_zh: "新标题", active: false }),
+      },
+      env,
+    );
+    expect(updated.status).toBe(200);
+    const row = (await updated.json()) as Record<string, unknown>;
+    expect(row.title_zh).toBe("新标题");
+    expect(row.active).toBe(0);
+    expect(row.image_url).toBe("https://cdn.bangdream.org/posts/x.jpg");
+  });
+
+  it("DELETE removes a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_FEATURED_POST),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const res = await createApp().request(
+      `https://x/api/admin/featured-posts/${seeded.id}`,
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(204);
+    const db = getDb(env);
+    const row = await db
+      .select()
+      .from(featuredPosts)
+      .where(eq(featuredPosts.id, seeded.id))
+      .get();
+    expect(row).toBeUndefined();
+  });
+
+  it("DELETE returns 404 for missing id", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts/9999",
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("auto-generates slug when omitted", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          title_zh: "庆典回顾",
+          published_at: 1700000000,
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const row = (await res.json()) as Record<string, unknown>;
+    expect(typeof row.slug).toBe("string");
+    expect((row.slug as string).length).toBeGreaterThan(0);
+  });
+});
+
+describe("Admin /api/admin/social-links", () => {
+  it("returns 401 without cookie on POST", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for member role", async () => {
+    const cookie = await memberCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("creates a row on POST", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const row = (await res.json()) as Record<string, unknown>;
+    expect(row.platform).toBe("discord");
+    expect(row.url).toBe("https://discord.gg/example");
+  });
+
+  it("returns 400 for invalid url", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          ...VALID_SOCIAL_LINK,
+          url: "javascript:alert(1)",
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 409 on platform collision", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    const dup = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    expect(dup.status).toBe(409);
+  });
+
+  it("PUT updates a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const updated = await createApp().request(
+      `https://x/api/admin/social-links/${seeded.id}`,
+      {
+        method: "PUT",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ url: "https://discord.gg/new", active: false }),
+      },
+      env,
+    );
+    expect(updated.status).toBe(200);
+    const row = (await updated.json()) as Record<string, unknown>;
+    expect(row.url).toBe("https://discord.gg/new");
+    expect(row.active).toBe(0);
+  });
+
+  it("DELETE removes a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_SOCIAL_LINK),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const res = await createApp().request(
+      `https://x/api/admin/social-links/${seeded.id}`,
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(204);
+  });
+
+  it("DELETE returns 404 for missing id", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/social-links/9999",
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("Admin /api/admin/about-sections", () => {
+  it("returns 401 without cookie on POST", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for member role", async () => {
+    const cookie = await memberCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("creates a row on POST", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const row = (await res.json()) as Record<string, unknown>;
+    expect(row.slug).toBe("mission");
+    expect(row.title_zh).toBe("使命");
+    expect(row.body_md).toBe("北美邦使命……");
+  });
+
+  it("returns 400 when body_md missing", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          slug: "x",
+          title_zh: "x",
+          body_md: "",
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 409 on slug collision", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    const dup = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    expect(dup.status).toBe(409);
+  });
+
+  it("PUT updates a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const updated = await createApp().request(
+      `https://x/api/admin/about-sections/${seeded.id}`,
+      {
+        method: "PUT",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ body_md: "新使命" }),
+      },
+      env,
+    );
+    expect(updated.status).toBe(200);
+    const row = (await updated.json()) as Record<string, unknown>;
+    expect(row.body_md).toBe("新使命");
+    expect(row.title_zh).toBe("使命");
+  });
+
+  it("DELETE removes a row", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify(VALID_ABOUT_SECTION),
+      },
+      env,
+    );
+    const seeded = (await created.json()) as { id: number };
+    const res = await createApp().request(
+      `https://x/api/admin/about-sections/${seeded.id}`,
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(204);
+  });
+
+  it("DELETE returns 404 for missing id", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections/9999",
       { method: "DELETE", headers: { Cookie: cookie } },
       env,
     );

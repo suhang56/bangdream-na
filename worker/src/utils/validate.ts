@@ -156,6 +156,75 @@ export const adminCategoryCreate = z.object({
 
 export const adminCategoryUpdate = adminCategoryCreate.partial();
 
+// ── R7: featured_posts / social_links / about_sections ──────────────────────
+
+const sortOrderField = z.number().int().min(0).max(10000).optional();
+
+// Restricts URLs to http/https schemes to block javascript:, data:, file:, etc.
+// `.url()` alone accepts any well-formed URL including javascript:alert(1).
+const httpUrl = z
+  .string()
+  .url()
+  .max(1000)
+  .refine(
+    (v) => {
+      try {
+        const u = new URL(v);
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "must be http or https URL" },
+  );
+
+export const adminFeaturedPostCreate = z.object({
+  slug: optionalSlug,
+  title_zh: z.string().max(200).nullish(),
+  title_en: z.string().max(200).nullish(),
+  body_md: z.string().max(200000).nullish(),
+  image_url: httpUrl.nullish(),
+  link_url: httpUrl.nullish(),
+  published_at: intSecondsTimestamp.nullish(),
+  sort_order: sortOrderField,
+  active: z.boolean().optional(),
+});
+
+export const adminFeaturedPostUpdate = adminFeaturedPostCreate.partial();
+
+const platformSlug = z
+  .string()
+  .min(1)
+  .max(40)
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i);
+
+export const adminSocialLinkCreate = z.object({
+  platform: platformSlug,
+  label_zh: z.string().min(1).max(60),
+  label_en: z.string().max(60).nullish(),
+  url: httpUrl,
+  icon: httpUrl.nullish(),
+  sort_order: sortOrderField,
+  active: z.boolean().optional(),
+});
+
+export const adminSocialLinkUpdate = adminSocialLinkCreate.partial();
+
+export const adminAboutSectionCreate = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  title_zh: z.string().min(1).max(200),
+  title_en: z.string().max(200).nullish(),
+  body_md: z.string().min(1).max(200000),
+  sort_order: sortOrderField,
+  active: z.boolean().optional(),
+});
+
+export const adminAboutSectionUpdate = adminAboutSectionCreate.partial();
+
 // ── Comments / settings ──────────────────────────────────────────────────────
 
 export const COMMENT_BODY_MAX = 4000;
@@ -191,7 +260,18 @@ export const settingsKeyParam = z.object({
 });
 
 export const settingsBody = z.object({
-  value: z.string().max(2000),
+  value: z.string().max(10000),
+});
+
+// Restrict prefix to lowercase ASCII + dot/dash/underscore so an attacker
+// cannot pass an arbitrary LIKE pattern and reuse the endpoint as a generic
+// dump of the settings table.
+export const settingsListQuery = z.object({
+  prefix: z
+    .string()
+    .min(1)
+    .max(60)
+    .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9.])?$/i),
 });
 
 export const webhookTestBody = z.object({

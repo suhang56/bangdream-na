@@ -317,3 +317,67 @@ describe("POST /api/admin/settings/test-webhook", () => {
     expect(res.status).toBe(422);
   });
 });
+
+describe("Admin GET /api/admin/settings?prefix=", () => {
+  it("returns 401 without cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/settings?prefix=site.",
+      {},
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for member role", async () => {
+    const cookie = await memberCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings?prefix=site.",
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("returns matching keys sorted, excludes other prefixes", async () => {
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db
+      .insert(settings)
+      .values([
+        { key: "site.communityName", value: "BanG NA", updatedAt: now },
+        { key: "site.communityNameZh", value: "北美邦", updatedAt: now },
+        { key: "webhook.comment.url", value: "https://hook/", updatedAt: now },
+      ])
+      .run();
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings?prefix=site.",
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ key: string; value: string }>;
+    };
+    expect(body.items.map((i) => i.key)).toEqual([
+      "site.communityName",
+      "site.communityNameZh",
+    ]);
+  });
+
+  it("returns 400 for missing or invalid prefix", async () => {
+    const cookie = await adminCookie();
+    const empty = await createApp().request(
+      "https://x/api/admin/settings",
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(empty.status).toBe(400);
+    const bad = await createApp().request(
+      "https://x/api/admin/settings?prefix=*",
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(bad.status).toBe(400);
+  });
+});

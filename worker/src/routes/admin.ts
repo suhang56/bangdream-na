@@ -4,20 +4,34 @@ import type { ZodSchema } from "zod";
 import type { AppVariables, Env } from "../custom-env";
 import { requireAdmin } from "../auth/middleware";
 import { getDb } from "../db/client";
-import { categories, events, members, newsPosts } from "../db/schema";
+import {
+  aboutSections,
+  categories,
+  events,
+  featuredPosts,
+  members,
+  newsPosts,
+  socialLinks,
+} from "../db/schema";
 import { generateSlug } from "../utils/slug";
 import { respondAdmin } from "../utils/respond";
 import {
+  adminAboutSectionCreate,
+  adminAboutSectionUpdate,
   adminCategoryCreate,
   adminCategoryUpdate,
   adminCheckSlugQuery,
   adminEventCreate,
   adminEventUpdate,
+  adminFeaturedPostCreate,
+  adminFeaturedPostUpdate,
   adminIdParam,
   adminMemberCreate,
   adminMemberUpdate,
   adminNewsCreate,
   adminNewsUpdate,
+  adminSocialLinkCreate,
+  adminSocialLinkUpdate,
 } from "../utils/validate";
 
 type AppType = { Bindings: Env; Variables: AppVariables };
@@ -631,6 +645,406 @@ export function buildAdminCategoriesRoutes() {
       .set({ active: 0, updatedAt: now })
       .where(eq(categories.id, idParse.id))
       .run();
+    c.header("Cache-Control", "no-store");
+    c.header("Vary", "Origin");
+    return c.body(null, 204);
+  });
+
+  return router;
+}
+
+// ── R7: featured_posts / social_links / about_sections ──────────────────────
+
+interface FeaturedPostRowOut {
+  id: number;
+  slug: string;
+  title_zh: string | null;
+  title_en: string | null;
+  body_md: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  published_at: number | null;
+  sort_order: number;
+  active: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function featuredPostRowToOut(
+  row: typeof featuredPosts.$inferSelect,
+): FeaturedPostRowOut {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title_zh: row.titleZh,
+    title_en: row.titleEn,
+    body_md: row.bodyMd,
+    image_url: row.imageUrl,
+    link_url: row.linkUrl,
+    published_at: row.publishedAt,
+    sort_order: row.sortOrder,
+    active: row.active,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+export function buildAdminFeaturedPostsRoutes() {
+  const router = new Hono<AppType>();
+  router.use("*", requireAdmin);
+
+  router.post("/", async (c) => {
+    const body = await parseBody(c, adminFeaturedPostCreate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+    const slug =
+      data.slug ?? generateSlug(data.title_zh ?? `featured-${Date.now()}`);
+    const db = getDb(c.env);
+
+    const existing = await db
+      .select({ id: featuredPosts.id })
+      .from(featuredPosts)
+      .where(eq(featuredPosts.slug, slug))
+      .get();
+    if (existing) return uniqueConflict(c, "slug");
+
+    const now = Math.floor(Date.now() / 1000);
+    const inserted = await db
+      .insert(featuredPosts)
+      .values({
+        slug,
+        titleZh: data.title_zh ?? null,
+        titleEn: data.title_en ?? null,
+        bodyMd: data.body_md ?? null,
+        imageUrl: data.image_url ?? null,
+        linkUrl: data.link_url ?? null,
+        publishedAt: data.published_at ?? null,
+        sortOrder: data.sort_order ?? 0,
+        active: data.active === false ? 0 : 1,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+    return respondAdmin(c, featuredPostRowToOut(inserted), 201);
+  });
+
+  router.put("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const body = await parseBody(c, adminFeaturedPostUpdate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+
+    const db = getDb(c.env);
+    const existing = await db
+      .select()
+      .from(featuredPosts)
+      .where(eq(featuredPosts.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+
+    if (data.slug && data.slug !== existing.slug) {
+      const collision = await db
+        .select({ id: featuredPosts.id })
+        .from(featuredPosts)
+        .where(eq(featuredPosts.slug, data.slug))
+        .get();
+      if (collision && collision.id !== idParse.id) {
+        return uniqueConflict(c, "slug");
+      }
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const patch: Partial<typeof featuredPosts.$inferInsert> = { updatedAt: now };
+    if (data.slug !== undefined) patch.slug = data.slug;
+    if (data.title_zh !== undefined) patch.titleZh = data.title_zh ?? null;
+    if (data.title_en !== undefined) patch.titleEn = data.title_en ?? null;
+    if (data.body_md !== undefined) patch.bodyMd = data.body_md ?? null;
+    if (data.image_url !== undefined) patch.imageUrl = data.image_url ?? null;
+    if (data.link_url !== undefined) patch.linkUrl = data.link_url ?? null;
+    if (data.published_at !== undefined) {
+      patch.publishedAt = data.published_at ?? null;
+    }
+    if (data.sort_order !== undefined) patch.sortOrder = data.sort_order;
+    if (data.active !== undefined) patch.active = data.active ? 1 : 0;
+
+    const updated = await db
+      .update(featuredPosts)
+      .set(patch)
+      .where(eq(featuredPosts.id, idParse.id))
+      .returning()
+      .get();
+    return respondAdmin(c, featuredPostRowToOut(updated));
+  });
+
+  router.delete("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const db = getDb(c.env);
+    const existing = await db
+      .select({ id: featuredPosts.id })
+      .from(featuredPosts)
+      .where(eq(featuredPosts.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+    await db.delete(featuredPosts).where(eq(featuredPosts.id, idParse.id)).run();
+    c.header("Cache-Control", "no-store");
+    c.header("Vary", "Origin");
+    return c.body(null, 204);
+  });
+
+  return router;
+}
+
+interface SocialLinkRowOut {
+  id: number;
+  platform: string;
+  label_zh: string;
+  label_en: string | null;
+  url: string;
+  icon: string | null;
+  sort_order: number;
+  active: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function socialLinkRowToOut(
+  row: typeof socialLinks.$inferSelect,
+): SocialLinkRowOut {
+  return {
+    id: row.id,
+    platform: row.platform,
+    label_zh: row.labelZh,
+    label_en: row.labelEn,
+    url: row.url,
+    icon: row.icon,
+    sort_order: row.sortOrder,
+    active: row.active,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+export function buildAdminSocialLinksRoutes() {
+  const router = new Hono<AppType>();
+  router.use("*", requireAdmin);
+
+  router.post("/", async (c) => {
+    const body = await parseBody(c, adminSocialLinkCreate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+    const db = getDb(c.env);
+
+    const existing = await db
+      .select({ id: socialLinks.id })
+      .from(socialLinks)
+      .where(eq(socialLinks.platform, data.platform))
+      .get();
+    if (existing) return uniqueConflict(c, "platform");
+
+    const now = Math.floor(Date.now() / 1000);
+    const inserted = await db
+      .insert(socialLinks)
+      .values({
+        platform: data.platform,
+        labelZh: data.label_zh,
+        labelEn: data.label_en ?? null,
+        url: data.url,
+        icon: data.icon ?? null,
+        sortOrder: data.sort_order ?? 0,
+        active: data.active === false ? 0 : 1,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+    return respondAdmin(c, socialLinkRowToOut(inserted), 201);
+  });
+
+  router.put("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const body = await parseBody(c, adminSocialLinkUpdate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+
+    const db = getDb(c.env);
+    const existing = await db
+      .select()
+      .from(socialLinks)
+      .where(eq(socialLinks.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+
+    if (data.platform && data.platform !== existing.platform) {
+      const collision = await db
+        .select({ id: socialLinks.id })
+        .from(socialLinks)
+        .where(eq(socialLinks.platform, data.platform))
+        .get();
+      if (collision && collision.id !== idParse.id) {
+        return uniqueConflict(c, "platform");
+      }
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const patch: Partial<typeof socialLinks.$inferInsert> = { updatedAt: now };
+    if (data.platform !== undefined) patch.platform = data.platform;
+    if (data.label_zh !== undefined) patch.labelZh = data.label_zh;
+    if (data.label_en !== undefined) patch.labelEn = data.label_en ?? null;
+    if (data.url !== undefined) patch.url = data.url;
+    if (data.icon !== undefined) patch.icon = data.icon ?? null;
+    if (data.sort_order !== undefined) patch.sortOrder = data.sort_order;
+    if (data.active !== undefined) patch.active = data.active ? 1 : 0;
+
+    const updated = await db
+      .update(socialLinks)
+      .set(patch)
+      .where(eq(socialLinks.id, idParse.id))
+      .returning()
+      .get();
+    return respondAdmin(c, socialLinkRowToOut(updated));
+  });
+
+  router.delete("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const db = getDb(c.env);
+    const existing = await db
+      .select({ id: socialLinks.id })
+      .from(socialLinks)
+      .where(eq(socialLinks.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+    await db.delete(socialLinks).where(eq(socialLinks.id, idParse.id)).run();
+    c.header("Cache-Control", "no-store");
+    c.header("Vary", "Origin");
+    return c.body(null, 204);
+  });
+
+  return router;
+}
+
+interface AboutSectionRowOut {
+  id: number;
+  slug: string;
+  title_zh: string;
+  title_en: string | null;
+  body_md: string;
+  sort_order: number;
+  active: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function aboutSectionRowToOut(
+  row: typeof aboutSections.$inferSelect,
+): AboutSectionRowOut {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title_zh: row.titleZh,
+    title_en: row.titleEn,
+    body_md: row.bodyMd,
+    sort_order: row.sortOrder,
+    active: row.active,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+export function buildAdminAboutSectionsRoutes() {
+  const router = new Hono<AppType>();
+  router.use("*", requireAdmin);
+
+  router.post("/", async (c) => {
+    const body = await parseBody(c, adminAboutSectionCreate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+    const db = getDb(c.env);
+
+    const existing = await db
+      .select({ id: aboutSections.id })
+      .from(aboutSections)
+      .where(eq(aboutSections.slug, data.slug))
+      .get();
+    if (existing) return uniqueConflict(c, "slug");
+
+    const now = Math.floor(Date.now() / 1000);
+    const inserted = await db
+      .insert(aboutSections)
+      .values({
+        slug: data.slug,
+        titleZh: data.title_zh,
+        titleEn: data.title_en ?? null,
+        bodyMd: data.body_md,
+        sortOrder: data.sort_order ?? 0,
+        active: data.active === false ? 0 : 1,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+    return respondAdmin(c, aboutSectionRowToOut(inserted), 201);
+  });
+
+  router.put("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const body = await parseBody(c, adminAboutSectionUpdate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+
+    const db = getDb(c.env);
+    const existing = await db
+      .select()
+      .from(aboutSections)
+      .where(eq(aboutSections.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+
+    if (data.slug && data.slug !== existing.slug) {
+      const collision = await db
+        .select({ id: aboutSections.id })
+        .from(aboutSections)
+        .where(eq(aboutSections.slug, data.slug))
+        .get();
+      if (collision && collision.id !== idParse.id) {
+        return uniqueConflict(c, "slug");
+      }
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const patch: Partial<typeof aboutSections.$inferInsert> = { updatedAt: now };
+    if (data.slug !== undefined) patch.slug = data.slug;
+    if (data.title_zh !== undefined) patch.titleZh = data.title_zh;
+    if (data.title_en !== undefined) patch.titleEn = data.title_en ?? null;
+    if (data.body_md !== undefined) patch.bodyMd = data.body_md;
+    if (data.sort_order !== undefined) patch.sortOrder = data.sort_order;
+    if (data.active !== undefined) patch.active = data.active ? 1 : 0;
+
+    const updated = await db
+      .update(aboutSections)
+      .set(patch)
+      .where(eq(aboutSections.id, idParse.id))
+      .returning()
+      .get();
+    return respondAdmin(c, aboutSectionRowToOut(updated));
+  });
+
+  router.delete("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const db = getDb(c.env);
+    const existing = await db
+      .select({ id: aboutSections.id })
+      .from(aboutSections)
+      .where(eq(aboutSections.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+    await db.delete(aboutSections).where(eq(aboutSections.id, idParse.id)).run();
     c.header("Cache-Control", "no-store");
     c.header("Vary", "Origin");
     return c.body(null, 204);
