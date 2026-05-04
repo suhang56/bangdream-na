@@ -62,10 +62,10 @@ describe('<NewsDetail /> shell', () => {
       () => new Promise((r) => { resolveFetch = r }),
     )
     const { container } = renderWithRoute('news-a')
-    expect(container.querySelector('.loading-state')).not.toBeNull()
+    expect(container.querySelector('.news-detail__loading')).not.toBeNull()
     resolveFetch(sampleApiRow)
     await waitFor(() => {
-      expect(container.querySelector('.loading-state')).toBeNull()
+      expect(container.querySelector('.news-detail__loading')).toBeNull()
     })
   })
 
