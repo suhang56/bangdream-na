@@ -6,23 +6,12 @@ import {
 } from '../../lib/uiLanguage.js'
 import {
   ApiError,
-  adminListSettings,
   getAdminSetting,
   putAdminSetting,
   testAdminWebhook,
 } from '../../lib/api.js'
 
 const WEBHOOK_KEY = 'webhook.comment.url'
-const SITE_PREFIX = 'site.'
-
-// Default keys the admin sees even when the row doesn't exist yet, so the
-// UI is discoverable rather than empty.
-const SITE_KEY_TEMPLATE = [
-  'site.communityName',
-  'site.communityNameZh',
-  'site.communityNameJp',
-  'site.discordInvite',
-]
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -32,8 +21,8 @@ function getSnapshot() {
 }
 
 /**
- * Admin "Settings" tab. Combines the comment-webhook URL config with
- * inline editors for `site.*` settings rows.
+ * Admin "Settings" tab. Currently exposes the comment-webhook URL config
+ * + a Test button that fires a sample payload via the Worker.
  *
  * Props:
  *   onAuthExpired?: () => void
@@ -43,56 +32,31 @@ export default function AdminSettings({ onAuthExpired, onForbidden }) {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [loading, setLoading] = useState(true)
   const [value, setValue] = useState('')
-  const [savingStatus, setSavingStatus] = useState('idle')
+  const [savingStatus, setSavingStatus] = useState('idle') // idle|saving|saved|error
   const [savingError, setSavingError] = useState(null)
-  const [testStatus, setTestStatus] = useState('idle')
+  const [testStatus, setTestStatus] = useState('idle') // idle|testing|sent|error
   const [testError, setTestError] = useState(null)
-
-  // Site settings — keyed by full key (e.g. 'site.communityName').
-  const [siteValues, setSiteValues] = useState(() => {
-    const seed = {}
-    for (const k of SITE_KEY_TEMPLATE) seed[k] = ''
-    return seed
-  })
-  const [siteSaveStatus, setSiteSaveStatus] = useState({}) // key → 'saving'|'saved'|'error'
-  const [siteError, setSiteError] = useState(null)
-
-  function handleAuthError(err) {
-    if (err instanceof ApiError) {
-      if (err.status === 401) onAuthExpired?.()
-      else if (err.status === 403) onForbidden?.()
-    }
-  }
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      getAdminSetting(WEBHOOK_KEY),
-      adminListSettings(SITE_PREFIX),
-    ])
-      .then(([webhookRow, siteList]) => {
+    getAdminSetting(WEBHOOK_KEY)
+      .then((row) => {
         if (cancelled) return
-        setValue(webhookRow?.value ?? '')
-        const next = {}
-        for (const k of SITE_KEY_TEMPLATE) next[k] = ''
-        const items = Array.isArray(siteList?.items) ? siteList.items : []
-        for (const row of items) {
-          if (typeof row?.key === 'string') next[row.key] = row.value ?? ''
-        }
-        setSiteValues(next)
+        setValue(row?.value ?? '')
         setLoading(false)
       })
       .catch((err) => {
         if (cancelled) return
-        handleAuthError(err)
+        if (err instanceof ApiError) {
+          if (err.status === 401) onAuthExpired?.()
+          else if (err.status === 403) onForbidden?.()
+        }
         setLoading(false)
       })
     return () => {
       cancelled = true
     }
-    // onAuthExpired/onForbidden are stable callbacks from parent (useCallback)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [onAuthExpired, onForbidden])
 
   async function handleSave(e) {
     e.preventDefault()
@@ -107,7 +71,10 @@ export default function AdminSettings({ onAuthExpired, onForbidden }) {
       }, 3000)
     } catch (err) {
       setSavingStatus('error')
-      handleAuthError(err)
+      if (err instanceof ApiError) {
+        if (err.status === 401) onAuthExpired?.()
+        else if (err.status === 403) onForbidden?.()
+      }
       setSavingError(t('admin.settings.webhookSaveFailed'))
     }
   }
@@ -124,26 +91,11 @@ export default function AdminSettings({ onAuthExpired, onForbidden }) {
       }, 3000)
     } catch (err) {
       setTestStatus('error')
-      handleAuthError(err)
+      if (err instanceof ApiError) {
+        if (err.status === 401) onAuthExpired?.()
+        else if (err.status === 403) onForbidden?.()
+      }
       setTestError(t('admin.settings.webhookTestFail'))
-    }
-  }
-
-  async function handleSaveSite(key) {
-    setSiteError(null)
-    setSiteSaveStatus((cur) => ({ ...cur, [key]: 'saving' }))
-    try {
-      await putAdminSetting(key, siteValues[key] ?? '')
-      setSiteSaveStatus((cur) => ({ ...cur, [key]: 'saved' }))
-      window.setTimeout(() => {
-        setSiteSaveStatus((cur) =>
-          cur[key] === 'saved' ? { ...cur, [key]: 'idle' } : cur,
-        )
-      }, 3000)
-    } catch (err) {
-      setSiteSaveStatus((cur) => ({ ...cur, [key]: 'error' }))
-      handleAuthError(err)
-      setSiteError(t('admin.settings.siteSaveFailed') || 'Save failed / 保存失败')
     }
   }
 
@@ -214,65 +166,6 @@ export default function AdminSettings({ onAuthExpired, onForbidden }) {
           </p>
         ) : null}
       </form>
-
-      <section
-        className="admin-settings__form admin-settings__site"
-        aria-labelledby="admin-site-settings-title"
-      >
-        <h3
-          id="admin-site-settings-title"
-          className="admin-settings__label"
-          style={{ marginTop: '2rem' }}
-        >
-          {t('admin.settings.siteHeading') || '站点信息 / Site metadata'}
-        </h3>
-        <p className="admin-settings__hint">
-          {t('admin.settings.siteHint') ||
-            '社区名称、Discord 邀请等。每行一个 key,保存后立即生效 (15s 缓存)。'}
-        </p>
-        {SITE_KEY_TEMPLATE.map((key) => {
-          const status = siteSaveStatus[key]
-          return (
-            <div key={key} className="admin-settings__row" style={{ marginBottom: '0.5rem' }}>
-              <label className="admin-settings__label" htmlFor={`site-${key}`}>
-                <code>{key}</code>
-              </label>
-              <input
-                id={`site-${key}`}
-                type="text"
-                className="admin-settings__input"
-                value={siteValues[key] ?? ''}
-                onChange={(e) =>
-                  setSiteValues((cur) => ({ ...cur, [key]: e.target.value }))
-                }
-                disabled={loading || status === 'saving'}
-                autoComplete="off"
-                spellCheck="false"
-              />
-              <button
-                type="button"
-                className="admin-settings__btn"
-                onClick={() => handleSaveSite(key)}
-                disabled={loading || status === 'saving'}
-              >
-                {status === 'saving'
-                  ? t('admin.settings.webhookSaving')
-                  : t('admin.settings.webhookSave')}
-              </button>
-              {status === 'saved' ? (
-                <span className="admin-settings__status admin-settings__status--ok">
-                  {t('admin.settings.webhookSaved')}
-                </span>
-              ) : null}
-            </div>
-          )
-        })}
-        {siteError ? (
-          <p className="admin-settings__error" role="alert">
-            {siteError}
-          </p>
-        ) : null}
-      </section>
     </section>
   )
 }

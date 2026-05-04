@@ -4,6 +4,7 @@ import AdminNav from '../components/AdminNav/AdminNav.jsx'
 import AdminTopBar from '../components/AdminTopBar/AdminTopBar.jsx'
 import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
 import AdminSettings from '../components/AdminSettings/AdminSettings.jsx'
+import SiteSettingsTab from '../components/SiteSettingsTab/SiteSettingsTab.jsx'
 import { listD1SchemaKeys, getD1Schema } from '../lib/admin/d1Schemas.js'
 import { fetchMe, logout, ApiError } from '../lib/api.js'
 import { t } from '../lib/uiLanguage.js'
@@ -12,6 +13,7 @@ import './Admin.css'
 
 const DEFAULT_VIEW = 'news'
 const SETTINGS_KEY = '__settings__'
+const SITE_SETTINGS_KEY = '__site_settings__'
 const SAVED_BANNER_TIMEOUT_MS = 5000
 
 const AUTH_STATES = Object.freeze({
@@ -28,12 +30,16 @@ function navItems() {
   }))
   return [
     ...schemas,
+    {
+      key: SITE_SETTINGS_KEY,
+      title: t('admin.siteSettings.tabTitle') || '站点信息',
+    },
     { key: SETTINGS_KEY, title: t('admin.settings.tabTitle') },
   ]
 }
 
 function isValidNavKey(key) {
-  if (key === SETTINGS_KEY) return true
+  if (key === SETTINGS_KEY || key === SITE_SETTINGS_KEY) return true
   return listD1SchemaKeys().includes(key)
 }
 
@@ -180,6 +186,8 @@ export default function Admin() {
 
   // ADMIN
   const showSettings = activeKey === SETTINGS_KEY
+  const showSiteSettings = activeKey === SITE_SETTINGS_KEY
+  const showEditor = !showSettings && !showSiteSettings
   return (
     <div className="admin-shell">
       <AdminNav
@@ -190,7 +198,7 @@ export default function Admin() {
       />
       <div className="admin-main-column">
         <AdminTopBar
-          schemaKey={showSettings ? null : activeKey}
+          schemaKey={showEditor ? activeKey : null}
           editing={null}
           saveStatus={saveStatus}
           openPR={null}
@@ -198,6 +206,11 @@ export default function Admin() {
         <main className="admin-content" key={activeKey}>
           {showSettings ? (
             <AdminSettings
+              onAuthExpired={handleAuthExpired}
+              onForbidden={handleForbidden}
+            />
+          ) : showSiteSettings ? (
+            <SiteSettingsTab
               onAuthExpired={handleAuthExpired}
               onForbidden={handleForbidden}
             />
