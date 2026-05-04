@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /**
  * Escape a value for embedding in SQL.
@@ -39,19 +42,30 @@ export function executeD1(sql, { remote = true, dryRun = false } = {}) {
   }
 
   const targetFlag = remote ? '--remote' : '--local';
-  const result = spawnSync(
-    'npx',
-    ['wrangler', 'd1', 'execute', 'bangdream-na-content', targetFlag, '--command', sql],
-    { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  );
-
-  if (result.status !== 0) {
-    const stderr = result.stderr ?? '';
-    console.error(`  [D1] FAILED (exit ${result.status}): ${stderr}`);
-    throw new Error(`wrangler d1 execute failed: exit ${result.status}\n${stderr}`);
+  // Write SQL to temp .sql file to avoid all shell-quoting issues across platforms.
+  // wrangler d1 execute --file reads the file directly, no arg parsing of SQL string.
+  const tmp = mkdtempSync(join(tmpdir(), 'd1mig-'));
+  const sqlFile = join(tmp, 'q.sql');
+  writeFileSync(sqlFile, sql, 'utf8');
+  try {
+    const wranglerJsUrl = new URL('../../../worker/node_modules/wrangler/bin/wrangler.js', import.meta.url);
+    const wranglerJsPath = process.platform === 'win32'
+      ? wranglerJsUrl.pathname.replace(/^\//, '').replace(/\//g, '\\')
+      : wranglerJsUrl.pathname;
+    const result = spawnSync(
+      process.execPath,
+      [wranglerJsPath, 'd1', 'execute', 'bangdream-na-content', targetFlag, '--file', sqlFile],
+      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+    );
+    if (result.status !== 0) {
+      const stderr = result.stderr ?? '';
+      console.error(`  [D1] FAILED (exit ${result.status}): ${stderr}`);
+      throw new Error(`wrangler d1 execute failed: exit ${result.status}\n${stderr}`);
+    }
+    return { executed: true };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
-
-  return { executed: true };
 }
 
 /**

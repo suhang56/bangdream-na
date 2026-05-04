@@ -21,9 +21,13 @@ function mimeForPath(filePath) {
  */
 export function r2KeyExists(r2Key, { dryRun = false } = {}) {
   if (dryRun) return false;
+  const wranglerJs = new URL('../../../worker/node_modules/wrangler/bin/wrangler.js', import.meta.url);
+  const wranglerJsPath = process.platform === 'win32'
+    ? wranglerJs.pathname.replace(/^\//, '').replace(/\//g, '\\')
+    : wranglerJs.pathname;
   const result = spawnSync(
-    'npx',
-    ['wrangler', 'r2', 'object', 'head', `bangdream-na-images/${r2Key}`, '--remote'],
+    process.execPath,
+    [wranglerJsPath, 'r2', 'object', 'head', `bangdream-na-images/${r2Key}`],
     { encoding: 'utf8' },
   );
   // wrangler exits 0 if found, non-zero if not found
@@ -58,13 +62,17 @@ export function uploadToR2(localPath, r2Key, { dryRun = false, skipIfExists = tr
   }
 
   console.log(`  [R2] uploading: ${localPath} → ${r2Key}`);
+  const wranglerPutJsUrl = new URL('../../../worker/node_modules/wrangler/bin/wrangler.js', import.meta.url);
+  const wranglerPutJsPath = process.platform === 'win32'
+    ? wranglerPutJsUrl.pathname.replace(/^\//, '').replace(/\//g, '\\')
+    : wranglerPutJsUrl.pathname;
   const result = spawnSync(
-    'npx',
+    process.execPath,
     [
-      'wrangler', 'r2', 'object', 'put',
+      wranglerPutJsPath,
+      'r2', 'object', 'put',
       `bangdream-na-images/${r2Key}`,
       '--file', localPath,
-      '--remote',
       '--content-type', contentType,
       '--cache-control', 'public, max-age=31536000, immutable',
     ],
