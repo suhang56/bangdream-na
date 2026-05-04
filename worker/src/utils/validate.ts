@@ -112,6 +112,13 @@ export const adminEventCreate = z.object({
 
 export const adminEventUpdate = adminEventCreate.partial();
 
+export const memberRoleEnum = z.enum([
+  "organizer",
+  "member",
+  "alumnus",
+  "cover-band-lead",
+]);
+
 export const adminMemberCreate = z.object({
   display_name: z.string().min(1).max(120),
   city: z.string().max(120).nullish(),
@@ -119,9 +126,20 @@ export const adminMemberCreate = z.object({
   oshi_band: z.string().max(120).nullish(),
   avatar_url: z.string().url().max(1000).nullish(),
   expedition_member: z.boolean().optional(),
+  role: memberRoleEnum.default("member"),
 });
 
-export const adminMemberUpdate = adminMemberCreate.partial();
+// PUT must NOT default role — omitted means "leave unchanged".
+// Hand-roll partial so role becomes optional WITHOUT a default.
+export const adminMemberUpdate = z.object({
+  display_name: z.string().min(1).max(120).optional(),
+  city: z.string().max(120).nullish(),
+  oshi_character: z.string().max(120).nullish(),
+  oshi_band: z.string().max(120).nullish(),
+  avatar_url: z.string().url().max(1000).nullish(),
+  expedition_member: z.boolean().optional(),
+  role: memberRoleEnum.optional(),
+});
 
 export const adminCategoryCreate = z.object({
   slug: z

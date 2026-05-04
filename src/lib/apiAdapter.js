@@ -91,11 +91,10 @@ export function adaptEventRow(apiRow) {
  * Map API member row → legacy JSON member shape.
  * Legacy: { id, name, role, oshiBand, oshiCharacter, pronouns, bio, city }
  * API:    { id, display_name, city, oshi_character, oshi_band, avatar_url,
- *           expedition_member, created_at, updated_at }
+ *           expedition_member, role, created_at, updated_at }
  *
- * `role` is hardcoded to 'member' since R-phase D1 schema doesn't carry
- * it (member roster is presented uniformly today). Reviewer/admin tier
- * can extend in a later phase.
+ * Falls back to 'member' for older API responses lacking role
+ * (pre-R5.5 0003 migration).
  */
 export function adaptMemberRow(apiRow) {
   if (!apiRow || typeof apiRow !== 'object') return null
@@ -105,7 +104,7 @@ export function adaptMemberRow(apiRow) {
   return {
     id,
     name: apiRow.display_name ?? '',
-    role: 'member',
+    role: apiRow.role ?? 'member',
     oshiBand: apiRow.oshi_band ?? null,
     oshiCharacter: apiRow.oshi_character ?? null,
     pronouns: null,

@@ -100,6 +100,7 @@ interface MemberRowOut {
   oshi_band: string | null;
   avatar_url: string | null;
   expedition_member: number;
+  role: "organizer" | "member" | "alumnus" | "cover-band-lead";
   created_at: number;
   updated_at: number;
 }
@@ -113,6 +114,7 @@ function memberRowToOut(row: typeof members.$inferSelect): MemberRowOut {
     oshi_band: row.oshiBand,
     avatar_url: row.avatarUrl,
     expedition_member: row.expeditionMember,
+    role: row.role,
     created_at: row.createdAt,
     updated_at: row.updatedAt,
   };

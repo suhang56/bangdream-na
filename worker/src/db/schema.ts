@@ -66,6 +66,11 @@ export const members = sqliteTable("members", {
   avatarUrl: text("avatar_url"),
   expeditionMember: integer("expedition_member").notNull().default(0),
   externalId: text("external_id"),
+  role: text("role", {
+    enum: ["organizer", "member", "alumnus", "cover-band-lead"],
+  })
+    .notNull()
+    .default("member"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });

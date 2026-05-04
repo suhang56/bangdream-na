@@ -17,11 +17,17 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  checkSlug,
   ApiError,
 } from '../../lib/api.js'
 import AdminTable from '../AdminTable/AdminTable.jsx'
 import AdminEmptyState from '../AdminEmptyState/AdminEmptyState.jsx'
 import AdminAssetUploader from '../AdminAssetUploader/AdminAssetUploader.jsx'
+import { useAutosave } from '../../lib/admin/useAutosave.js'
+import { mergeTags } from '../../lib/admin/parseTags.js'
+import { extractCover } from '../../lib/admin/extractCover.js'
+import { generateSlug } from '../../lib/admin/slugify.js'
+import { t } from '../../lib/uiLanguage.js'
 import './AdminEditor.css'
 
 const LIST_FETCHERS = {
@@ -137,82 +143,27 @@ export default function AdminEditor({
 
   // ── Edit / create view ─────────────────────────────────────────────────
   if (editing != null && draft != null) {
-    const errors = validateForm(schema, draft)
     const isNew = editing && editing.__new === true
-
     return (
-      <section className="admin-editor">
-        <header className="admin-editor-header">
-          <button
-            type="button"
-            className="admin-editor-back"
-            onClick={() => {
-              setEditing(null)
-              setDraft(null)
-              setSaveError(null)
-            }}
-          >
-            ← 返回 {schema.title}
-          </button>
-          <h2>
-            {isNew ? `新建${schema.title}` : `编辑${schema.title}`}
-          </h2>
-        </header>
-        {saveError && (
-          <p className="admin-editor-error" role="alert">
-            {saveError}
-          </p>
-        )}
-        <FormBody schema={schema} draft={draft} setDraft={setDraft} errors={errors} />
-        <div className="admin-editor-actions">
-          <button
-            type="button"
-            className="admin-editor-btn primary"
-            disabled={saving || errors.length > 0}
-            onClick={async () => {
-              setSaving(true)
-              setSaveError(null)
-              emit({ status: 'saving' })
-              try {
-                const ops = CRUD[schema.key]
-                let saved
-                if (isNew) {
-                  const body = schema.mapFormToCreate(draft)
-                  saved = await ops.create(body)
-                } else {
-                  const body = schema.mapFormToUpdate(draft)
-                  saved = await ops.update(editing.id, body)
-                }
-                emit({ status: 'saved', id: saved?.id })
-                setEditing(null)
-                setDraft(null)
-                await load()
-              } catch (err) {
-                if (handleAuthError(err)) return
-                const msg = translateApiError(err)
-                setSaveError(msg)
-                emit({ status: 'error', errorMessage: msg })
-              } finally {
-                setSaving(false)
-              }
-            }}
-          >
-            {saving ? '保存中…' : '保存'}
-          </button>
-          <button
-            type="button"
-            className="admin-editor-btn"
-            onClick={() => {
-              setEditing(null)
-              setDraft(null)
-              setSaveError(null)
-            }}
-            disabled={saving}
-          >
-            取消
-          </button>
-        </div>
-      </section>
+      <EditView
+        schema={schema}
+        editing={editing}
+        isNew={isNew}
+        draft={draft}
+        setDraft={setDraft}
+        saving={saving}
+        setSaving={setSaving}
+        saveError={saveError}
+        setSaveError={setSaveError}
+        emit={emit}
+        load={load}
+        handleAuthError={handleAuthError}
+        onClose={() => {
+          setEditing(null)
+          setDraft(null)
+          setSaveError(null)
+        }}
+      />
     )
   }
 
@@ -305,9 +256,248 @@ export default function AdminEditor({
   )
 }
 
-function FormBody({ schema, draft, setDraft, errors }) {
-  function setField(key, value) {
+/**
+ * R5.5 EditView — wraps the form with autosave + slug auto-fill +
+ * pre-submit slug check + tag preview + cover auto-detect.
+ *
+ * Schemas without `slug` / `body_md` / `tags_csv` (e.g. members, categories)
+ * gracefully skip the relevant features — guards check field existence.
+ */
+function EditView({
+  schema,
+  editing,
+  isNew,
+  draft,
+  setDraft,
+  saving,
+  setSaving,
+  saveError,
+  setSaveError,
+  emit,
+  load,
+  handleAuthError,
+  onClose,
+}) {
+  const errors = validateForm(schema, draft)
+
+  // Autosave hook — debounces draft to localStorage every 1s.
+  const postId = isNew ? null : editing?.id
+  const {
+    draft: storedDraft,
+    pending: autosavePending,
+    restore: restoreDraft,
+    discard: discardDraft,
+    clear: clearAutosave,
+  } = useAutosave({ kind: schema.key, postId, formState: draft })
+
+  // Slug auto-fill: track whether user has manually edited slug; if not,
+  // auto-fill from slugify(title_zh) on every title change.
+  const slugUserEditedRef = useRef(!isNew && Boolean(draft.slug))
+
+  // Auto-fill slug when title changes and user hasn't edited slug.
+  // Only relevant for kinds that have a slug field (news/events/categories).
+  const hasSlugField = schema.fields.some((f) => f.key === 'slug')
+  const hasTitleField = schema.fields.some((f) => f.key === 'title_zh')
+  useEffect(() => {
+    if (!hasSlugField || !hasTitleField) return
+    if (slugUserEditedRef.current) return
+    const title = draft.title_zh ?? ''
+    if (!title) return
+    const generated = generateSlug(title)
+    if (draft.slug === generated) return
+    setDraft({ ...draft, slug: generated })
+    // setDraft is intentionally not in deps — using current `draft` snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.title_zh, hasSlugField, hasTitleField])
+
+  // Auto-detect cover from body — only when hero_image_url is empty and
+  // body has changed.
+  const hasBodyField = schema.fields.some((f) => f.key === 'body_md')
+  const hasHeroField = schema.fields.some((f) => f.key === 'hero_image_url')
+  const [heroAutoDetected, setHeroAutoDetected] = useState(false)
+  useEffect(() => {
+    if (!hasBodyField || !hasHeroField) return
+    if (draft.hero_image_url) return
+    const url = extractCover(draft.body_md ?? '')
+    if (!url) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHeroAutoDetected(true)
+    setDraft({ ...draft, hero_image_url: url })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.body_md, hasBodyField, hasHeroField])
+
+  // Live tag preview (merge tags_csv + #tags from body).
+  const hasTagsField = schema.fields.some((f) => f.key === 'tags_csv')
+  const previewTags = useMemo(() => {
+    if (!hasTagsField) return []
+    return mergeTags(draft.tags_csv, draft.body_md ?? '')
+  }, [draft.tags_csv, draft.body_md, hasTagsField])
+
+  // Slug live-check (debounced) — only for news kind.
+  const [slugCheck, setSlugCheck] = useState({ status: 'idle', available: null })
+  const slugCheckTokenRef = useRef(0)
+  useEffect(() => {
+    if (schema.key !== 'news') return undefined
+    if (!draft.slug) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSlugCheck({ status: 'idle', available: null })
+      return undefined
+    }
+    // Skip check when slug equals existing record's slug (no conflict possible)
+    if (!isNew && editing?.slug === draft.slug) {
+      setSlugCheck({ status: 'idle', available: true })
+      return undefined
+    }
+    const token = ++slugCheckTokenRef.current
+    setSlugCheck({ status: 'checking', available: null })
+    const handle = setTimeout(async () => {
+      try {
+        const res = await checkSlug('news', draft.slug)
+        if (slugCheckTokenRef.current !== token) return
+        setSlugCheck({ status: 'done', available: res.available !== false })
+      } catch (err) {
+        if (slugCheckTokenRef.current !== token) return
+        if (handleAuthError(err)) return
+        setSlugCheck({ status: 'idle', available: null })
+      }
+    }, 400)
+    return () => clearTimeout(handle)
+  }, [draft.slug, schema.key, isNew, editing?.slug, handleAuthError])
+
+  const slugTaken = slugCheck.status === 'done' && slugCheck.available === false
+
+  function handleFieldChange(key, value) {
+    if (key === 'slug') slugUserEditedRef.current = true
     setDraft({ ...draft, [key]: value })
+  }
+
+  function handleRestore() {
+    const value = restoreDraft()
+    if (value && typeof value === 'object') {
+      setDraft(value)
+      // After restore, slug is whatever the draft had — treat it as user-edited
+      slugUserEditedRef.current = true
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveError(null)
+    emit({ status: 'saving' })
+    try {
+      const ops = CRUD[schema.key]
+      let saved
+      if (isNew) {
+        const body = schema.mapFormToCreate(draft)
+        saved = await ops.create(body)
+      } else {
+        const body = schema.mapFormToUpdate(draft)
+        saved = await ops.update(editing.id, body)
+      }
+      clearAutosave()
+      emit({ status: 'saved', id: saved?.id })
+      onClose()
+      await load()
+    } catch (err) {
+      if (handleAuthError(err)) return
+      const msg = translateApiError(err)
+      setSaveError(msg)
+      emit({ status: 'error', errorMessage: msg })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="admin-editor">
+      <header className="admin-editor-header">
+        <button type="button" className="admin-editor-back" onClick={onClose}>
+          ← 返回 {schema.title}
+        </button>
+        <h2>
+          {isNew ? `新建${schema.title}` : `编辑${schema.title}`}
+          <span
+            className={`admin-editor-autosave${autosavePending ? ' is-saving' : ''}`}
+            aria-live="polite"
+          >
+            {autosavePending ? t('admin.draft.saving') : t('admin.draft.savedAt')}
+          </span>
+        </h2>
+      </header>
+      {storedDraft && (
+        <div className="admin-editor-draft-banner" role="status">
+          <span>{t('admin.draft.restore')}</span>
+          <div className="admin-editor-draft-banner-actions">
+            <button
+              type="button"
+              className="admin-editor-btn primary"
+              onClick={handleRestore}
+            >
+              {t('admin.draft.restoreBtn')}
+            </button>
+            <button
+              type="button"
+              className="admin-editor-btn"
+              onClick={discardDraft}
+            >
+              {t('admin.draft.discardBtn')}
+            </button>
+          </div>
+        </div>
+      )}
+      {saveError && (
+        <p className="admin-editor-error" role="alert">
+          {saveError}
+        </p>
+      )}
+      <FormBody
+        schema={schema}
+        draft={draft}
+        setDraft={setDraft}
+        errors={errors}
+        onFieldChange={handleFieldChange}
+        slugCheck={slugCheck}
+        previewTags={previewTags}
+        autoDetectedCover={heroAutoDetected}
+      />
+      <div className="admin-editor-actions">
+        <button
+          type="button"
+          className="admin-editor-btn primary"
+          disabled={saving || errors.length > 0 || slugTaken}
+          onClick={handleSave}
+        >
+          {saving ? '保存中…' : '保存'}
+        </button>
+        <button
+          type="button"
+          className="admin-editor-btn"
+          onClick={onClose}
+          disabled={saving}
+        >
+          取消
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function FormBody({
+  schema,
+  draft,
+  setDraft,
+  errors,
+  onFieldChange,
+  slugCheck,
+  previewTags,
+  autoDetectedCover,
+}) {
+  function setField(key, value) {
+    if (typeof onFieldChange === 'function') {
+      onFieldChange(key, value)
+    } else {
+      setDraft({ ...draft, [key]: value })
+    }
   }
   function findError(key) {
     return errors.find((e) => e.key === key)?.message ?? null
@@ -323,13 +513,16 @@ function FormBody({ schema, draft, setDraft, errors }) {
           onChange={(v) => setField(field.key, v)}
           error={findError(field.key)}
           slugBase={draft.title_zh || draft.display_name || draft.display_zh || ''}
+          slugCheck={slugCheck}
+          previewTags={previewTags}
+          autoDetectedCover={autoDetectedCover}
         />
       ))}
     </div>
   )
 }
 
-function FormField({ field, value, onChange, error, slugBase }) {
+function FormField({ field, value, onChange, error, slugBase, slugCheck, previewTags, autoDetectedCover }) {
   const id = `field-${field.key}`
   let input
   switch (field.type) {
@@ -430,13 +623,37 @@ function FormField({ field, value, onChange, error, slugBase }) {
         />
       )
   }
+  // R5.5 hints rendered below the input
+  const isSlug = field.key === 'slug'
+  const isTags = field.key === 'tags_csv'
+  const isHero = field.key === 'hero_image_url'
+  const slugStatus = isSlug && slugCheck ? slugCheck : null
+  const slugError = slugStatus && slugStatus.status === 'done' && slugStatus.available === false
+  const slugChecking = slugStatus && slugStatus.status === 'checking'
+
+  const rowClasses = [
+    'admin-form-row',
+    error ? 'has-error' : '',
+    slugError ? 'is-slug-error' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className={`admin-form-row ${error ? 'has-error' : ''}`}>
+    <div className={rowClasses}>
       <label className="admin-form-label" htmlFor={id}>
         {field.label}
         {field.required && <span aria-hidden="true" className="admin-form-required"> *</span>}
       </label>
       {input}
+      {isSlug && slugError && (
+        <p className="admin-form-slug-status is-error" role="alert">
+          {t('admin.slug.taken')}
+        </p>
+      )}
+      {isSlug && !slugError && slugChecking && (
+        <p className="admin-form-slug-status">{t('admin.slug.checking')}</p>
+      )}
       {error ? (
         <p className="admin-form-error" role="alert">
           {error}
@@ -444,15 +661,30 @@ function FormField({ field, value, onChange, error, slugBase }) {
       ) : field.help ? (
         <p className="admin-form-help">{field.help}</p>
       ) : null}
+      {isTags && Array.isArray(previewTags) && previewTags.length > 0 && (
+        <>
+          <p className="admin-form-help">{t('admin.tags.parsed')}</p>
+          <div className="admin-form-tag-chips" role="list">
+            {previewTags.map((tag) => (
+              <span key={tag} role="listitem" className="admin-form-tag-chip">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+      {isHero && autoDetectedCover && value && (
+        <p className="admin-form-cover-detected">{t('admin.cover.detected')}</p>
+      )}
     </div>
   )
 }
 
 function isoToLocal(iso) {
   if (!iso || typeof iso !== 'string') return ''
-  const t = Date.parse(iso)
-  if (!Number.isFinite(t)) return ''
-  const d = new Date(t)
+  const ts = Date.parse(iso)
+  if (!Number.isFinite(ts)) return ''
+  const d = new Date(ts)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
