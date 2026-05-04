@@ -28,6 +28,12 @@ import {
   adminListEvents,
   adminListMembers,
   adminListCategories,
+  fetchComments,
+  postComment,
+  deleteComment,
+  getAdminSetting,
+  putAdminSetting,
+  testAdminWebhook,
   ApiError,
   API_BASE,
 } from './api.js'
@@ -455,6 +461,184 @@ describe('api.js', () => {
       await fetchCategories()
       await fetchCategories()
       expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('comments wrappers (R5.7)', () => {
+    describe('fetchComments', () => {
+      it('GETs /api/comments with credentials:omit + correct query string', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ items: [], total: 0 }))
+        const out = await fetchComments({ targetKind: 'news', targetId: 42 })
+        expect(out).toEqual({ items: [], total: 0 })
+        const [url, init] = fetchMock.mock.calls[0]
+        expect(url).toContain('targetKind=news')
+        expect(url).toContain('targetId=42')
+        expect(init.credentials).toBe('omit')
+      })
+
+      it('passes optional limit', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ items: [], total: 0 }))
+        await fetchComments({ targetKind: 'news', targetId: 1, limit: 50 })
+        const [url] = fetchMock.mock.calls[0]
+        expect(url).toContain('limit=50')
+      })
+
+      it('throws ApiError on 5xx', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ error: 'broken' }, 500))
+        await expect(
+          fetchComments({ targetKind: 'news', targetId: 1 }),
+        ).rejects.toBeInstanceOf(ApiError)
+      })
+    })
+
+    describe('postComment', () => {
+      it('POSTs JSON body, credentials:include, returns parsed row', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ id: 99, body: 'hi' }, 201))
+        const row = await postComment({
+          targetKind: 'news',
+          targetId: 42,
+          body: 'hi',
+        })
+        expect(row.id).toBe(99)
+        const [url, init] = fetchMock.mock.calls[0]
+        expect(url).toContain('/api/comments')
+        expect(init.method).toBe('POST')
+        expect(init.credentials).toBe('include')
+        expect(init.headers['Content-Type']).toBe('application/json')
+        const sent = JSON.parse(init.body)
+        expect(sent).toEqual({
+          target_kind: 'news',
+          target_id: 42,
+          body: 'hi',
+        })
+      })
+
+      it('includes parent_id when provided', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ id: 100 }, 201))
+        await postComment({
+          targetKind: 'news',
+          targetId: 1,
+          body: 'reply',
+          parentId: 5,
+        })
+        const sent = JSON.parse(fetchMock.mock.calls[0][1].body)
+        expect(sent.parent_id).toBe(5)
+      })
+
+      it('omits parent_id when null/undefined', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ id: 1 }, 201))
+        await postComment({ targetKind: 'news', targetId: 1, body: 'a', parentId: null })
+        const sent = JSON.parse(fetchMock.mock.calls[0][1].body)
+        expect(sent.parent_id).toBeUndefined()
+      })
+
+      it('throws ApiError with code rate_limited on 429', async () => {
+        fetchMock.mockResolvedValue(
+          jsonResponse({ error: 'rate_limited', retry_after: 10 }, 429),
+        )
+        try {
+          await postComment({ targetKind: 'news', targetId: 1, body: 'x' })
+          throw new Error('should not reach')
+        } catch (err) {
+          expect(err).toBeInstanceOf(ApiError)
+          expect(err.status).toBe(429)
+          expect(err.code).toBe('rate_limited')
+        }
+      })
+
+      it('throws ApiError on 401', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ error: 'unauthorized' }, 401))
+        await expect(
+          postComment({ targetKind: 'news', targetId: 1, body: 'x' }),
+        ).rejects.toBeInstanceOf(ApiError)
+      })
+    })
+
+    describe('deleteComment', () => {
+      it('DELETEs with credentials:include, returns null on 204', async () => {
+        fetchMock.mockResolvedValue(emptyResponse(204))
+        const out = await deleteComment(7)
+        expect(out).toBeNull()
+        const [url, init] = fetchMock.mock.calls[0]
+        expect(url).toContain('/api/comments/7')
+        expect(init.method).toBe('DELETE')
+        expect(init.credentials).toBe('include')
+      })
+
+      it('throws ApiError on 403', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ error: 'forbidden' }, 403))
+        await expect(deleteComment(7)).rejects.toBeInstanceOf(ApiError)
+      })
+    })
+  })
+
+  describe('admin settings wrappers (R5.7)', () => {
+    it('getAdminSetting returns body on 200', async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ key: 'webhook.comment.url', value: 'https://x.com', updated_at: 1 }),
+      )
+      const row = await getAdminSetting('webhook.comment.url')
+      expect(row.value).toBe('https://x.com')
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toContain('/api/admin/settings/webhook.comment.url')
+      expect(init.credentials).toBe('include')
+    })
+
+    it('getAdminSetting returns null on 404', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'not_found' }, 404))
+      const out = await getAdminSetting('webhook.comment.url')
+      expect(out).toBeNull()
+    })
+
+    it('getAdminSetting URL-encodes the key', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ key: 'a b', value: 'v', updated_at: 0 }))
+      await getAdminSetting('webhook.x')
+      const [url] = fetchMock.mock.calls[0]
+      expect(url).toContain('/api/admin/settings/webhook.x')
+    })
+
+    it('putAdminSetting sends JSON body and returns row', async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ key: 'webhook.comment.url', value: 'https://y.com', updated_at: 2 }),
+      )
+      const out = await putAdminSetting('webhook.comment.url', 'https://y.com')
+      expect(out.value).toBe('https://y.com')
+      const [, init] = fetchMock.mock.calls[0]
+      expect(init.method).toBe('PUT')
+      expect(JSON.parse(init.body)).toEqual({ value: 'https://y.com' })
+    })
+
+    it('putAdminSetting throws ApiError on 400', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'bad_request' }, 400))
+      await expect(
+        putAdminSetting('webhook.comment.url', 'bad'),
+      ).rejects.toBeInstanceOf(ApiError)
+    })
+
+    it('testAdminWebhook with no args sends bare POST', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ ok: true, url: 'https://x.com' }))
+      const out = await testAdminWebhook()
+      expect(out.ok).toBe(true)
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toContain('/api/admin/settings/test-webhook')
+      expect(init.method).toBe('POST')
+      expect(init.credentials).toBe('include')
+      expect(init.body).toBeUndefined()
+    })
+
+    it('testAdminWebhook with url override sends JSON body', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ ok: true, url: 'https://x.com' }))
+      await testAdminWebhook({ url: 'https://x.com/hook' })
+      const [, init] = fetchMock.mock.calls[0]
+      expect(init.headers['Content-Type']).toBe('application/json')
+      expect(JSON.parse(init.body)).toEqual({ url: 'https://x.com/hook' })
+    })
+
+    it('testAdminWebhook throws ApiError on 422', async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ error: 'webhook_url_invalid_or_missing' }, 422),
+      )
+      await expect(testAdminWebhook()).rejects.toBeInstanceOf(ApiError)
     })
   })
 })

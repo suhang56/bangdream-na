@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
+import Comments from '../components/Comments/Comments.jsx'
 import { fetchNewsBySlug } from '../lib/api.js'
 import { adaptNewsRow } from '../lib/apiAdapter.js'
 import { formatDate } from '../lib/dateFormat.js'
@@ -56,6 +57,7 @@ export default function NewsDetail() {
 
   const initialStatus = decodedId ? 'loading' : 'notfound'
   const [item, setItem] = useState(null)
+  const [rawId, setRawId] = useState(null)
   const [status, setStatus] = useState(initialStatus)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -67,10 +69,12 @@ export default function NewsDetail() {
         if (cancelled) return
         if (row === null) {
           setItem(null)
+          setRawId(null)
           setStatus('notfound')
           return
         }
         setItem(adaptNewsRow(row))
+        setRawId(typeof row.id === 'number' ? row.id : null)
         setStatus('ready')
       })
       .catch(() => {
@@ -152,6 +156,9 @@ export default function NewsDetail() {
         </div>
         <h1 className="news-detail__title">{item.title ?? ''}</h1>
         <div className="news-detail__body">{renderBody(item.body)}</div>
+        {typeof rawId === 'number' ? (
+          <Comments targetKind="news" targetId={rawId} />
+        ) : null}
       </div>
     </main>
   )

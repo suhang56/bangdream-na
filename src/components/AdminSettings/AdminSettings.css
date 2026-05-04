@@ -1,0 +1,105 @@
+.admin-settings {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.admin-settings__header {
+  margin-bottom: 1.25rem;
+}
+
+.admin-settings__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary, #111827);
+}
+
+.admin-settings__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.admin-settings__label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary, #111827);
+}
+
+.admin-settings__input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary, #111827);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 0.4rem;
+  box-sizing: border-box;
+}
+
+.admin-settings__input:focus {
+  outline: 2px solid var(--accent, #6366f1);
+  outline-offset: 1px;
+}
+
+.admin-settings__hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0.25rem 0 0;
+}
+
+.admin-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  align-items: center;
+}
+
+.admin-settings__btn {
+  appearance: none;
+  background: var(--accent, #6366f1);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.admin-settings__btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.admin-settings__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-settings__btn--secondary {
+  background: var(--surface-2, #f3f4f6);
+  color: var(--text-primary, #111827);
+  border: 1px solid var(--border, #d1d5db);
+}
+
+.admin-settings__status {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.admin-settings__status--ok {
+  color: var(--accent-strong, #16a34a);
+}
+
+.admin-settings__error {
+  color: var(--danger, #dc2626);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}

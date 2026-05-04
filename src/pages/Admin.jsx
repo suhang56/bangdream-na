@@ -3,11 +3,15 @@ import AdminLogin from '../components/AdminLogin/AdminLogin.jsx'
 import AdminNav from '../components/AdminNav/AdminNav.jsx'
 import AdminTopBar from '../components/AdminTopBar/AdminTopBar.jsx'
 import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
+import AdminSettings from '../components/AdminSettings/AdminSettings.jsx'
 import { listD1SchemaKeys, getD1Schema } from '../lib/admin/d1Schemas.js'
 import { fetchMe, logout, ApiError } from '../lib/api.js'
+import { t } from '../lib/uiLanguage.js'
+import '../components/AdminSettings/AdminSettings.css'
 import './Admin.css'
 
 const DEFAULT_VIEW = 'news'
+const SETTINGS_KEY = '__settings__'
 const SAVED_BANNER_TIMEOUT_MS = 5000
 
 const AUTH_STATES = Object.freeze({
@@ -18,7 +22,19 @@ const AUTH_STATES = Object.freeze({
 })
 
 function navItems() {
-  return listD1SchemaKeys().map((k) => ({ key: k, title: getD1Schema(k).title }))
+  const schemas = listD1SchemaKeys().map((k) => ({
+    key: k,
+    title: getD1Schema(k).title,
+  }))
+  return [
+    ...schemas,
+    { key: SETTINGS_KEY, title: t('admin.settings.tabTitle') },
+  ]
+}
+
+function isValidNavKey(key) {
+  if (key === SETTINGS_KEY) return true
+  return listD1SchemaKeys().includes(key)
 }
 
 export default function Admin() {
@@ -108,7 +124,7 @@ export default function Admin() {
   }, [])
 
   function handleSelect(key) {
-    if (!listD1SchemaKeys().includes(key)) return
+    if (!isValidNavKey(key)) return
     setActiveKey(key)
     setSaveStatus({ status: 'idle' })
   }
@@ -163,6 +179,7 @@ export default function Admin() {
   }
 
   // ADMIN
+  const showSettings = activeKey === SETTINGS_KEY
   return (
     <div className="admin-shell">
       <AdminNav
@@ -173,18 +190,25 @@ export default function Admin() {
       />
       <div className="admin-main-column">
         <AdminTopBar
-          schemaKey={activeKey}
+          schemaKey={showSettings ? null : activeKey}
           editing={null}
           saveStatus={saveStatus}
           openPR={null}
         />
         <main className="admin-content" key={activeKey}>
-          <AdminEditor
-            schemaKey={activeKey}
-            onAuthExpired={handleAuthExpired}
-            onForbidden={handleForbidden}
-            onSaveStatus={setSaveStatus}
-          />
+          {showSettings ? (
+            <AdminSettings
+              onAuthExpired={handleAuthExpired}
+              onForbidden={handleForbidden}
+            />
+          ) : (
+            <AdminEditor
+              schemaKey={activeKey}
+              onAuthExpired={handleAuthExpired}
+              onForbidden={handleForbidden}
+              onSaveStatus={setSaveStatus}
+            />
+          )}
         </main>
       </div>
     </div>
