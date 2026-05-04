@@ -22,9 +22,8 @@ jobs:
         run: |
           NAME="bangdream-na-api-pr${{ github.event.pull_request.number }}"
           npx wrangler deploy --name "$NAME"
-          ACCOUNT=$(npx wrangler whoami 2>/dev/null | grep -oP '(?<=Account ID: )\S+' || echo "unknown")
-          echo "url=https://${NAME}.${ACCOUNT}.workers.dev" >> $GITHUB_OUTPUT
-          echo "name=${NAME}" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "url=https://${NAME}.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev" >> $GITHUB_OUTPUT
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,6 +31,7 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            const url = '${{ steps.deploy.outputs.url }}';
             const name = '${{ steps.deploy.outputs.name }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -41,8 +41,8 @@ jobs:
                 `**Worker preview deployed:** \`${name}\``,
                 ``,
                 `Test endpoints:`,
-                `- \`curl https://${name}.<account>.workers.dev/api/healthz\``,
-                `- \`curl https://${name}.<account>.workers.dev/api/news\``,
+                `- \`curl ${url}/api/healthz\``,
+                `- \`curl ${url}/api/news\``,
                 ``,
                 `> **WARNING: this preview shares the production D1 database and R2 bucket with \`api.bangdream.org\`.**`,
                 `> Any write operations (POST/PUT/DELETE via admin endpoints) from this preview **will mutate production data**.`,
