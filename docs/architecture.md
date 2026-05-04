@@ -1,10 +1,12 @@
 # `bangdream-na` Phase 1 — Architecture Specification
 
+> **Historical document.** This was the Phase 1 spec before the project moved to Cloudflare Pages + Workers + D1 + R2 (R-phase, 2026-05). For current architecture see [README.md](../README.md) and [CLAUDE.md](../CLAUDE.md). For Cloudflare infra setup see [cloudflare/README.md](../cloudflare/README.md). Kept as record of P1 decisions.
+
 **Status**: APPROVED for Developer dispatch (Architect deliverable for task #2 in team `bangdream-na-phase1`).
 
 **Reference codebase**: `C:\Users\WaterMelon\portfolio` (React 19 + Vite 8 + react-router-dom 7 + Vercel). Conventions mirrored verbatim where they exist; new conventions added only for the testing stack.
 
-**Stack**: React 19 + Vite 8 + react-router-dom 7 + Vitest 3 + jsdom + Vercel. **No TypeScript** — `.jsx` only, matching portfolio.
+**Stack** (Phase 1, since superseded): React 19 + Vite 8 + react-router-dom 7 + Vitest 3 + jsdom + Vercel. **No TypeScript** — `.jsx` only, matching portfolio.
 
 ---
 
