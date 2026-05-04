@@ -24,11 +24,13 @@ const intFromQuery = (defaultValue: number) =>
     return Number.isNaN(n) ? v : n;
   }, z.number().int());
 
-const slugString = z
-  .string()
-  .min(1)
-  .max(120)
-  .regex(/^[\p{L}\p{N}](?:[\p{L}\p{N}_-]*[\p{L}\p{N}])?$/u);
+// Slug validator for path params + category filter: length-only.
+// SQL injection is handled by drizzle's parameterized queries; URL-reserved
+// chars (/ ? # &) can't reach this layer because Hono splits on `/` first.
+// Non-existent slugs naturally return 404 via D1 lookup. Regex was removed
+// after PR #78 + #82 showed gen-validator domain mismatch (CJK letters,
+// then CJK fullwidth punctuation) repeatedly false-rejected legitimate slugs.
+const slugString = z.string().min(1).max(120);
 
 export const newsListQuery = z.object({
   limit: intFromQuery(20).pipe(z.number().int().min(1).max(100)),
