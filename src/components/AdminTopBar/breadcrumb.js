@@ -1,15 +1,25 @@
 import { getSchema } from '../../lib/adminSchemas.js'
+import { getD1Schema } from '../../lib/admin/d1Schemas.js'
 
 const ROOT_LABEL = '后台'
 
 const NEW_NOUN = {
   events: '活动',
   members: '成员',
-  news: '公告',
+  news: '资讯',
+  categories: '分类',
   posts: '首页轮播',
   social: '社交平台',
   site: '站点信息',
   about: '关于页',
+}
+
+function resolveSchema(schemaKey) {
+  const d1 = getD1Schema(schemaKey)
+  if (d1) return { title: d1.title, shape: 'array', listKey: 'id', _d1: true }
+  const legacy = getSchema(schemaKey)
+  if (legacy) return { title: legacy.title, shape: legacy.shape, listKey: legacy.listKey }
+  return null
 }
 
 /**
@@ -23,7 +33,7 @@ const NEW_NOUN = {
 export function deriveBreadcrumb(schemaKey, editing) {
   const segments = [{ label: ROOT_LABEL }]
   if (typeof schemaKey !== 'string') return segments
-  const schema = getSchema(schemaKey)
+  const schema = resolveSchema(schemaKey)
   if (!schema) return segments
   segments.push({ label: schema.title })
 
@@ -39,7 +49,10 @@ export function deriveBreadcrumb(schemaKey, editing) {
   if (editing && typeof editing === 'object') {
     const fallback = '编辑'
     const label =
+      pickString(editing.title_zh) ??
       pickString(editing.title) ??
+      pickString(editing.display_name) ??
+      pickString(editing.display_zh) ??
       pickString(editing.name) ??
       (schema.listKey ? pickString(editing[schema.listKey]) : null) ??
       fallback
