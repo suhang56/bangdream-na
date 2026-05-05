@@ -1,15 +1,13 @@
 /**
- * Pure helper that buckets adapted gallery items into display groups.
+ * Pure helpers that bucket adapted gallery items into display groups.
  *
  * Groups by event (via eventId) or album (via album string). Items inside
  * each group are sorted chronologically ascending (oldest first); groups
  * are sorted by their newest item's takenAt descending (most recent first).
  *
- * Group ids are deterministic so deep links like `/gallery#event-foo`
- * resolve to a stable DOM anchor.
+ * Group ids are deterministic so deep links like `/gallery#event-foo` and
+ * filter URLs like `/gallery?album=event-foo` resolve to a stable key.
  */
-
-const FILTER_VALUES = ['all', 'event', 'album']
 
 function normalizeAlbumKey(s) {
   return String(s)
@@ -74,8 +72,11 @@ function formatDateRange(items) {
 }
 
 /**
+ * Build all groups from items. When `selectedGroupId` is provided, returns
+ * only the group with that id (post-filter); otherwise returns every group.
+ *
  * @param {Array} items adapted gallery items (camelCase)
- * @param {'all'|'event'|'album'} filter
+ * @param {string|null} [selectedGroupId]
  * @returns {Array<{
  *   id: string,
  *   label: string,
@@ -85,8 +86,7 @@ function formatDateRange(items) {
  *   dateRange: string,
  * }>}
  */
-export function buildGroups(items, filter = 'all') {
-  const f = FILTER_VALUES.includes(filter) ? filter : 'all'
+export function buildGroups(items, selectedGroupId = null) {
   if (!Array.isArray(items) || items.length === 0) return []
 
   const eventGroups = new Map()
@@ -122,20 +122,34 @@ export function buildGroups(items, filter = 'all') {
     }
   }
 
-  const all = []
-  if (f === 'all' || f === 'event') {
-    for (const g of eventGroups.values()) all.push(g)
-  }
-  if (f === 'all' || f === 'album') {
-    for (const g of albumGroups.values()) all.push(g)
-  }
-
+  const all = [...eventGroups.values(), ...albumGroups.values()]
   for (const g of all) {
     g.items.sort(compareItems)
     g.dateRange = formatDateRange(g.items)
   }
   all.sort(compareGroups)
+
+  if (selectedGroupId) {
+    return all.filter((g) => g.id === selectedGroupId)
+  }
   return all
+}
+
+/**
+ * Extract the dropdown options. Same id scheme as `buildGroups`; each
+ * entry carries `count` so the picker can render "<label> · N 张".
+ *
+ * @param {Array} items adapted gallery items
+ * @returns {Array<{id: string, label: string, count: number, kind: 'event'|'album'}>}
+ */
+export function extractGroupOptions(items) {
+  const groups = buildGroups(items)
+  return groups.map((g) => ({
+    id: g.id,
+    label: g.label,
+    count: g.items.length,
+    kind: g.kind,
+  }))
 }
 
 export const __internals = { normalizeAlbumKey }
