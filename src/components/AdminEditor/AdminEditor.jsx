@@ -415,18 +415,14 @@ function EditView({
     setSaveError(null)
     emit({ status: 'saving' })
     try {
-      // Normalize slug to match server regex (^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$).
-      // User may have typed spaces/uppercase/punctuation; clean before submit.
-      // Empty result → drop the field so server falls back to generateSlug(title_zh).
+      // Trim slug + collapse internal whitespace runs into a single dash.
+      // Server slug validators are length-only (CJK allowed), but URL-bound
+      // whitespace inside the slug is still a footgun, so normalize it here.
       let effectiveDraft = draft
       if (typeof draft.slug === 'string' && draft.slug.length > 0) {
-        const normalized = draft.slug
-          .toLowerCase()
-          .replace(/[^a-z0-9-]+/g, '-')
-          .replace(/-+/g, '-')
-          .replace(/^-+|-+$/g, '')
-        if (normalized !== draft.slug) {
-          effectiveDraft = { ...draft, slug: normalized }
+        const cleaned = draft.slug.trim().replace(/\s+/g, '-').replace(/-+/g, '-')
+        if (cleaned !== draft.slug) {
+          effectiveDraft = { ...draft, slug: cleaned }
           setDraft(effectiveDraft)
         }
       }

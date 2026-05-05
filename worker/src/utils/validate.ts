@@ -56,12 +56,11 @@ export const uploadFormParts = z.object({
   slug: z.string().min(1).max(200).optional(),
 });
 
-const optionalSlug = z
-  .string()
-  .min(1)
-  .max(120)
-  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i)
-  .optional();
+// Length-only — same rationale as slugString above. CJK titles auto-generate
+// CJK slugs (see worker/src/utils/slug.ts), which are valid in D1 and survive
+// URL-encoding through Hono. ASCII-only regex would force Chinese posts to
+// fall back to "untitled" or require users to hand-type ASCII slugs.
+const optionalSlug = z.string().min(1).max(120).optional();
 
 const tagsArray = z
   .array(z.string().min(1).max(40))
@@ -76,11 +75,7 @@ export const adminIdParam = z.object({
 });
 
 export const adminCheckSlugQuery = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .max(120)
-    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  slug: z.string().min(1).max(120),
 });
 
 export const adminNewsCreate = z.object({
@@ -88,7 +83,7 @@ export const adminNewsCreate = z.object({
   title_zh: z.string().min(1).max(200),
   title_en: z.string().max(200).nullish(),
   body_md: z.string().min(1).max(200000),
-  category: z.string().min(1).max(80).regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  category: z.string().min(1).max(80),
   hero_image_url: z.string().url().max(1000).nullish(),
   tags: tagsArray,
   published_at: intSecondsTimestamp,
@@ -144,11 +139,7 @@ export const adminMemberUpdate = z.object({
 });
 
 export const adminCategoryCreate = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .max(80)
-    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  slug: z.string().min(1).max(80),
   display_zh: z.string().min(1).max(120),
   display_en: z.string().max(120).nullish(),
   accent_color: z.string().max(40).nullish(),
@@ -194,11 +185,7 @@ export const adminFeaturedPostCreate = z.object({
 
 export const adminFeaturedPostUpdate = adminFeaturedPostCreate.partial();
 
-const platformSlug = z
-  .string()
-  .min(1)
-  .max(40)
-  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i);
+const platformSlug = z.string().min(1).max(40);
 
 export const adminSocialLinkCreate = z.object({
   platform: platformSlug,
@@ -213,11 +200,7 @@ export const adminSocialLinkCreate = z.object({
 export const adminSocialLinkUpdate = adminSocialLinkCreate.partial();
 
 export const adminAboutSectionCreate = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .max(80)
-    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i),
+  slug: z.string().min(1).max(80),
   title_zh: z.string().min(1).max(200),
   title_en: z.string().max(200).nullish(),
   body_md: z.string().min(1).max(200000),
