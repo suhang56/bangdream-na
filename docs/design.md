@@ -1,3 +1,5 @@
+> Historical document — Phase 1 design record.
+
 # bangdream-na — Phase 1 Design Spec
 
 Single-source design reference for the BanG Dream! North America community site.

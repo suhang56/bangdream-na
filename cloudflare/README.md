@@ -1,3 +1,5 @@
+> **Historical R1 setup record** — all steps completed on 2026-04-XX. Do NOT re-run.
+
 # R-Phase Cloudflare 基础设施配置清单
 
 R1 阶段手动操作步骤。完成所有步骤后，R2 Worker 脚手架 PR 才能部署。
@@ -66,7 +68,7 @@ Created your new D1 database.
 [[d1_databases]]
 binding = "DB"
 database_name = "bangdream-na-content"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+database_id = "cc268885-f913-4539-8529-70fc0e5e09e9"
 ```
 
 ### 2.2 记录 database_id
@@ -77,7 +79,7 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 [[d1_databases]]
 binding = "DB"
 database_name = "bangdream-na-content"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"   # ← 替换这里
+database_id = "cc268885-f913-4539-8529-70fc0e5e09e9"
 ```
 
 ---
