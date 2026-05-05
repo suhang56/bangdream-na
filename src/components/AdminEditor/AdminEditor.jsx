@@ -415,13 +415,24 @@ function EditView({
     setSaveError(null)
     emit({ status: 'saving' })
     try {
+      // Trim slug + collapse internal whitespace runs into a single dash.
+      // Server slug validators are length-only (CJK allowed), but URL-bound
+      // whitespace inside the slug is still a footgun, so normalize it here.
+      let effectiveDraft = draft
+      if (typeof draft.slug === 'string' && draft.slug.length > 0) {
+        const cleaned = draft.slug.trim().replace(/\s+/g, '-').replace(/-+/g, '-')
+        if (cleaned !== draft.slug) {
+          effectiveDraft = { ...draft, slug: cleaned }
+          setDraft(effectiveDraft)
+        }
+      }
       const ops = CRUD[schema.key]
       let saved
       if (isNew) {
-        const body = schema.mapFormToCreate(draft)
+        const body = schema.mapFormToCreate(effectiveDraft)
         saved = await ops.create(body)
       } else {
-        const body = schema.mapFormToUpdate(draft)
+        const body = schema.mapFormToUpdate(effectiveDraft)
         saved = await ops.update(editing.id, body)
       }
       clearAutosave()
