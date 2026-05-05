@@ -11,6 +11,9 @@ https://www.bangdream.org/*                        https://bangdream.org/:splat 
 # 2) Legacy image redirects — public/{news,events,posts,members}/ dirs removed in R6.
 # Image-extension-scoped only (no broad /news/(.*) which would catch SPA routes).
 # These rules MUST appear before the SPA fallback below.
+# R2 key audit (2026-05-05): all migration scripts (news/events/posts) use pattern
+# `<kind>/<imgBasename>` — single segment after the prefix; no nested paths exist.
+# Current rules cover all cases. No `:dir/:file.png` patterns needed.
 /news/:file.png       https://cdn.bangdream.org/news/:file.png       301
 /news/:file.jpg       https://cdn.bangdream.org/news/:file.jpg       301
 /news/:file.jpeg      https://cdn.bangdream.org/news/:file.jpeg      301
