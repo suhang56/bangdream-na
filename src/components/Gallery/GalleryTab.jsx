@@ -101,8 +101,10 @@ export default function GalleryTab({ onAuthExpired, onForbidden }) {
   }
 
   useEffect(() => {
+    // `loading` initializes to true via useState; no setLoading(true) here —
+    // the react-hooks/set-state-in-effect lint rejects sync setState in effect
+    // bodies, and the redundant reset isn't needed (effect runs once on mount).
     let cancelled = false
-    setLoading(true)
     Promise.all([
       adminListGallery().catch((err) => {
         if (!cancelled) handleAuthError(err)
