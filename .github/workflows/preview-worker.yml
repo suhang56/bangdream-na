@@ -25,9 +25,18 @@ jobs:
       - id: deploy
         run: |
           NAME="bangdream-na-api-pr${{ github.event.pull_request.number }}"
-          npx wrangler deploy --name "$NAME"
+          # Capture wrangler stdout so we can parse the actual deployed URL.
+          # The .workers.dev subdomain is the account's chosen workers.dev
+          # handle, NOT the account_id (32-hex). wrangler prints the real URL
+          # on deploy success — extract it instead of guessing the format.
+          DEPLOY_OUTPUT=$(npx wrangler deploy --name "$NAME" 2>&1 | tee /dev/stderr)
+          URL=$(echo "$DEPLOY_OUTPUT" | grep -oE 'https://[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\.workers\.dev' | head -n1)
+          if [ -z "$URL" ]; then
+            echo "::warning::could not parse worker URL from wrangler output"
+            URL=""
+          fi
           echo "name=$NAME" >> $GITHUB_OUTPUT
-          echo "url=https://${NAME}.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -37,20 +46,24 @@ jobs:
           script: |
             const url = '${{ steps.deploy.outputs.url }}';
             const name = '${{ steps.deploy.outputs.name }}';
+            const lines = [`**Worker preview deployed:** \`${name}\``, ``];
+            if (url) {
+              lines.push(`Test endpoints:`);
+              lines.push(`- \`curl ${url}/api/healthz\``);
+              lines.push(`- \`curl ${url}/api/news\``);
+            } else {
+              lines.push(`Workers.dev URL not parsed from deploy output — find it in the Cloudflare dashboard under Workers & Pages → \`${name}\` → Triggers.`);
+            }
+            lines.push(
+              ``,
+              `> **WARNING: this preview shares the production D1 database and R2 bucket with \`api.bangdream.org\`.**`,
+              `> Any write operations (POST/PUT/DELETE via admin endpoints) from this preview **will mutate production data**.`,
+              `> **Use read-only testing only** (GET requests, no admin writes).`,
+              `> The owner will delete this preview worker when the PR is closed.`,
+            );
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: [
-                `**Worker preview deployed:** \`${name}\``,
-                ``,
-                `Test endpoints:`,
-                `- \`curl ${url}/api/healthz\``,
-                `- \`curl ${url}/api/news\``,
-                ``,
-                `> **WARNING: this preview shares the production D1 database and R2 bucket with \`api.bangdream.org\`.**`,
-                `> Any write operations (POST/PUT/DELETE via admin endpoints) from this preview **will mutate production data**.`,
-                `> **Use read-only testing only** (GET requests, no admin writes).`,
-                `> The owner will delete this preview worker when the PR is closed.`
-              ].join('\n')
+              body: lines.join('\n')
             });

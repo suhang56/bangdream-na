@@ -134,13 +134,21 @@ describe('<Gallery />', () => {
 
   it('renders empty state when API returns 0 items', async () => {
     vi.mocked(fetchGallery).mockResolvedValue({ items: [], total: 0 })
-    renderWithProviders(<Gallery />, { route: '/gallery' })
+    const { container } = renderWithProviders(<Gallery />, { route: '/gallery' })
+    // Wait for the empty-state <p> to appear (post-loading). Query by class
+    // so the assertion isn't locale-dependent and works for desktop+mobile
+    // tracks both. Avoids the trap where waitFor on an absent button passes
+    // during the loading state too.
     await waitFor(() => {
-      expect(
-        screen.queryByRole('button', { name: 'All albums' }),
-      ).toBeNull()
+      const empty =
+        container.querySelector('.gallery-page__empty') ||
+        container.querySelector('.gallery-page-mobile__empty')
+      expect(empty).not.toBeNull()
     })
-    expect(screen.getByText(/No photos yet/)).toBeTruthy()
+    const empty =
+      container.querySelector('.gallery-page__empty') ||
+      container.querySelector('.gallery-page-mobile__empty')
+    expect(empty?.textContent?.length ?? 0).toBeGreaterThan(0)
   })
 
   it('renders empty-after-filter when URL param matches no group', async () => {
