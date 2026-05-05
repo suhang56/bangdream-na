@@ -7,7 +7,7 @@ Worker @ `api.bangdream.org` backed by D1 (SQLite) + R2 (object storage); admin 
 - **D1**: news, events, members, categories, featured_posts, social_links, about_sections, site settings
 - **R2**: all images under `news/`, `events/`, `posts/`, `members/` prefixes
 - **Frontend**: React 19 + Vite, reads all dynamic data via `src/lib/api.js` → Worker API
-- **Admin**: `src/components/Admin*` + `src/lib/adminSchemas.js` (schema registry, stays in git build)
+- **Admin**: `src/components/Admin*` + `src/lib/admin/d1Schemas.js` (schema registry, stays in git build)
 - **Static**: only `src/data/i18n.json` remains in git (UI chrome strings)
 
 ## Agent Pipeline

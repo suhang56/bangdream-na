@@ -1,4 +1,3 @@
-import { getSchema } from '../../lib/adminSchemas.js'
 import { getD1Schema } from '../../lib/admin/d1Schemas.js'
 
 const ROOT_LABEL = '后台'
@@ -8,10 +7,6 @@ const NEW_NOUN = {
   members: '成员',
   news: '资讯',
   categories: '分类',
-  posts: '首页轮播',
-  social: '社交平台',
-  site: '站点信息',
-  about: '关于页',
   featuredPosts: '首页轮播',
   socialLinks: '社群链接',
   aboutSections: '关于页章节',
@@ -19,9 +14,7 @@ const NEW_NOUN = {
 
 function resolveSchema(schemaKey) {
   const d1 = getD1Schema(schemaKey)
-  if (d1) return { title: d1.title, shape: 'array', listKey: 'id', _d1: true }
-  const legacy = getSchema(schemaKey)
-  if (legacy) return { title: legacy.title, shape: legacy.shape, listKey: legacy.listKey }
+  if (d1) return { title: d1.title, shape: 'array', listKey: 'id' }
   return null
 }
 

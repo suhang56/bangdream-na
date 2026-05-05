@@ -97,6 +97,8 @@ export default function AdminEditor({
   onForbidden,
   onSaveStatus,
 }) {
+  // Propagate auth callbacks to nested uploaders so a 401/403 during asset
+  // upload escalates the same way as a 401/403 from list/save calls.
   const schema = useMemo(() => getD1Schema(schemaKey), [schemaKey])
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -188,6 +190,8 @@ export default function AdminEditor({
         emit={emit}
         load={load}
         handleAuthError={handleAuthError}
+        onAuthExpired={onAuthExpired}
+        onForbidden={onForbidden}
         onClose={() => {
           setEditing(null)
           setDraft(null)
@@ -306,6 +310,8 @@ function EditView({
   emit,
   load,
   handleAuthError,
+  onAuthExpired,
+  onForbidden,
   onClose,
 }) {
   const errors = validateForm(schema, draft)
@@ -397,7 +403,10 @@ function EditView({
   const slugTaken = slugCheck.status === 'done' && slugCheck.available === false
 
   function handleFieldChange(key, value) {
-    if (key === 'slug') slugUserEditedRef.current = true
+    if (key === 'slug') {
+      const trimmed = typeof value === 'string' ? value.trim() : value
+      slugUserEditedRef.current = trimmed !== '' && trimmed != null
+    }
     setDraft({ ...draft, [key]: value })
   }
 
@@ -418,14 +427,20 @@ function EditView({
       // Trim slug + collapse internal whitespace runs into a single dash.
       // Server slug validators are length-only (CJK allowed), but URL-bound
       // whitespace inside the slug is still a footgun, so normalize it here.
+      // We DO NOT setDraft(effectiveDraft) — see clearAutosave note below.
       let effectiveDraft = draft
       if (typeof draft.slug === 'string' && draft.slug.length > 0) {
         const cleaned = draft.slug.trim().replace(/\s+/g, '-').replace(/-+/g, '-')
         if (cleaned !== draft.slug) {
           effectiveDraft = { ...draft, slug: cleaned }
-          setDraft(effectiveDraft)
         }
       }
+      // Clear autosave BEFORE the API call. If we cleared after the await, the
+      // debounced timer could still fire during the request window and re-write
+      // a stale draft to localStorage. clear() also drops the pending timer.
+      // Note: we deliberately avoid setDraft here so the autosave effect doesn't
+      // re-arm a fresh timer with the cleaned slug while the request is in flight.
+      clearAutosave()
       const ops = CRUD[schema.key]
       let saved
       if (isNew) {
@@ -435,7 +450,6 @@ function EditView({
         const body = schema.mapFormToUpdate(effectiveDraft)
         saved = await ops.update(editing.id, body)
       }
-      clearAutosave()
       emit({ status: 'saved', id: saved?.id })
       onClose()
       await load()
@@ -500,6 +514,8 @@ function EditView({
         slugCheck={slugCheck}
         previewTags={previewTags}
         autoDetectedCover={heroAutoDetected}
+        onAuthExpired={onAuthExpired}
+        onForbidden={onForbidden}
       />
       <div className="admin-editor-actions">
         <button
@@ -532,6 +548,8 @@ function FormBody({
   slugCheck,
   previewTags,
   autoDetectedCover,
+  onAuthExpired,
+  onForbidden,
 }) {
   function setField(key, value) {
     if (typeof onFieldChange === 'function') {
@@ -557,13 +575,15 @@ function FormBody({
           slugCheck={slugCheck}
           previewTags={previewTags}
           autoDetectedCover={autoDetectedCover}
+          onAuthExpired={onAuthExpired}
+          onForbidden={onForbidden}
         />
       ))}
     </div>
   )
 }
 
-function FormField({ field, value, onChange, error, slugBase, slugCheck, previewTags, autoDetectedCover }) {
+function FormField({ field, value, onChange, error, slugBase, slugCheck, previewTags, autoDetectedCover, onAuthExpired, onForbidden }) {
   const id = `field-${field.key}`
   let input
   switch (field.type) {
@@ -649,6 +669,8 @@ function FormField({ field, value, onChange, error, slugBase, slugCheck, preview
           value={value ?? ''}
           slugBase={slugBase}
           onChange={onChange}
+          onAuthExpired={onAuthExpired}
+          onForbidden={onForbidden}
         />
       )
       break

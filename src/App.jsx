@@ -10,6 +10,7 @@ import NewsDetail from './pages/NewsDetail.jsx'
 import About from './pages/About.jsx'
 import Rules from './pages/Rules.jsx'
 import Admin from './pages/Admin.jsx'
+import NotFound from './pages/NotFound.jsx'
 import './App.css'
 
 function ChromeAndRoutes() {
@@ -28,6 +29,7 @@ function ChromeAndRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/rules" element={<Rules />} />
         <Route path="/admin/*" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       {!isAdmin && <Footer />}
     </>
