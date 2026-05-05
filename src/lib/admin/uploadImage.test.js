@@ -27,7 +27,7 @@ describe('uploadImageWithGuard', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
-  it('rejects file > 5MB as too_large', async () => {
+  it('rejects file over MAX_BYTES as too_large', async () => {
     const big = new File([new Uint8Array(__internals.MAX_BYTES + 1)], 'big.png', { type: 'image/png' })
     await expect(uploadImageWithGuard(big, 'news')).rejects.toMatchObject({ code: 'too_large' })
     expect(spy).not.toHaveBeenCalled()

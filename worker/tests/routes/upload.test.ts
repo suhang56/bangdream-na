@@ -173,9 +173,9 @@ describe("POST /api/upload", () => {
     expect(body.error).toBe("empty_file");
   });
 
-  it("returns 413 when file exceeds 10MB", async () => {
+  it("returns 413 when file exceeds 20MB", async () => {
     const cookie = await adminCookie();
-    const big = new Uint8Array(10 * 1024 * 1024 + 1);
+    const big = new Uint8Array(20 * 1024 * 1024 + 1);
     big[0] = 0x89;
     const form = makeForm({
       file: { content: big, type: "image/png", name: "big.png" },

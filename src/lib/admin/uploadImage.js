@@ -1,7 +1,7 @@
 import { uploadImage as apiUploadImage, ApiError } from '../api.js'
 
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
-const MAX_BYTES = 5 * 1024 * 1024
+const MAX_BYTES = 20 * 1024 * 1024
 
 /**
  * Wrapper around api.uploadImage with client-side pre-validation and a
@@ -26,7 +26,7 @@ export async function uploadImageWithGuard(file, kind, opts = {}) {
   }
   if (file.size > MAX_BYTES) {
     const mb = (file.size / (1024 * 1024)).toFixed(1)
-    throw makeError('too_large', `文件过大 (${mb} MB),最大 5 MB`)
+    throw makeError('too_large', `文件过大 (${mb} MB),最大 20 MB`)
   }
   const contentType = (file.type || '').toLowerCase()
   if (!ALLOWED_MIME.includes(contentType)) {

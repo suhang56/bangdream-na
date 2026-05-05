@@ -9,7 +9,7 @@ import {
 import { uploadFormParts } from "../utils/validate";
 import { respondAdmin } from "../utils/respond";
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/png",
   "image/jpeg",

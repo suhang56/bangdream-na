@@ -294,7 +294,7 @@ export default function GalleryTab({ onAuthExpired, onForbidden }) {
             </button>
           </p>
           <p className="gallery-dropzone__hint">
-            支持 JPG / PNG / WEBP，单张最大 10MB
+            支持 JPG / PNG / WEBP，单张最大 20MB
           </p>
           <input
             ref={fileInputRef}
