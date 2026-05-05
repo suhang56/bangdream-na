@@ -49,7 +49,7 @@ export const slugParam = z.object({
   slug: slugString,
 });
 
-export const uploadKindEnum = z.enum(["news", "events", "members"]);
+export const uploadKindEnum = z.enum(["news", "events", "members", "gallery"]);
 
 export const uploadFormParts = z.object({
   kind: uploadKindEnum,
@@ -226,6 +226,54 @@ export const adminAboutSectionCreate = z.object({
 });
 
 export const adminAboutSectionUpdate = adminAboutSectionCreate.partial();
+
+// ── G-phase: gallery_items ──────────────────────────────────────────────────
+//
+// `image_url` is length-bounded only (NOT z.url()). Per
+// `feedback_question_defensive_layer_when_repeatedly_regressing.md` and the
+// slug-regex retreat at line 27, tighter URL regex on user-pasted values has
+// caused twin false-reject incidents. The R2 upload route owns URL shape;
+// this admin write is a length-bounded passthrough.
+
+export const galleryListQuery = z.object({
+  limit: intFromQuery(100).pipe(z.number().int().min(1).max(100)),
+  offset: intFromQuery(0).pipe(z.number().int().min(0)),
+  event_id: z
+    .preprocess((v) => {
+      if (v === undefined || v === null || v === "") return undefined;
+      if (typeof v === "number") return v;
+      const n = Number(v);
+      return Number.isNaN(n) ? v : n;
+    }, z.number().int().min(1))
+    .optional(),
+  album: z.string().min(1).max(120).optional(),
+});
+
+export const adminGalleryCreate = z
+  .object({
+    image_url: z.string().min(1).max(500),
+    caption: z.string().max(500).nullish(),
+    taken_at: intSecondsTimestamp.nullish(),
+    event_id: positiveId.nullish(),
+    album: z.string().min(1).max(120).nullish(),
+    sort_order: sortOrderField,
+  })
+  .refine(
+    (v) => v.event_id != null || (v.album != null && v.album.length > 0),
+    { message: "either event_id or album required", path: ["event_id"] },
+  );
+
+// No top-level refine on update: partial updates may legitimately not touch
+// event_id/album. The DB CHECK constraint is the backstop; if a PUT sets BOTH
+// to null, the SQL UPDATE returns SQLITE_CONSTRAINT and the route maps to 400.
+export const adminGalleryUpdate = z.object({
+  image_url: z.string().min(1).max(500).optional(),
+  caption: z.string().max(500).nullish(),
+  taken_at: intSecondsTimestamp.nullish(),
+  event_id: positiveId.nullish(),
+  album: z.string().min(1).max(120).nullish(),
+  sort_order: sortOrderField,
+});
 
 // ── Comments / settings ──────────────────────────────────────────────────────
 

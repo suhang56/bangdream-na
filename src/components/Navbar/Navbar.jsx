@@ -28,6 +28,7 @@ const NAV_LINKS = [
   { to: '/', key: 'nav.home', end: true },
   { to: '/news', key: 'nav.news' },
   { to: '/events', key: 'nav.events' },
+  { to: '/gallery', key: 'nav.gallery' },
   {
     to: 'https://docs.qq.com/sheet/DQ3JJdGN6anNyQVhV?tab=BB08J2',
     key: 'nav.tickets',

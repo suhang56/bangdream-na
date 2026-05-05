@@ -152,6 +152,29 @@ export const createAboutSection = (data) => adminFetch('POST', '/api/admin/about
 export const updateAboutSection = (id, data) => adminFetch('PUT', `/api/admin/about-sections/${id}`, data)
 export const deleteAboutSection = (id) => adminFetch('DELETE', `/api/admin/about-sections/${id}`)
 
+// ── Gallery (G-phase) ──────────────────────────────────────────────────────
+//
+// Cache namespace `gallery:` covers both `gallery:list:*` and `gallery:event:*`.
+// `cache.invalidate('gallery:')` clears both prefixes — admin writes call it.
+
+const GALLERY_CACHE_PREFIX = 'gallery:'
+
+export const createGalleryItem = (data) => {
+  const r = adminFetch('POST', '/api/admin/gallery', data)
+  cache.invalidate(GALLERY_CACHE_PREFIX)
+  return r
+}
+export const updateGalleryItem = (id, data) => {
+  const r = adminFetch('PUT', `/api/admin/gallery/${id}`, data)
+  cache.invalidate(GALLERY_CACHE_PREFIX)
+  return r
+}
+export const deleteGalleryItem = (id) => {
+  const r = adminFetch('DELETE', `/api/admin/gallery/${id}`)
+  cache.invalidate(GALLERY_CACHE_PREFIX)
+  return r
+}
+
 /** Server-side slug uniqueness check. Resolves to { available: bool }. */
 export async function checkSlug(kind, slug) {
   if (kind !== 'news') {
@@ -335,6 +358,37 @@ export async function fetchSite() {
   return body
 }
 
+export async function fetchGallery(opts = {}) {
+  const key = cacheKey('gallery:list', opts)
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const params = new URLSearchParams()
+  if (opts.limit != null) params.set('limit', String(opts.limit))
+  if (opts.offset != null) params.set('offset', String(opts.offset))
+  if (opts.eventId != null) params.set('event_id', String(opts.eventId))
+  if (opts.album) params.set('album', String(opts.album))
+  const qs = params.toString()
+  const url = qs ? `/api/gallery?${qs}` : '/api/gallery'
+  const res = await fetch(buildUrl(url), { credentials: 'omit' })
+  await throwForBadStatus(res, `GET ${url}`)
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
+export async function fetchGalleryByEventSlug(slug) {
+  const key = `gallery:event:${slug}`
+  const cached = cache.get(key)
+  if (cached !== null) return cached
+  const url = `/api/gallery/by-event/${encodeURIComponent(slug)}`
+  const res = await fetch(buildUrl(url), { credentials: 'omit' })
+  if (res.status === 404) return null
+  await throwForBadStatus(res, `GET ${url}`)
+  const body = await res.json()
+  cache.set(key, body, PUBLIC_READ_TTL_MS)
+  return body
+}
+
 /** Admin variant: list all rows including drafts. Falls back to public + ?t cache-bust. */
 export async function adminListNews(opts = {}) {
   const ts = Date.now()
@@ -392,6 +446,14 @@ export async function adminListSocialLinks() {
 export async function adminListAboutSections() {
   const ts = Date.now()
   const url = `/api/about?t=${ts}`
+  const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
+}
+
+export async function adminListGallery() {
+  const ts = Date.now()
+  const url = `/api/gallery?limit=100&t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()

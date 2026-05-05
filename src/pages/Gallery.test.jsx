@@ -1,0 +1,140 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { renderWithProviders } from '../test/utils.jsx'
+import { cache } from '../lib/cache.js'
+
+vi.mock('../lib/api.js', async () => {
+  const actual = await vi.importActual('../lib/api.js')
+  return {
+    ...actual,
+    fetchGallery: vi.fn(),
+  }
+})
+
+vi.mock('yet-another-react-lightbox/styles.css', () => ({}))
+vi.mock('yet-another-react-lightbox/plugins/captions.css', () => ({}))
+vi.mock('yet-another-react-lightbox', () => ({
+  default: (props) =>
+    props.open ? <div data-testid="lightbox">open</div> : null,
+}))
+vi.mock('yet-another-react-lightbox/plugins/captions', () => ({
+  default: function Captions() { return null },
+}))
+
+import { fetchGallery } from '../lib/api.js'
+import Gallery from './Gallery.jsx'
+
+function row({ id, eventSlug, eventTitleZh, album, takenAt }) {
+  return {
+    id,
+    image_url: `https://cdn/x-${id}.jpg`,
+    caption: '',
+    taken_at: takenAt ?? null,
+    event_id: eventSlug ? id : null,
+    event_slug: eventSlug ?? null,
+    event_title_zh: eventTitleZh ?? null,
+    album: album ?? null,
+    sort_order: 0,
+    created_at: id,
+    updated_at: id,
+  }
+}
+
+beforeEach(() => {
+  cache.clear()
+  vi.mocked(fetchGallery).mockReset()
+})
+afterEach(() => {
+  cache.clear()
+})
+
+describe('<Gallery />', () => {
+  it('renders LoadingState while fetch pending', () => {
+    vi.mocked(fetchGallery).mockReturnValue(new Promise(() => {}))
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    expect(screen.getByRole('status')).toBeTruthy()
+  })
+
+  it('renders grouped sections after fetch resolves', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [
+        row({ id: 1, eventSlug: 'a', eventTitleZh: '甲活动', takenAt: 1000 }),
+        row({ id: 2, album: '随手', takenAt: 2000 }),
+      ],
+      total: 2,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    await waitFor(() => {
+      expect(screen.getAllByRole('heading', { level: 2 }).length).toBe(2)
+    })
+    expect(screen.getByText('甲活动')).toBeTruthy()
+    expect(screen.getByText('随手')).toBeTruthy()
+  })
+
+  it('filter chip click switches between filters', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [
+        row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1000 }),
+        row({ id: 2, album: '相册', takenAt: 2000 }),
+      ],
+      total: 2,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    await screen.findByText('甲')
+    // 'Event Photos' filter — only event group remains (en default in tests)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Event Photos' })[0])
+    expect(screen.queryByText('相册')).toBeNull()
+    expect(screen.getByText('甲')).toBeTruthy()
+  })
+
+  it('renders empty state when API returns 0 items', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({ items: [], total: 0 })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: 'All' }),
+      ).toBeNull()
+    })
+  })
+
+  it('renders empty-after-filter when filter excludes everything', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1 })],
+      total: 1,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    await screen.findByText('甲')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Free Albums' })[0])
+    // After picking album filter, no album group exists → empty filter status text
+    await waitFor(() => {
+      expect(screen.queryByText('甲')).toBeNull()
+    })
+  })
+
+  it('opens lightbox on thumb click', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [row({ id: 1, album: 'a', takenAt: 1 })],
+      total: 1,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    const btn = await screen.findByRole('button', { name: /第 1 张照片/ })
+    fireEvent.click(btn)
+    expect(screen.getByTestId('lightbox')).toBeTruthy()
+  })
+
+  it('hash anchor #event-slug scrolls into the matching group on mount', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [row({ id: 1, eventSlug: 'meet-2024', eventTitleZh: '聚会', takenAt: 1 })],
+      total: 1,
+    })
+    const scrollSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: { ...window.location, hash: '#event-meet-2024' },
+    })
+    Element.prototype.scrollIntoView = scrollSpy
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    await screen.findByText('聚会')
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalled())
+  })
+})
