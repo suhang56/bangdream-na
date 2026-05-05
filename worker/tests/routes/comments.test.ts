@@ -710,6 +710,97 @@ describe("POST /api/comments", () => {
     fetchSpy.mockRestore();
     errSpy.mockRestore();
   });
+
+  it("logs webhook_timeout when fetch is aborted by AbortSignal.timeout and does not block comment write", async () => {
+    const uid = await seedUser("member");
+    const cookie = await cookieFor(uid, "member");
+    const newsId = await seedNewsRow("a");
+
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db
+      .insert(settings)
+      .values({
+        key: "webhook.comment.url",
+        value: "https://discord.com/api/webhooks/1/abc",
+        updatedAt: now,
+      })
+      .run();
+
+    // Simulate AbortSignal.timeout() firing by rejecting with a TimeoutError.
+    const timeoutErr = Object.assign(new Error("The operation was aborted due to timeout"), {
+      name: "TimeoutError",
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(timeoutErr);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const ctx = createExecutionContext();
+    const res = await createApp().request(
+      "https://x/api/comments",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({
+          target_kind: "news",
+          target_id: newsId,
+          body: "saved despite timeout",
+        }),
+      },
+      env,
+      ctx,
+    );
+    // Comment write succeeds regardless of webhook timeout.
+    expect(res.status).toBe(201);
+    await waitOnExecutionContext(ctx);
+    expect(fetchSpy).toHaveBeenCalled();
+    // Must log webhook_timeout, not webhook_failed.
+    const calls = errSpy.mock.calls;
+    expect(calls.some((c) => c[0] === "webhook_timeout")).toBe(true);
+    expect(calls.some((c) => c[0] === "webhook_failed")).toBe(false);
+    fetchSpy.mockRestore();
+    errSpy.mockRestore();
+  });
+
+  it("passes AbortSignal to fetch when firing webhook", async () => {
+    const uid = await seedUser("member");
+    const cookie = await cookieFor(uid, "member");
+    const newsId = await seedNewsRow("a");
+
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db
+      .insert(settings)
+      .values({
+        key: "webhook.comment.url",
+        value: "https://discord.com/api/webhooks/1/abc",
+        updatedAt: now,
+      })
+      .run();
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{}", { status: 200 }),
+    );
+    const ctx = createExecutionContext();
+    const res = await createApp().request(
+      "https://x/api/comments",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({
+          target_kind: "news",
+          target_id: newsId,
+          body: "check signal",
+        }),
+      },
+      env,
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    await waitOnExecutionContext(ctx);
+    const [, calledInit] = fetchSpy.mock.calls[0];
+    expect((calledInit as RequestInit).signal).toBeDefined();
+    fetchSpy.mockRestore();
+  });
 });
 
 describe("DELETE /api/comments/:id", () => {

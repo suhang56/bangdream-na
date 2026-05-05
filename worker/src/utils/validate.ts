@@ -310,5 +310,19 @@ export const settingsListQuery = z.object({
 export const webhookTestBody = z.object({
   // Optional: caller may submit an explicit URL to test instead of using
   // the persisted setting. Empty/missing → fall back to settings table.
-  url: z.string().url().max(2000).optional(),
+  url: z
+    .string()
+    .url()
+    .max(2000)
+    .refine(
+      (u) => {
+        try {
+          return new URL(u).protocol === "https:";
+        } catch {
+          return false;
+        }
+      },
+      { message: "must be https URL" },
+    )
+    .optional(),
 });

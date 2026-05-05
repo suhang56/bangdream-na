@@ -184,6 +184,31 @@ describe("GET /api/news", () => {
     expect(body.items[0].slug).toBe("p1");
   });
 
+  it("search q does NOT match body_md — only title columns are scanned", async () => {
+    // Row whose title does NOT contain 'uniqueterm' but body_md does.
+    await seedNews([
+      {
+        slug: "body-only",
+        titleZh: "普通标题",
+        titleEn: "Normal title",
+        bodyMd: "uniqueterm is buried in the body",
+        publishedAt: 1,
+      },
+      {
+        slug: "title-match",
+        titleZh: "uniqueterm 在标题",
+        titleEn: null,
+        bodyMd: "body has nothing",
+        publishedAt: 2,
+      },
+    ]);
+    const res = await createApp().request("https://x/api/news?q=uniqueterm", {}, env);
+    const body = (await res.json()) as { items: Array<{ slug: string }>; total: number };
+    // Only the title-match row should be returned; body-only must NOT match.
+    expect(body.total).toBe(1);
+    expect(body.items[0].slug).toBe("title-match");
+  });
+
   it("parses tags_json into array on output", async () => {
     await seedNews([
       { slug: "p1", titleZh: "x", publishedAt: 1, tagsJson: '["a","b"]' },

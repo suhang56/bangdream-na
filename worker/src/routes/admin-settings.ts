@@ -86,6 +86,15 @@ export function buildAdminSettingsRoutes() {
     const parsedBody = settingsBody.safeParse(raw);
     if (!parsedBody.success) return badRequest(c, parsedBody.error.flatten());
 
+    if (parsedKey.data.key === WEBHOOK_SETTING_KEY) {
+      const valid = validateWebhookUrl(parsedBody.data.value);
+      if (!valid) {
+        c.header("Cache-Control", "no-store");
+        c.header("Vary", "Origin");
+        return c.json({ error: "webhook_url_invalid", detail: "must be a valid https URL" }, 422);
+      }
+    }
+
     const now = Math.floor(Date.now() / 1000);
     const db = getDb(c.env);
     await db
