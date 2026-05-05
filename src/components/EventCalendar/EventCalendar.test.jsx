@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import EventCalendar from './EventCalendar.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
+
+function render(ui, options) {
+  return rtlRender(ui, { wrapper: MemoryRouter, ...options })
+}
 
 const NOW = new Date(Date.UTC(2026, 3, 15)) // April 15, 2026
 

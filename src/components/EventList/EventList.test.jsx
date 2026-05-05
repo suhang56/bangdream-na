@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render as rtlRender, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import EventList from './EventList.jsx'
+
+function render(ui, options) {
+  return rtlRender(ui, { wrapper: MemoryRouter, ...options })
+}
 
 const NOW = new Date('2026-06-01T12:00:00Z')
 

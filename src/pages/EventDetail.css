@@ -1,0 +1,104 @@
+.event-detail {
+  padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
+}
+
+.event-detail__inner {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.event-detail__back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: color 150ms ease;
+}
+
+.event-detail__back:hover,
+.event-detail__back:focus-visible {
+  color: var(--color-primary);
+}
+
+.event-detail__hero {
+  margin: 0 0 2rem;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.event-detail__hero-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.event-detail__title {
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.event-detail__meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.event-detail__meta dt {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.event-detail__meta dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.event-detail__ticket-row {
+  margin: 0 0 2rem;
+}
+
+.event-detail__ticket-btn {
+  display: inline-block;
+  padding: 0.7rem 1.4rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: opacity 150ms ease;
+}
+
+.event-detail__ticket-btn:hover,
+.event-detail__ticket-btn:focus-visible {
+  opacity: 0.85;
+}
+
+.event-detail__body {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+.event-detail__paragraph {
+  margin: 0 0 1.1rem;
+}
+
+.event-detail__missing {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
