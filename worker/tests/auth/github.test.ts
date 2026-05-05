@@ -234,6 +234,67 @@ describe("GET /api/auth/github/callback (success)", () => {
     expect(row?.role).toBe("admin");
   });
 
+  it("existing admin is demoted to member if no longer in allowlist", async () => {
+    // Test env ADMIN_GITHUB_LOGINS = "suhang56" (per vitest.config.ts).
+    // Pre-seed a user with role=admin whose login is NOT in the allowlist
+    // (e.g. they were promoted in a past env config and later removed).
+    // After re-login, role MUST flip to member — allowlist removal demotes.
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db.insert(users).values({
+      githubLogin: "ex-admin",
+      githubId: 888,
+      role: "admin",
+      createdAt: now,
+    }).run();
+
+    const fetchers: GithubFetchers = {
+      async exchangeCode() { return { access_token: "tok" }; },
+      async fetchUser() { return { id: 888, login: "ex-admin", name: null, avatar_url: null }; },
+    };
+    const app = makeApp(fetchers);
+    const res = await app.request(
+      "https://api.bangdream.org/api/auth/github/callback?code=c&state=s",
+      { headers: { Cookie: `${OAUTH_STATE_COOKIE}=s` } },
+      env,
+    );
+    expect(res.status).toBe(302);
+
+    const row = await db.select().from(users).where(eq(users.githubId, 888)).get();
+    expect(row?.role).toBe("member");
+  });
+
+  it("preserves admin role on re-login when allowlist is empty (bootstrap mode)", async () => {
+    // When the operator empties ADMIN_GITHUB_LOGINS (e.g. during bootstrap or
+    // an emergency config rollback) we must NOT silently demote every existing
+    // admin — that would kick the only operator out of admin. Empty allowlist
+    // = preserve existing roles.
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db.insert(users).values({
+      githubLogin: "bootstrap-admin",
+      githubId: 999,
+      role: "admin",
+      createdAt: now,
+    }).run();
+
+    const fetchers: GithubFetchers = {
+      async exchangeCode() { return { access_token: "tok" }; },
+      async fetchUser() { return { id: 999, login: "bootstrap-admin", name: null, avatar_url: null }; },
+    };
+    const app = makeApp(fetchers);
+    const customEnv = { ...env, ADMIN_GITHUB_LOGINS: "" };
+    const res = await app.request(
+      "https://api.bangdream.org/api/auth/github/callback?code=c&state=s",
+      { headers: { Cookie: `${OAUTH_STATE_COOKIE}=s` } },
+      customEnv,
+    );
+    expect(res.status).toBe(302);
+
+    const row = await db.select().from(users).where(eq(users.githubId, 999)).get();
+    expect(row?.role).toBe("admin");
+  });
+
   it("matches allowlist case-insensitively", async () => {
     const fetchers: GithubFetchers = {
       async exchangeCode() { return { access_token: "tok" }; },

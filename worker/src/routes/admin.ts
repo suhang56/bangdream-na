@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import type { ZodSchema } from "zod";
 import type { AppVariables, Env } from "../custom-env";
 import { requireAdmin } from "../auth/middleware";
@@ -38,6 +38,7 @@ import {
   adminMemberUpdate,
   adminNewsCreate,
   adminNewsUpdate,
+  adminNewsListQuery,
   adminSocialLinkCreate,
   adminSocialLinkUpdate,
 } from "../utils/validate";
@@ -45,9 +46,11 @@ import {
 type AppType = { Bindings: Env; Variables: AppVariables };
 type AppContext = Context<AppType>;
 
+type AdminErrorStatus = 400 | 404 | 409 | 413 | 415 | 500;
+
 function adminError(
   c: AppContext,
-  status: number,
+  status: AdminErrorStatus,
   error: string,
   detail?: unknown,
 ): Response {
@@ -55,7 +58,15 @@ function adminError(
   c.header("Vary", "Origin");
   const body: Record<string, unknown> = { error };
   if (detail !== undefined) body.detail = detail;
-  return c.json(body, status as 400);
+  return c.json(body, status);
+}
+
+// SQLite UNIQUE constraint message contains the substring "UNIQUE". Used by
+// every CRUD POST/PUT to translate a UNIQUE-race INSERT into 409 instead of
+// the default 500 from app.onError.
+function isUniqueConstraintError(err: unknown): boolean {
+  const msg = String((err as { message?: unknown })?.message ?? err);
+  return msg.includes("UNIQUE");
 }
 
 async function parseBody<T>(
@@ -122,6 +133,37 @@ export function buildAdminNewsRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  // Admin list — drops the `draft = 0` filter so drafts are visible. Public
+  // route (/api/news) still filters drafts out for anonymous readers.
+  router.get("/", async (c) => {
+    const parsed = adminNewsListQuery.safeParse({
+      limit: c.req.query("limit"),
+      offset: c.req.query("offset"),
+      draft: c.req.query("draft"),
+    });
+    if (!parsed.success) {
+      return adminError(c, 400, "bad_request", parsed.error.flatten());
+    }
+    const { limit, offset, draft } = parsed.data;
+    const db = getDb(c.env);
+
+    const baseSelect = db.select().from(newsPosts);
+    const filtered =
+      draft === "all"
+        ? baseSelect
+        : baseSelect.where(eq(newsPosts.draft, draft === "1" ? 1 : 0));
+    const rows = await filtered
+      .orderBy(desc(newsPosts.publishedAt))
+      .limit(limit)
+      .offset(offset)
+      .all();
+
+    return respondAdmin(c, {
+      items: rows.map(newsAdminRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.get("/check-slug", async (c) => {
     const parsed = adminCheckSlugQuery.safeParse({ slug: c.req.query("slug") });
     if (!parsed.success) {
@@ -152,25 +194,29 @@ export function buildAdminNewsRoutes() {
     if (existing) return uniqueConflict(c, "slug");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(newsPosts)
-      .values({
-        slug,
-        titleZh: data.title_zh,
-        titleEn: data.title_en ?? null,
-        bodyMd: data.body_md,
-        category: data.category,
-        heroImageUrl: data.hero_image_url ?? null,
-        tagsJson: JSON.stringify(data.tags ?? []),
-        publishedAt: data.published_at,
-        createdAt: now,
-        updatedAt: now,
-        draft: data.draft ? 1 : 0,
-      })
-      .returning()
-      .get();
-
-    return respondAdmin(c, newsAdminRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(newsPosts)
+        .values({
+          slug,
+          titleZh: data.title_zh,
+          titleEn: data.title_en ?? null,
+          bodyMd: data.body_md,
+          category: data.category,
+          heroImageUrl: data.hero_image_url ?? null,
+          tagsJson: JSON.stringify(data.tags ?? []),
+          publishedAt: data.published_at,
+          createdAt: now,
+          updatedAt: now,
+          draft: data.draft ? 1 : 0,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, newsAdminRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "slug");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {
@@ -247,6 +293,21 @@ export function buildAdminEventsRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  // Admin list — no time-based partition; both upcoming AND past events are
+  // returned in a single call so the operator can edit historical entries.
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(events)
+      .orderBy(desc(events.startAt))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(eventRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.post("/", async (c) => {
     const body = await parseBody(c, adminEventCreate);
     if (!body.ok) return body.res;
@@ -263,28 +324,32 @@ export function buildAdminEventsRoutes() {
     if (existing) return uniqueConflict(c, "slug");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(events)
-      .values({
-        slug,
-        titleZh: data.title_zh,
-        titleEn: data.title_en ?? null,
-        descriptionMd: data.description_md ?? null,
-        heroImageUrl: data.hero_image_url ?? null,
-        startAt: data.start_at,
-        endAt: data.end_at ?? null,
-        venue: data.venue ?? null,
-        city: data.city ?? null,
-        scope: data.scope ?? null,
-        ticketUrl: data.ticket_url ?? null,
-        bandTheme: data.band_theme ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-
-    return respondAdmin(c, eventRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(events)
+        .values({
+          slug,
+          titleZh: data.title_zh,
+          titleEn: data.title_en ?? null,
+          descriptionMd: data.description_md ?? null,
+          heroImageUrl: data.hero_image_url ?? null,
+          startAt: data.start_at,
+          endAt: data.end_at ?? null,
+          venue: data.venue ?? null,
+          city: data.city ?? null,
+          scope: data.scope ?? null,
+          ticketUrl: data.ticket_url ?? null,
+          bandTheme: data.band_theme ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, eventRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "slug");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {
@@ -363,6 +428,19 @@ export function buildAdminEventsRoutes() {
 export function buildAdminMembersRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
+
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(members)
+      .orderBy(asc(members.displayName))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(memberRowToOut),
+      total: rows.length,
+    });
+  });
 
   router.post("/", async (c) => {
     const body = await parseBody(c, adminMemberCreate);
@@ -449,6 +527,21 @@ export function buildAdminCategoriesRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  // Admin list — drops `active = 1` filter so soft-deleted categories
+  // remain visible for re-activation.
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.sortOrder), asc(categories.id))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(categoryRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.post("/", async (c) => {
     const body = await parseBody(c, adminCategoryCreate);
     if (!body.ok) return body.res;
@@ -463,21 +556,26 @@ export function buildAdminCategoriesRoutes() {
     if (existing) return uniqueConflict(c, "slug");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(categories)
-      .values({
-        slug: data.slug,
-        displayZh: data.display_zh,
-        displayEn: data.display_en ?? null,
-        accentColor: data.accent_color ?? null,
-        sortOrder: data.sort_order ?? 0,
-        active: data.active === false ? 0 : 1,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    return respondAdmin(c, categoryRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(categories)
+        .values({
+          slug: data.slug,
+          displayZh: data.display_zh,
+          displayEn: data.display_en ?? null,
+          accentColor: data.accent_color ?? null,
+          sortOrder: data.sort_order ?? 0,
+          active: data.active === false ? 0 : 1,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, categoryRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "slug");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {
@@ -591,6 +689,19 @@ export function buildAdminFeaturedPostsRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(featuredPosts)
+      .orderBy(asc(featuredPosts.sortOrder), asc(featuredPosts.id))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(featuredPostRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.post("/", async (c) => {
     const body = await parseBody(c, adminFeaturedPostCreate);
     if (!body.ok) return body.res;
@@ -607,24 +718,29 @@ export function buildAdminFeaturedPostsRoutes() {
     if (existing) return uniqueConflict(c, "slug");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(featuredPosts)
-      .values({
-        slug,
-        titleZh: data.title_zh ?? null,
-        titleEn: data.title_en ?? null,
-        bodyMd: data.body_md ?? null,
-        imageUrl: data.image_url ?? null,
-        linkUrl: data.link_url ?? null,
-        publishedAt: data.published_at ?? null,
-        sortOrder: data.sort_order ?? 0,
-        active: data.active === false ? 0 : 1,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    return respondAdmin(c, featuredPostRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(featuredPosts)
+        .values({
+          slug,
+          titleZh: data.title_zh ?? null,
+          titleEn: data.title_en ?? null,
+          bodyMd: data.body_md ?? null,
+          imageUrl: data.image_url ?? null,
+          linkUrl: data.link_url ?? null,
+          publishedAt: data.published_at ?? null,
+          sortOrder: data.sort_order ?? 0,
+          active: data.active === false ? 0 : 1,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, featuredPostRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "slug");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {
@@ -729,6 +845,19 @@ export function buildAdminSocialLinksRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(socialLinks)
+      .orderBy(asc(socialLinks.sortOrder), asc(socialLinks.id))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(socialLinkRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.post("/", async (c) => {
     const body = await parseBody(c, adminSocialLinkCreate);
     if (!body.ok) return body.res;
@@ -743,22 +872,27 @@ export function buildAdminSocialLinksRoutes() {
     if (existing) return uniqueConflict(c, "platform");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(socialLinks)
-      .values({
-        platform: data.platform,
-        labelZh: data.label_zh,
-        labelEn: data.label_en ?? null,
-        url: data.url,
-        icon: data.icon ?? null,
-        sortOrder: data.sort_order ?? 0,
-        active: data.active === false ? 0 : 1,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    return respondAdmin(c, socialLinkRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(socialLinks)
+        .values({
+          platform: data.platform,
+          labelZh: data.label_zh,
+          labelEn: data.label_en ?? null,
+          url: data.url,
+          icon: data.icon ?? null,
+          sortOrder: data.sort_order ?? 0,
+          active: data.active === false ? 0 : 1,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, socialLinkRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "platform");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {
@@ -857,6 +991,19 @@ export function buildAdminAboutSectionsRoutes() {
   const router = new Hono<AppType>();
   router.use("*", requireAdmin);
 
+  router.get("/", async (c) => {
+    const db = getDb(c.env);
+    const rows = await db
+      .select()
+      .from(aboutSections)
+      .orderBy(asc(aboutSections.sortOrder), asc(aboutSections.id))
+      .all();
+    return respondAdmin(c, {
+      items: rows.map(aboutSectionRowToOut),
+      total: rows.length,
+    });
+  });
+
   router.post("/", async (c) => {
     const body = await parseBody(c, adminAboutSectionCreate);
     if (!body.ok) return body.res;
@@ -871,21 +1018,26 @@ export function buildAdminAboutSectionsRoutes() {
     if (existing) return uniqueConflict(c, "slug");
 
     const now = Math.floor(Date.now() / 1000);
-    const inserted = await db
-      .insert(aboutSections)
-      .values({
-        slug: data.slug,
-        titleZh: data.title_zh,
-        titleEn: data.title_en ?? null,
-        bodyMd: data.body_md,
-        sortOrder: data.sort_order ?? 0,
-        active: data.active === false ? 0 : 1,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    return respondAdmin(c, aboutSectionRowToOut(inserted), 201);
+    try {
+      const inserted = await db
+        .insert(aboutSections)
+        .values({
+          slug: data.slug,
+          titleZh: data.title_zh,
+          titleEn: data.title_en ?? null,
+          bodyMd: data.body_md,
+          sortOrder: data.sort_order ?? 0,
+          active: data.active === false ? 0 : 1,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, aboutSectionRowToOut(inserted), 201);
+    } catch (err) {
+      if (isUniqueConstraintError(err)) return uniqueConflict(c, "slug");
+      throw err;
+    }
   });
 
   router.put("/:id", async (c) => {

@@ -20,9 +20,11 @@ const ALLOWED_CONTENT_TYPES = new Set([
 type AppType = { Bindings: Env; Variables: AppVariables };
 type AppContext = Context<AppType>;
 
+type UploadErrorStatus = 400 | 413 | 415 | 500;
+
 function adminError(
   c: AppContext,
-  status: number,
+  status: UploadErrorStatus,
   error: string,
   detail?: unknown,
 ): Response {
@@ -30,7 +32,7 @@ function adminError(
   c.header("Vary", "Origin");
   const body: Record<string, unknown> = { error };
   if (detail !== undefined) body.detail = detail;
-  return c.json(body, status as 400);
+  return c.json(body, status);
 }
 
 export function buildUploadRoutes() {

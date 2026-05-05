@@ -156,7 +156,16 @@ export function buildGithubAuthRoutes(options: AuthRouteOptions = {}) {
     let role: "admin" | "member";
 
     if (existing) {
-      role = allowlist.has(loginLc) ? "admin" : existing.role;
+      // Role is the OUTPUT of login, not the input. Allowlist removal must
+      // demote a previously-promoted admin on next login; without this the
+      // DB role (`existing.role`) would survive forever.
+      if (allowlist.has(loginLc)) {
+        role = "admin";
+      } else if (allowlist.size === 0) {
+        role = existing.role;
+      } else {
+        role = "member";
+      }
       await db
         .update(users)
         .set({

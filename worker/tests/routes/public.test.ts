@@ -159,6 +159,35 @@ describe("GET /api/news", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects inactive (soft-deleted) category → 400", async () => {
+    // A soft-deleted category exists in the DB with active=0. Public callers
+    // must not be able to filter by it — same response as a fully-unknown
+    // slug. Mirror the categories endpoint which also filters active=1.
+    const db = getDb(env);
+    const now = Math.floor(Date.now() / 1000);
+    await db
+      .insert(categories)
+      .values({
+        slug: "retired",
+        displayZh: "已退役",
+        displayEn: null,
+        accentColor: null,
+        sortOrder: 0,
+        active: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+    const res = await createApp().request(
+      "https://x/api/news?category=retired",
+      {},
+      env,
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("bad_request");
+  });
+
   it("returns 304 when If-None-Match matches", async () => {
     await seedNews([{ slug: "p1", titleZh: "x", publishedAt: 1 }]);
     const first = await createApp().request("https://x/api/news", {}, env);
