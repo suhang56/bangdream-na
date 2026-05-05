@@ -251,9 +251,16 @@ export function buildPublicEventsRoutes() {
     const db = getDb(c.env);
     const now = Math.floor(Date.now() / 1000);
 
+    // An event is "past" if it has already ended (end_at < now), OR if it has
+    // no end_at and the start has passed. The mirror image is "upcoming". Events
+    // with no end_at sit in exactly one bucket based on start_at vs now — the
+    // two clauses partition every row, so events never silently vanish.
     let whereClause;
     if (scope === "past") {
-      whereClause = lt(events.endAt, now);
+      whereClause = or(
+        lt(events.endAt, now),
+        and(isNull(events.endAt), lt(events.startAt, now)),
+      );
     } else {
       whereClause = or(
         gte(events.endAt, now),

@@ -318,6 +318,27 @@ describe("GET /api/events", () => {
     expect(body.items.map((i) => i.slug)).toEqual(["old2", "old1"]);
   });
 
+  it("scope=past also includes events with null end_at and past start_at", async () => {
+    // Regression: events backfilled without an end time used to fall into a
+    // filter gap — past required end_at, upcoming required future start_at, so
+    // a past-start + null-end row appeared in neither response.
+    const now = Math.floor(Date.now() / 1000);
+    await seedEvents([
+      { slug: "past-no-end", startAt: now - 1000, endAt: null },
+      { slug: "past-with-end", startAt: now - 5000, endAt: now - 4000 },
+      { slug: "future-no-end", startAt: now + 1000, endAt: null },
+    ]);
+    const past = await createApp().request("https://x/api/events?scope=past", {}, env);
+    const pastBody = (await past.json()) as { items: Array<{ slug: string }>; total: number };
+    expect(pastBody.items.map((i) => i.slug).sort()).toEqual(
+      ["past-no-end", "past-with-end"].sort(),
+    );
+
+    const upcoming = await createApp().request("https://x/api/events?scope=upcoming", {}, env);
+    const upcomingBody = (await upcoming.json()) as { items: Array<{ slug: string }>; total: number };
+    expect(upcomingBody.items.map((i) => i.slug)).toEqual(["future-no-end"]);
+  });
+
   it("rejects unknown scope → 400", async () => {
     const res = await createApp().request("https://x/api/events?scope=banana", {}, env);
     expect(res.status).toBe(400);
