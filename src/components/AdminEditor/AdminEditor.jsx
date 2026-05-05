@@ -415,13 +415,28 @@ function EditView({
     setSaveError(null)
     emit({ status: 'saving' })
     try {
+      // Normalize slug to match server regex (^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$).
+      // User may have typed spaces/uppercase/punctuation; clean before submit.
+      // Empty result → drop the field so server falls back to generateSlug(title_zh).
+      let effectiveDraft = draft
+      if (typeof draft.slug === 'string' && draft.slug.length > 0) {
+        const normalized = draft.slug
+          .toLowerCase()
+          .replace(/[^a-z0-9-]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        if (normalized !== draft.slug) {
+          effectiveDraft = { ...draft, slug: normalized }
+          setDraft(effectiveDraft)
+        }
+      }
       const ops = CRUD[schema.key]
       let saved
       if (isNew) {
-        const body = schema.mapFormToCreate(draft)
+        const body = schema.mapFormToCreate(effectiveDraft)
         saved = await ops.create(body)
       } else {
-        const body = schema.mapFormToUpdate(draft)
+        const body = schema.mapFormToUpdate(effectiveDraft)
         saved = await ops.update(editing.id, body)
       }
       clearAutosave()
