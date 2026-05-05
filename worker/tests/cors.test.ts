@@ -71,6 +71,47 @@ describe("CORS middleware", () => {
     expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Content-Type");
   });
 
+  it("matches Cloudflare Pages preview origin (hash subdomain)", async () => {
+    const res = await createApp().request(
+      "https://api.bangdream.org/api/healthz",
+      { headers: { Origin: "https://12276266.bangdream-na.pages.dev" } },
+      env,
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://12276266.bangdream-na.pages.dev",
+    );
+    expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+  });
+
+  it("matches Cloudflare Pages preview origin (branch subdomain)", async () => {
+    const res = await createApp().request(
+      "https://api.bangdream.org/api/healthz",
+      { headers: { Origin: "https://feat-x-y.bangdream-na.pages.dev" } },
+      env,
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://feat-x-y.bangdream-na.pages.dev",
+    );
+  });
+
+  it("rejects http (non-https) pages.dev origin", async () => {
+    const res = await createApp().request(
+      "https://api.bangdream.org/api/healthz",
+      { headers: { Origin: "http://abc.bangdream-na.pages.dev" } },
+      env,
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("rejects evil.bangdream-na.pages.dev.attacker.com (suffix-spoof)", async () => {
+    const res = await createApp().request(
+      "https://api.bangdream.org/api/healthz",
+      { headers: { Origin: "https://abc.bangdream-na.pages.dev.attacker.com" } },
+      env,
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
   it("OPTIONS preflight from non-allowlisted origin returns 204 but omits CORS allow headers", async () => {
     const res = await createApp().request(
       "https://api.bangdream.org/api/me",
