@@ -32,5 +32,5 @@ Content is managed via the Admin UI at `/admin` (Worker API + D1). There is no `
 - `.github/workflows/deploy-worker.yml` runs on main push: auto-deploys worker to `api.bangdream.org`. Requires `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` GitHub secrets.
 - `.github/workflows/preview-worker.yml` runs on PR (worker/** changes): deploys preview Worker, comments URL on PR. Skipped for forks.
 - `.github/workflows/preview-worker-cleanup.yml` deletes the preview Worker when the PR closes.
-- D1 migrations are NEVER auto-applied — owner runs `wrangler d1 migrations apply bangdream-na-db --remote` manually after PR merge when schema changes are included.
+- D1 migrations are NEVER auto-applied — owner runs `wrangler d1 migrations apply bangdream-na-content --remote` (or `npm run d1:migrate:prod` from `worker/`) manually after PR merge when schema changes are included.
 - `CODEOWNERS` requires owner review for infra files (`worker/migrations/`, `worker/wrangler.toml`, `public/_redirects`, `public/_headers`, `.github/`, `CLAUDE.md`).
