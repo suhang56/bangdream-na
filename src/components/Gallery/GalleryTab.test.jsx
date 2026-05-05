@@ -173,4 +173,36 @@ describe('<GalleryTab />', () => {
     render(<GalleryTab onAuthExpired={onAuthExpired} />)
     await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
   })
+
+  // PR-D Fix #2 — blob URL leak: items added AFTER mount must still be
+  // revoked on unmount. Pre-fix the cleanup captured the empty mount-time
+  // pendingItems and never freed later additions.
+  it('unmount revokes blob URLs for items added AFTER mount', async () => {
+    let counter = 0
+    URL.createObjectURL = vi.fn(() => `blob:mock-${++counter}`)
+
+    const { container, unmount } = render(<GalleryTab />)
+    await waitFor(() => expect(adminListGallery).toHaveBeenCalled())
+
+    // Add 3 files AFTER mount — these are exactly the ones the buggy
+    // cleanup-with-empty-deps would miss.
+    const input = container.querySelector('[data-testid="gallery-file-input"]')
+    fireEvent.change(input, {
+      target: { files: [makeFile('a.jpg'), makeFile('b.jpg'), makeFile('c.jpg')] },
+    })
+    await screen.findByText(/3 张待上传/)
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(3)
+    // Sanity: nothing revoked yet
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+
+    unmount()
+
+    // All 3 blob URLs must be revoked on unmount
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(3)
+    const revokedArgs = URL.revokeObjectURL.mock.calls.map((c) => c[0])
+    expect(revokedArgs).toEqual(
+      expect.arrayContaining(['blob:mock-1', 'blob:mock-2', 'blob:mock-3']),
+    )
+  })
 })

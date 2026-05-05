@@ -519,3 +519,156 @@ describe('<AdminEditor /> categories', () => {
     expect(api.updateCategory.mock.calls[0][1].display_zh).toBe('改公告')
   })
 })
+
+describe('<AdminEditor /> PR-D fixes', () => {
+  beforeEach(() => {
+    api.adminListNews.mockResolvedValue({ items: [NEWS_ROW], total: 1 })
+    api.createNews.mockResolvedValue({ ...NEWS_ROW, id: 2 })
+    api.updateNews.mockResolvedValue(NEWS_ROW)
+    api.checkSlug.mockReset().mockResolvedValue({ available: true })
+    window.localStorage.clear()
+  })
+  afterEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+  })
+
+  // Fix #1 — slug auto-resume on clear
+  it('slug clear → retype title regenerates slug from new title', async () => {
+    render(<AdminEditor schemaKey="news" />)
+    await waitFor(() => expect(screen.getByText('样例公告')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /\+ 新建资讯/ }))
+
+    const titleInput = screen.getByLabelText(/中文标题/)
+    const slugInput = screen.getByLabelText(/别名 \(Slug\)/)
+
+    // First title typed → slug auto-fills
+    fireEvent.change(titleInput, { target: { value: 'first title' } })
+    await waitFor(() => expect(slugInput.value).toBe('first-title'))
+
+    // User clears slug back to empty string
+    fireEvent.change(slugInput, { target: { value: '' } })
+    expect(slugInput.value).toBe('')
+
+    // User retypes a new title — slug should regenerate from the NEW title
+    fireEvent.change(titleInput, { target: { value: 'brand new title' } })
+    await waitFor(() => expect(slugInput.value).toBe('brand-new-title'))
+  })
+
+  it('slug whitespace-only counts as cleared (auto-fill resumes)', async () => {
+    render(<AdminEditor schemaKey="news" />)
+    await waitFor(() => expect(screen.getByText('样例公告')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /\+ 新建资讯/ }))
+
+    const titleInput = screen.getByLabelText(/中文标题/)
+    const slugInput = screen.getByLabelText(/别名 \(Slug\)/)
+
+    fireEvent.change(titleInput, { target: { value: 'hello' } })
+    await waitFor(() => expect(slugInput.value).toBe('hello'))
+
+    // User wipes to whitespace
+    fireEvent.change(slugInput, { target: { value: '   ' } })
+    fireEvent.change(titleInput, { target: { value: 'world' } })
+    await waitFor(() => expect(slugInput.value).toBe('world'))
+  })
+
+  // Fix #5 — onAuthExpired/onForbidden threaded into AdminAssetUploader
+  it('AdminAssetUploader receives onAuthExpired/onForbidden from AdminEditor', async () => {
+    const onAuthExpired = vi.fn()
+    const onForbidden = vi.fn()
+    render(
+      <AdminEditor
+        schemaKey="news"
+        onAuthExpired={onAuthExpired}
+        onForbidden={onForbidden}
+      />,
+    )
+    await waitFor(() => expect(screen.getByText('样例公告')).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
+
+    // The uploader renders inside the form for the hero_image_url 'asset' field.
+    // We assert the uploader's drop button appears, which proves the asset field
+    // mounted; the props plumbing is then asserted indirectly by inducing a 401
+    // through the uploadImage module.
+    const uploadModule = await import('../../lib/admin/uploadImage.js')
+    const spy = vi
+      .spyOn(uploadModule, 'uploadImageWithGuard')
+      .mockRejectedValue(Object.assign(new Error('login expired'), { code: 'unauthorized' }))
+
+    const hiddenInput = document.querySelector(
+      '.admin-asset-uploader input[type=file]',
+    )
+    expect(hiddenInput).not.toBeNull()
+    const file = new File([new Uint8Array(8)], 'pic.png', { type: 'image/png' })
+    fireEvent.change(hiddenInput, { target: { files: [file] } })
+
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    await waitFor(() => expect(onAuthExpired).toHaveBeenCalled())
+    expect(onForbidden).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('AdminAssetUploader receives onForbidden from AdminEditor', async () => {
+    const onAuthExpired = vi.fn()
+    const onForbidden = vi.fn()
+    render(
+      <AdminEditor
+        schemaKey="news"
+        onAuthExpired={onAuthExpired}
+        onForbidden={onForbidden}
+      />,
+    )
+    await waitFor(() => expect(screen.getByText('样例公告')).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
+
+    const uploadModule = await import('../../lib/admin/uploadImage.js')
+    const spy = vi
+      .spyOn(uploadModule, 'uploadImageWithGuard')
+      .mockRejectedValue(Object.assign(new Error('forbidden'), { code: 'forbidden' }))
+
+    const hiddenInput = document.querySelector(
+      '.admin-asset-uploader input[type=file]',
+    )
+    const file = new File([new Uint8Array(8)], 'pic.png', { type: 'image/png' })
+    fireEvent.change(hiddenInput, { target: { files: [file] } })
+
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    await waitFor(() => expect(onForbidden).toHaveBeenCalled())
+    expect(onAuthExpired).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  // Fix #6 — autosave save-race: clear before await
+  it('save clears autosave BEFORE the API call (no stale draft persisted)', async () => {
+    // Make updateNews resolve only when we tell it to, so we can observe LS
+    // state during the in-flight window.
+    let resolveUpdate
+    api.updateNews.mockReset().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpdate = () => resolve(NEWS_ROW)
+        }),
+    )
+
+    render(<AdminEditor schemaKey="news" />)
+    await waitFor(() => expect(screen.getByText('样例公告')).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: /^编辑$/ })[0])
+
+    // Type something so autosave debounces a write
+    fireEvent.change(screen.getByLabelText(/中文标题/), { target: { value: 'race' } })
+
+    // Click save before the autosave debounce (1s) fires
+    fireEvent.click(screen.getByRole('button', { name: /^保存$/ }))
+
+    // While the request is in flight, LS should already be empty (cleared
+    // before the await, pending timer dropped).
+    await waitFor(() => expect(api.updateNews).toHaveBeenCalled())
+    expect(window.localStorage.getItem('admin:draft:news:1')).toBeNull()
+
+    // Let the API resolve and ensure LS is still clean afterwards.
+    resolveUpdate()
+    await waitFor(() =>
+      expect(window.localStorage.getItem('admin:draft:news:1')).toBeNull(),
+    )
+  })
+})

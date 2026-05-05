@@ -49,21 +49,21 @@ describe('deriveBreadcrumb', () => {
     ])
   })
 
-  it('singleton schema (site) returns just root + schema (no edit segment)', () => {
-    expect(deriveBreadcrumb('site', null)).toEqual([
-      { label: '后台' },
-      { label: '站点信息' },
-    ])
+  it('legacy singleton key "site" no longer resolves (returns just root)', () => {
+    // After PR-D dead-code purge: site settings live in the __site_settings__
+    // tab outside any schema registry, so "site" is not a known schema key.
+    expect(deriveBreadcrumb('site', null)).toEqual([{ label: '后台' }])
     expect(deriveBreadcrumb('site', { discordInvite: 'x' })).toEqual([
       { label: '后台' },
-      { label: '站点信息' },
     ])
   })
 
-  it('singleton (about) ignores editing arg', () => {
-    expect(deriveBreadcrumb('about', { mission: 'm' })).toEqual([
+  it('legacy singleton key "about" no longer resolves (use aboutSections)', () => {
+    // After PR-D: only `aboutSections` (array-shape D1 schema) is valid.
+    expect(deriveBreadcrumb('about', { mission: 'm' })).toEqual([{ label: '后台' }])
+    expect(deriveBreadcrumb('aboutSections', null)).toEqual([
       { label: '后台' },
-      { label: '关于页' },
+      { label: '关于页章节' },
     ])
   })
 

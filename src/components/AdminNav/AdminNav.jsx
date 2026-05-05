@@ -1,4 +1,3 @@
-import { listSchemaKeys, getSchema } from '../../lib/adminSchemas.js'
 import AdminBrandPanel from '../AdminBrandPanel/AdminBrandPanel.jsx'
 import AdminSignOut from '../AdminSignOut/AdminSignOut.jsx'
 import './AdminNav.css'
@@ -10,14 +9,12 @@ import './AdminNav.css'
  * @param {string} props.activeKey
  * @param {(key: string) => void} props.onSelect
  * @param {() => void} props.onSignOut
- * @param {Array<{ key: string, title: string }>} [props.items]
- *   When provided, overrides the legacy schema-list iteration.
+ * @param {Array<{ key: string, title: string }>} props.items
+ *   Required — caller composes the nav-item list (Admin.jsx builds it from
+ *   `listD1SchemaKeys()` plus the gallery / settings / site-settings tabs).
  */
 export default function AdminNav({ activeKey, onSelect, onSignOut, items }) {
-  const navItems =
-    Array.isArray(items) && items.length > 0
-      ? items
-      : listSchemaKeys().map((k) => ({ key: k, title: getSchema(k).title }))
+  const navItems = Array.isArray(items) ? items : []
 
   return (
     <aside className="admin-nav">

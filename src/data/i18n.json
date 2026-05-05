@@ -249,7 +249,10 @@
     "admin.cover.detected": "Hero image auto-detected from body",
     "loading.message": "Loading…",
     "error.loadFailed": "Failed to load",
-    "error.retry": "Retry"
+    "error.retry": "Retry",
+    "notFound.title": "Page not found",
+    "notFound.body": "The page you're looking for doesn't exist or has been moved.",
+    "notFound.backHome": "Back to home"
   },
   "zh": {
     "nav.home": "首页",
@@ -497,6 +500,9 @@
     "admin.cover.detected": "已从正文自动识别主图",
     "loading.message": "加载中…",
     "error.loadFailed": "加载失败",
-    "error.retry": "重试"
+    "error.retry": "重试",
+    "notFound.title": "页面未找到",
+    "notFound.body": "你访问的页面不存在,可能已被移动或删除。",
+    "notFound.backHome": "返回首页"
   }
 }

@@ -137,14 +137,21 @@ export default function GalleryTab({ onAuthExpired, onForbidden }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Revoke blob URLs when pending items are removed.
+  // Revoke blob URLs on unmount.
+  // Mirror pendingItems into a ref so the unmount cleanup sees the LATEST list,
+  // not the empty array captured at mount.
+  const pendingRef = useRef(pendingItems)
+  useEffect(() => {
+    pendingRef.current = pendingItems
+  }, [pendingItems])
   useEffect(() => {
     return () => {
-      pendingItems.forEach((p) => {
+      // jsdom does not always implement URL.revokeObjectURL — guard accordingly.
+      if (typeof URL?.revokeObjectURL !== 'function') return
+      pendingRef.current.forEach((p) => {
         if (p.objectUrl) URL.revokeObjectURL(p.objectUrl)
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function addFiles(fileList) {
