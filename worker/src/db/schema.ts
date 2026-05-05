@@ -77,10 +77,12 @@ export const members = sqliteTable("members", {
 
 export const comments = sqliteTable("comments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  // parentId self-ref FK (→ comments.id ON DELETE CASCADE) is enforced in SQL migration;
+  // Drizzle can't express self-referential FKs without circular-inference errors.
   parentId: integer("parent_id"),
   targetKind: text("target_kind", { enum: ["news", "event"] }).notNull(),
   targetId: integer("target_id").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   body: text("body").notNull(),
   deleted: integer("deleted").notNull().default(0),
   createdAt: integer("created_at").notNull(),
