@@ -3,6 +3,7 @@ import Navbar from './components/Navbar/Navbar.jsx'
 import Footer from './components/Footer/Footer.jsx'
 import Home from './pages/Home.jsx'
 import Events from './pages/Events.jsx'
+import EventDetail from './pages/EventDetail.jsx'
 import Gallery from './pages/Gallery.jsx'
 import Members from './pages/Members.jsx'
 import News from './pages/News.jsx'
@@ -24,6 +25,7 @@ function ChromeAndRoutes() {
         <Route path="/news" element={<News />} />
         <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/events/:slug" element={<EventDetail />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/members" element={<Members />} />
         <Route path="/about" element={<About />} />

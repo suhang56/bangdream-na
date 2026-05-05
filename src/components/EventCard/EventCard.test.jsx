@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import EventCard from './EventCard.jsx'
+
+function render(ui, options) {
+  return rtlRender(ui, { wrapper: MemoryRouter, ...options })
+}
 
 const NOW = new Date('2026-06-01T12:00:00Z')
 
@@ -127,6 +132,31 @@ describe('<EventCard />', () => {
 
   it('default now param works without explicit now (no throw)', () => {
     expect(() => render(<EventCard event={baseEvent} />)).not.toThrow()
+  })
+
+  it('title is a Link to /events/<id> when id is present', () => {
+    const { container } = render(<EventCard event={baseEvent} now={NOW} />)
+    const link = container.querySelector('.event-card__title-link')
+    expect(link).not.toBeNull()
+    expect(link.getAttribute('href')).toBe('/events/roselia-la')
+  })
+
+  it('renders ticket button from event.ticketUrl when set', () => {
+    const e = {
+      ...baseEvent,
+      links: [],
+      ticketUrl: 'https://example.com/buy',
+    }
+    const { container } = render(<EventCard event={e} now={NOW} />)
+    const tickets = container.querySelector('a[href="https://example.com/buy"]')
+    expect(tickets).not.toBeNull()
+    expect(tickets.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('no ticket button when ticketUrl is empty/missing', () => {
+    const e = { ...baseEvent, links: [], ticketUrl: '' }
+    const { container } = render(<EventCard event={e} now={NOW} />)
+    expect(container.querySelector('.event-card__links')).toBeNull()
   })
 
   it('missing location → no location <p>', () => {

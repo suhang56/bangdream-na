@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import EventsDesktop from './Events.desktop.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
+
+function render(ui, options) {
+  return rtlRender(ui, { wrapper: MemoryRouter, ...options })
+}
 
 const baseProps = {
   view: 'list',
