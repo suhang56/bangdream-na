@@ -191,8 +191,10 @@ export function buildPublicNewsRoutes() {
     if (category) filters.push(eq(newsPosts.category, category));
     if (q) {
       const pat = `%${q.replace(/[%_]/g, "")}%`;
+      // body_md is excluded intentionally: full-table LIKE on a 200KB-cap column
+      // exceeds D1's 30s CPU budget at scale. Long-term fix: FTS5 virtual table.
       filters.push(
-        or(like(newsPosts.titleZh, pat), like(newsPosts.titleEn, pat), like(newsPosts.bodyMd, pat))!,
+        or(like(newsPosts.titleZh, pat), like(newsPosts.titleEn, pat))!,
       );
     }
 

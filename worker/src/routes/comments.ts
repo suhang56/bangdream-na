@@ -182,14 +182,19 @@ export function fireWebhook(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
     })
       .then((res) => {
         if (!res.ok) {
           console.error("webhook_non_ok", { status: res.status });
         }
       })
-      .catch((err) => {
-        console.error("webhook_failed", err);
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "TimeoutError") {
+          console.error("webhook_timeout", err);
+        } else {
+          console.error("webhook_failed", err);
+        }
       }),
   );
 }

@@ -196,6 +196,68 @@ describe("Admin /api/admin/settings/:key", () => {
     );
     expect(res.status).toBe(403);
   });
+
+  it("422 PUT webhook.comment.url with http:// URL", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings/webhook.comment.url",
+      {
+        method: "PUT",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "http://insecure.example.com/hook" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("webhook_url_invalid");
+  });
+
+  it("422 PUT webhook.comment.url with javascript: scheme", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings/webhook.comment.url",
+      {
+        method: "PUT",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "javascript:alert(1)" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("webhook_url_invalid");
+  });
+
+  it("200 PUT webhook.comment.url with valid https:// URL", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings/webhook.comment.url",
+      {
+        method: "PUT",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "https://discord.com/api/webhooks/1/abc" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { value: string };
+    expect(body.value).toBe("https://discord.com/api/webhooks/1/abc");
+  });
+
+  it("200 PUT non-webhook key with any string value (no URL validation)", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/settings/site.communityName",
+      {
+        method: "PUT",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "BanG Dream NA" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("POST /api/admin/settings/test-webhook", () => {
@@ -302,7 +364,7 @@ describe("POST /api/admin/settings/test-webhook", () => {
     fetchSpy.mockRestore();
   });
 
-  it("422 when override URL is http:// (validateWebhookUrl rejects)", async () => {
+  it("400 when override URL is http:// (webhookTestBody schema rejects non-https)", async () => {
     const cookie = await adminCookie();
     const res = await createApp().request(
       "https://x/api/admin/settings/test-webhook",
@@ -313,8 +375,10 @@ describe("POST /api/admin/settings/test-webhook", () => {
       },
       env,
     );
-    // http:// is rejected; settings table also empty → 422.
-    expect(res.status).toBe(422);
+    // http:// is rejected at schema validation level → 400 with validation detail.
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; detail: unknown };
+    expect(body.error).toBe("bad_request");
   });
 });
 
