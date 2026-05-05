@@ -404,11 +404,25 @@ export async function adminListNews(opts = {}) {
 }
 
 export async function adminListEvents() {
+  // Admin list must show BOTH past and upcoming events so the operator can
+  // edit historical entries (e.g. backfill descriptions, fix typos). Public
+  // route only returns one scope per request, so fetch both in parallel and
+  // merge. Cache-bust each call so admin sees fresh data after a save.
   const ts = Date.now()
-  const url = `/api/events?scope=upcoming&t=${ts}`
-  const res = await fetch(buildUrl(url), { credentials: 'include' })
-  await throwForBadStatus(res, `GET ${url}`)
-  return res.json()
+  async function fetchScope(scope) {
+    const url = `/api/events?scope=${scope}&t=${ts}`
+    const res = await fetch(buildUrl(url), { credentials: 'include' })
+    await throwForBadStatus(res, `GET ${url}`)
+    return res.json()
+  }
+  const [upcoming, past] = await Promise.all([
+    fetchScope('upcoming'),
+    fetchScope('past'),
+  ])
+  return {
+    items: [...(upcoming.items ?? []), ...(past.items ?? [])],
+    total: (upcoming.total ?? 0) + (past.total ?? 0),
+  }
 }
 
 export async function adminListMembers() {
