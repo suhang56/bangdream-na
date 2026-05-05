@@ -41,6 +41,13 @@ export default function CommentItem({
   const author = comment?.user
   const displayName = author?.display_name || author?.github_login || ''
   const avatar = author?.avatar_url || null
+  // Bodies set client-side use a sentinel; resolve to the translated label
+  // at render time so a language switch updates already-deleted rows.
+  const renderedBody = isDeleted
+    ? comment?.body === '__DELETED__' || !comment?.body
+      ? t('comments.deleted')
+      : comment.body
+    : (comment?.body ?? '')
 
   const canReply = !isDeleted && !!currentUser && !isReply
   const canDelete =
@@ -97,7 +104,7 @@ export default function CommentItem({
         <div
           className={`comment-item__body ${isDeleted ? 'comment-item__body--deleted' : ''}`}
         >
-          {comment?.body ?? ''}
+          {renderedBody}
         </div>
         {!isDeleted ? (
           <div className="comment-item__actions">

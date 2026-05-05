@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('../../lib/api.js', async () => {
   const actual = await vi.importActual('../../lib/api.js')
@@ -183,6 +183,28 @@ describe('<Comments />', () => {
     render(<Comments targetKind="news" targetId={1} />)
     await waitFor(() => expect(screen.getByText('parent')).toBeInTheDocument())
     expect(screen.getByText('[已删除]')).toBeInTheDocument()
+  })
+
+  it('soft-deleted body re-renders in active language after switch', async () => {
+    api.fetchComments.mockResolvedValue({
+      items: [makeComment(7, 'mine', { user: memberUser })],
+      total: 1,
+    })
+    api.fetchMe.mockResolvedValue({ user: memberUser })
+    api.deleteComment.mockResolvedValue(null)
+    render(<Comments targetKind="news" targetId={1} />)
+    await waitFor(() => expect(screen.getByText('mine')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /^删除$/ }))
+    await waitFor(() =>
+      expect(screen.getByText('[已删除]')).toBeInTheDocument(),
+    )
+    act(() => {
+      setLanguage('en')
+    })
+    await waitFor(() =>
+      expect(screen.getByText('[Deleted]')).toBeInTheDocument(),
+    )
+    expect(screen.queryByText('[已删除]')).toBeNull()
   })
 
   it('refetches when targetId changes', async () => {

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import { cache } from '../lib/cache.js'
+import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 
 vi.mock('../lib/api.js', async () => {
   const actual = await vi.importActual('../lib/api.js')
@@ -43,9 +44,11 @@ function row({ id, eventSlug, eventTitleZh, album, takenAt }) {
 beforeEach(() => {
   cache.clear()
   vi.mocked(fetchGallery).mockReset()
+  _resetForTests()
 })
 afterEach(() => {
   cache.clear()
+  _resetForTests()
 })
 
 describe('<Gallery />', () => {
@@ -168,6 +171,7 @@ describe('<Gallery />', () => {
       items: [row({ id: 1, album: 'a', takenAt: 1 })],
       total: 1,
     })
+    setLanguage('zh')
     renderWithProviders(<Gallery />, { route: '/gallery' })
     const btn = await screen.findByRole('button', { name: /第 1 张照片/ })
     fireEvent.click(btn)

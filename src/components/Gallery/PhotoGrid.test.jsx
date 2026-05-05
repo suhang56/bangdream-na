@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PhotoGrid from './PhotoGrid.jsx'
+import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
 
 const mk = (overrides) => ({
   id: 1,
@@ -18,6 +19,14 @@ const mk = (overrides) => ({
 })
 
 describe('<PhotoGrid />', () => {
+  beforeEach(() => {
+    _resetForTests()
+    setLanguage('zh')
+  })
+  afterEach(() => {
+    _resetForTests()
+  })
+
   it('renders nothing for empty items array', () => {
     const { container } = render(<PhotoGrid items={[]} onItemClick={() => {}} />)
     expect(container.firstChild).toBeNull()
@@ -60,5 +69,21 @@ describe('<PhotoGrid />', () => {
     const items = [mk({ id: 1 })]
     render(<PhotoGrid items={items} onItemClick={() => {}} ariaLabel="活动相册" />)
     expect(screen.getByRole('list', { name: '活动相册' })).toBeTruthy()
+  })
+
+  it('default ariaLabel comes from i18n in EN locale', () => {
+    setLanguage('en')
+    const items = [mk({ id: 1, caption: '' })]
+    render(<PhotoGrid items={items} onItemClick={() => {}} />)
+    expect(screen.getByRole('list', { name: 'Album photos' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Photo 1' })).toBeTruthy()
+  })
+
+  it('photoFallbackLabel uses {n} placeholder for index+1', () => {
+    setLanguage('zh')
+    const items = [mk({ id: 1, caption: '' }), mk({ id: 2, caption: '' })]
+    render(<PhotoGrid items={items} onItemClick={() => {}} />)
+    expect(screen.getByRole('button', { name: '第 1 张照片' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '第 2 张照片' })).toBeTruthy()
   })
 })
