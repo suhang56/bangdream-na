@@ -2,16 +2,14 @@ import PhotoGrid from '../components/Gallery/PhotoGrid.jsx'
 import { t } from '../lib/uiLanguage.js'
 import './Gallery.desktop.css'
 
-const FILTERS = [
-  { key: 'all', labelKey: 'gallery.filterAll' },
-  { key: 'event', labelKey: 'gallery.filterEvents' },
-  { key: 'album', labelKey: 'gallery.filterAlbums' },
-]
+const ALL_VALUE = ''
 
 export default function GalleryDesktop({
   groups,
-  filter,
-  onFilterChange,
+  groupOptions,
+  selectedGroupId,
+  selectedOption,
+  onSelectGroup,
   totalImages,
   groupCount,
   onItemClick,
@@ -31,18 +29,44 @@ export default function GalleryDesktop({
             role="group"
             aria-label={t('gallery.filterAria')}
           >
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                className={`gallery-chip${
-                  filter === f.key ? ' gallery-chip--active' : ''
-                }`}
-                onClick={() => onFilterChange(f.key)}
-              >
-                {t(f.labelKey)}
-              </button>
-            ))}
+            <button
+              type="button"
+              className={`gallery-chip${
+                selectedGroupId ? '' : ' gallery-chip--active'
+              }`}
+              onClick={() => onSelectGroup(null)}
+            >
+              {t('gallery.filter.allOption')}
+            </button>
+            <select
+              className="gallery-page__select"
+              aria-label={t('gallery.filter.dropdownAria')}
+              value={selectedGroupId ?? ALL_VALUE}
+              onChange={(e) => onSelectGroup(e.target.value || null)}
+            >
+              <option value={ALL_VALUE}>{t('gallery.filter.placeholder')}</option>
+              {groupOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {`${o.label} ${t('gallery.filter.optionMeta', { count: o.count })}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {selectedOption && (
+          <div className="gallery-page__active-filter" role="status">
+            <span>
+              {t('gallery.filter.active', { label: selectedOption.label })}
+            </span>
+            <button
+              type="button"
+              className="gallery-page__active-filter-clear"
+              aria-label={t('gallery.filter.clear')}
+              onClick={() => onSelectGroup(null)}
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -67,7 +91,13 @@ export default function GalleryDesktop({
                   className="gallery-group__title"
                   id={`heading-${group.id}`}
                 >
-                  {group.label}
+                  <button
+                    type="button"
+                    className="gallery-group__title-btn"
+                    onClick={() => onSelectGroup(group.id)}
+                  >
+                    {group.label}
+                  </button>
                 </h2>
                 <span className="gallery-group__meta">
                   {group.items.length} {t('gallery.photoCountSuffix')}

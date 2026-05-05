@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import GalleryDesktop from './Gallery.desktop.jsx'
 
 const groups = [
@@ -27,13 +27,17 @@ const groups = [
   },
 ]
 
+const groupOptions = [{ id: 'event-a', label: '甲活动', count: 1, kind: 'event' }]
+
 describe('<GalleryDesktop />', () => {
-  it('renders title + subtitle + filter row', () => {
+  it('renders title + 全部 chip + dropdown', () => {
     render(
       <GalleryDesktop
         groups={groups}
-        filter="all"
-        onFilterChange={() => {}}
+        groupOptions={groupOptions}
+        selectedGroupId={null}
+        selectedOption={null}
+        onSelectGroup={() => {}}
         totalImages={1}
         groupCount={1}
         onItemClick={() => {}}
@@ -41,59 +45,121 @@ describe('<GalleryDesktop />', () => {
       />,
     )
     expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(2)
+    expect(screen.getByRole('button', { name: 'All albums' })).toBeTruthy()
+    expect(screen.getByLabelText('Filter by album')).toBeTruthy()
   })
 
-  it('renders empty state when isEmpty=true', () => {
+  it('renders empty state (no chip/dropdown) when isEmpty=true', () => {
     render(
       <GalleryDesktop
         groups={[]}
-        filter="all"
-        onFilterChange={() => {}}
+        groupOptions={[]}
+        selectedGroupId={null}
+        selectedOption={null}
+        onSelectGroup={() => {}}
         totalImages={0}
         groupCount={0}
         onItemClick={() => {}}
         isEmpty
       />,
     )
-    expect(screen.queryByRole('button', { name: 'All' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'All albums' })).toBeNull()
     expect(screen.getByRole('status')).toBeTruthy()
   })
 
-  it('marks the active filter chip', () => {
+  it('marks the 全部 chip active when no filter is set', () => {
     render(
       <GalleryDesktop
         groups={groups}
-        filter="event"
-        onFilterChange={() => {}}
+        groupOptions={groupOptions}
+        selectedGroupId={null}
+        selectedOption={null}
+        onSelectGroup={() => {}}
         totalImages={1}
         groupCount={1}
         onItemClick={() => {}}
         isEmpty={false}
       />,
     )
-    const activeBtn = screen
-      .getAllByRole('button')
-      .find((b) => b.classList.contains('gallery-chip--active'))
-    expect(activeBtn?.textContent).toBe('Event Photos')
+    const chip = screen.getByRole('button', { name: 'All albums' })
+    expect(chip.classList.contains('gallery-chip--active')).toBe(true)
   })
 
-  it('passes group through to PhotoGrid onItemClick', () => {
-    const onItemClick = vi.fn()
+  it('renders active-filter pill when selectedOption is set', () => {
     render(
       <GalleryDesktop
         groups={groups}
-        filter="all"
-        onFilterChange={() => {}}
+        groupOptions={groupOptions}
+        selectedGroupId="event-a"
+        selectedOption={{ id: 'event-a', label: '甲活动', count: 1, kind: 'event' }}
+        onSelectGroup={() => {}}
         totalImages={1}
         groupCount={1}
-        onItemClick={onItemClick}
+        onItemClick={() => {}}
         isEmpty={false}
       />,
     )
-    const thumbBtn = screen.getByRole('button', { name: /第 1 张照片/ })
-    thumbBtn.click()
-    expect(onItemClick).toHaveBeenCalled()
-    expect(onItemClick.mock.calls[0][2]).toBe(groups[0])
+    expect(screen.getByText(/Filtered: 甲活动/)).toBeTruthy()
+    expect(screen.getByLabelText('Clear filter')).toBeTruthy()
+  })
+
+  it('clicking the clear button calls onSelectGroup(null)', () => {
+    const onSelectGroup = vi.fn()
+    render(
+      <GalleryDesktop
+        groups={groups}
+        groupOptions={groupOptions}
+        selectedGroupId="event-a"
+        selectedOption={{ id: 'event-a', label: '甲活动', count: 1, kind: 'event' }}
+        onSelectGroup={onSelectGroup}
+        totalImages={1}
+        groupCount={1}
+        onItemClick={() => {}}
+        isEmpty={false}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Clear filter'))
+    expect(onSelectGroup).toHaveBeenCalledWith(null)
+  })
+
+  it('selecting a dropdown option calls onSelectGroup with the id', () => {
+    const onSelectGroup = vi.fn()
+    render(
+      <GalleryDesktop
+        groups={groups}
+        groupOptions={groupOptions}
+        selectedGroupId={null}
+        selectedOption={null}
+        onSelectGroup={onSelectGroup}
+        totalImages={1}
+        groupCount={1}
+        onItemClick={() => {}}
+        isEmpty={false}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText('Filter by album'), {
+      target: { value: 'event-a' },
+    })
+    expect(onSelectGroup).toHaveBeenCalledWith('event-a')
+  })
+
+  it('clicking a group header button calls onSelectGroup(group.id)', () => {
+    const onSelectGroup = vi.fn()
+    render(
+      <GalleryDesktop
+        groups={groups}
+        groupOptions={groupOptions}
+        selectedGroupId={null}
+        selectedOption={null}
+        onSelectGroup={onSelectGroup}
+        totalImages={1}
+        groupCount={1}
+        onItemClick={() => {}}
+        isEmpty={false}
+      />,
+    )
+    const headerBtn = screen.getByText('甲活动').closest('button')
+    fireEvent.click(headerBtn)
+    expect(onSelectGroup).toHaveBeenCalledWith('event-a')
   })
 })

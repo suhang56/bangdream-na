@@ -71,7 +71,7 @@ describe('<Gallery />', () => {
     expect(screen.getByText('随手')).toBeTruthy()
   })
 
-  it('filter chip click switches between filters', async () => {
+  it('dropdown selection narrows to a single group', async () => {
     vi.mocked(fetchGallery).mockResolvedValue({
       items: [
         row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1000 }),
@@ -81,10 +81,55 @@ describe('<Gallery />', () => {
     })
     renderWithProviders(<Gallery />, { route: '/gallery' })
     await screen.findByText('甲')
-    // 'Event Photos' filter — only event group remains (en default in tests)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Event Photos' })[0])
-    expect(screen.queryByText('相册')).toBeNull()
+    const select = screen.getByLabelText('Filter by album')
+    fireEvent.change(select, { target: { value: 'event-a' } })
     expect(screen.getByText('甲')).toBeTruthy()
+    expect(screen.queryByText('相册')).toBeNull()
+  })
+
+  it('clear button on active-filter pill restores 全部', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [
+        row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1000 }),
+        row({ id: 2, album: '相册', takenAt: 2000 }),
+      ],
+      total: 2,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery?album=event-a' })
+    await screen.findByText('甲')
+    expect(screen.queryByText('相册')).toBeNull()
+    const clearBtn = screen.getByLabelText('Clear filter')
+    fireEvent.click(clearBtn)
+    await waitFor(() => expect(screen.getByText('相册')).toBeTruthy())
+  })
+
+  it('clicking a group header narrows filter to that group', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [
+        row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1000 }),
+        row({ id: 2, album: '相册', takenAt: 2000 }),
+      ],
+      total: 2,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery' })
+    const header = await screen.findByText('甲')
+    // The header is wrapped in a button; click the parent button.
+    fireEvent.click(header.closest('button'))
+    await waitFor(() => expect(screen.queryByText('相册')).toBeNull())
+    expect(screen.getByText('甲')).toBeTruthy()
+  })
+
+  it('URL ?album=<id> applies filter on mount', async () => {
+    vi.mocked(fetchGallery).mockResolvedValue({
+      items: [
+        row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1000 }),
+        row({ id: 2, album: '相册', takenAt: 2000 }),
+      ],
+      total: 2,
+    })
+    renderWithProviders(<Gallery />, { route: '/gallery?album=album-album' })
+    await screen.findByText('相册')
+    expect(screen.queryByText('甲')).toBeNull()
   })
 
   it('renders empty state when API returns 0 items', async () => {
@@ -92,23 +137,22 @@ describe('<Gallery />', () => {
     renderWithProviders(<Gallery />, { route: '/gallery' })
     await waitFor(() => {
       expect(
-        screen.queryByRole('button', { name: 'All' }),
+        screen.queryByRole('button', { name: 'All albums' }),
       ).toBeNull()
     })
+    expect(screen.getByText(/No photos yet/)).toBeTruthy()
   })
 
-  it('renders empty-after-filter when filter excludes everything', async () => {
+  it('renders empty-after-filter when URL param matches no group', async () => {
     vi.mocked(fetchGallery).mockResolvedValue({
       items: [row({ id: 1, eventSlug: 'a', eventTitleZh: '甲', takenAt: 1 })],
       total: 1,
     })
-    renderWithProviders(<Gallery />, { route: '/gallery' })
-    await screen.findByText('甲')
-    fireEvent.click(screen.getAllByRole('button', { name: 'Free Albums' })[0])
-    // After picking album filter, no album group exists → empty filter status text
+    renderWithProviders(<Gallery />, { route: '/gallery?album=does-not-exist' })
     await waitFor(() => {
       expect(screen.queryByText('甲')).toBeNull()
     })
+    expect(screen.getByText('No photos match this filter.')).toBeTruthy()
   })
 
   it('opens lightbox on thumb click', async () => {
