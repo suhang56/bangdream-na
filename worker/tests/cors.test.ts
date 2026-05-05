@@ -128,4 +128,20 @@ describe("CORS middleware", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
     expect(res.headers.get("Vary")).toContain("Origin");
   });
+
+  it("OPTIONS preflight returns Access-Control-Max-Age: 86400", async () => {
+    const res = await createApp().request(
+      "https://api.bangdream.org/api/me",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://bangdream.org",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Max-Age")).toBe("86400");
+  });
 });

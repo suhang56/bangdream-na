@@ -51,6 +51,7 @@ export const corsMiddleware: MiddlewareHandler<{ Bindings: Env; Variables: AppVa
 
   if (c.req.method === "OPTIONS") {
     applyCorsHeaders(c, origin);
+    c.header("Access-Control-Max-Age", "86400");
     return c.body(null, 204);
   }
 
