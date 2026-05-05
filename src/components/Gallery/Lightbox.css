@@ -1,0 +1,31 @@
+.yarl__container {
+  background: rgba(0, 0, 0, 0.92) !important;
+}
+
+.yarl__button {
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border-radius: 8px;
+}
+
+.yarl__navigation_prev,
+.yarl__navigation_next {
+  color: var(--color-primary);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+
+.yarl__slide_title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.yarl__slide_description {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.yarl__slide_captions_container {
+  background: transparent;
+}

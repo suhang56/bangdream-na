@@ -5,6 +5,7 @@ import AdminTopBar from '../components/AdminTopBar/AdminTopBar.jsx'
 import AdminEditor from '../components/AdminEditor/AdminEditor.jsx'
 import AdminSettings from '../components/AdminSettings/AdminSettings.jsx'
 import SiteSettingsTab from '../components/SiteSettingsTab/SiteSettingsTab.jsx'
+import GalleryTab from '../components/Gallery/GalleryTab.jsx'
 import { listD1SchemaKeys, getD1Schema } from '../lib/admin/d1Schemas.js'
 import { fetchMe, logout, ApiError } from '../lib/api.js'
 import { t } from '../lib/uiLanguage.js'
@@ -14,6 +15,7 @@ import './Admin.css'
 const DEFAULT_VIEW = 'news'
 const SETTINGS_KEY = '__settings__'
 const SITE_SETTINGS_KEY = '__site_settings__'
+const GALLERY_KEY = '__gallery__'
 const SAVED_BANNER_TIMEOUT_MS = 5000
 
 const AUTH_STATES = Object.freeze({
@@ -31,6 +33,10 @@ function navItems() {
   return [
     ...schemas,
     {
+      key: GALLERY_KEY,
+      title: t('admin.gallery.tabTitle') || '相册',
+    },
+    {
       key: SITE_SETTINGS_KEY,
       title: t('admin.siteSettings.tabTitle') || '站点信息',
     },
@@ -39,7 +45,13 @@ function navItems() {
 }
 
 function isValidNavKey(key) {
-  if (key === SETTINGS_KEY || key === SITE_SETTINGS_KEY) return true
+  if (
+    key === SETTINGS_KEY ||
+    key === SITE_SETTINGS_KEY ||
+    key === GALLERY_KEY
+  ) {
+    return true
+  }
   return listD1SchemaKeys().includes(key)
 }
 
@@ -187,7 +199,8 @@ export default function Admin() {
   // ADMIN
   const showSettings = activeKey === SETTINGS_KEY
   const showSiteSettings = activeKey === SITE_SETTINGS_KEY
-  const showEditor = !showSettings && !showSiteSettings
+  const showGallery = activeKey === GALLERY_KEY
+  const showEditor = !showSettings && !showSiteSettings && !showGallery
   return (
     <div className="admin-shell">
       <AdminNav
@@ -211,6 +224,11 @@ export default function Admin() {
             />
           ) : showSiteSettings ? (
             <SiteSettingsTab
+              onAuthExpired={handleAuthExpired}
+              onForbidden={handleForbidden}
+            />
+          ) : showGallery ? (
+            <GalleryTab
               onAuthExpired={handleAuthExpired}
               onForbidden={handleForbidden}
             />

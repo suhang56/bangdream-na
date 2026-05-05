@@ -146,5 +146,19 @@ export const aboutSections = sqliteTable("about_sections", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+export const galleryItems = sqliteTable("gallery_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  takenAt: integer("taken_at"),
+  eventId: integer("event_id").references(() => events.id, {
+    onDelete: "set null",
+  }),
+  album: text("album"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

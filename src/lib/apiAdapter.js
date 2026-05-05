@@ -278,6 +278,28 @@ export function adaptSiteSettings(apiResponse) {
   return out
 }
 
+// ── Gallery (G-phase) ──────────────────────────────────────────────────────
+//
+// Worker returns snake_case rows from the LEFT JOIN with denormalized
+// event_slug / event_title_zh. Component code consumes the camelCase shape;
+// the snake_case row stays inside this adapter.
+export function adaptGalleryRow(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    imageUrl: row.image_url,
+    caption: row.caption ?? '',
+    takenAt: row.taken_at ?? null,
+    eventId: row.event_id ?? null,
+    eventSlug: row.event_slug ?? null,
+    eventTitleZh: row.event_title_zh ?? null,
+    album: row.album ?? null,
+    sortOrder: row.sort_order ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
 export const __internals = {
   isoFromUnixSeconds,
   firstParagraphSummary,

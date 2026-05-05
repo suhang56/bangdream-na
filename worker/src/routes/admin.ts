@@ -9,6 +9,7 @@ import {
   categories,
   events,
   featuredPosts,
+  galleryItems,
   members,
   newsPosts,
   socialLinks,
@@ -25,6 +26,8 @@ import {
   adminEventUpdate,
   adminFeaturedPostCreate,
   adminFeaturedPostUpdate,
+  adminGalleryCreate,
+  adminGalleryUpdate,
   adminIdParam,
   adminMemberCreate,
   adminMemberUpdate,
@@ -1045,6 +1048,137 @@ export function buildAdminAboutSectionsRoutes() {
       .get();
     if (!existing) return adminError(c, 404, "not_found");
     await db.delete(aboutSections).where(eq(aboutSections.id, idParse.id)).run();
+    c.header("Cache-Control", "no-store");
+    c.header("Vary", "Origin");
+    return c.body(null, 204);
+  });
+
+  return router;
+}
+
+// ── G-phase: gallery_items ──────────────────────────────────────────────────
+
+interface GalleryAdminRowOut {
+  id: number;
+  image_url: string;
+  caption: string | null;
+  taken_at: number | null;
+  event_id: number | null;
+  album: string | null;
+  sort_order: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function galleryRowToOut(
+  row: typeof galleryItems.$inferSelect,
+): GalleryAdminRowOut {
+  return {
+    id: row.id,
+    image_url: row.imageUrl,
+    caption: row.caption,
+    taken_at: row.takenAt,
+    event_id: row.eventId,
+    album: row.album,
+    sort_order: row.sortOrder,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+function mapGalleryConstraintError(c: AppContext, err: unknown): Response {
+  const msg = String((err as { message?: unknown })?.message ?? err);
+  if (msg.includes("FOREIGN KEY")) {
+    return adminError(c, 400, "event_id_not_found");
+  }
+  if (msg.includes("CHECK")) {
+    return adminError(c, 400, "missing_group", {
+      detail: "either event_id or album required",
+    });
+  }
+  console.error("gallery_db_error", err);
+  return adminError(c, 500, "internal_error");
+}
+
+export function buildAdminGalleryRoutes() {
+  const router = new Hono<AppType>();
+  router.use("*", requireAdmin);
+
+  router.post("/", async (c) => {
+    const body = await parseBody(c, adminGalleryCreate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+    const db = getDb(c.env);
+    const now = Math.floor(Date.now() / 1000);
+    try {
+      const inserted = await db
+        .insert(galleryItems)
+        .values({
+          imageUrl: data.image_url,
+          caption: data.caption ?? null,
+          takenAt: data.taken_at ?? null,
+          eventId: data.event_id ?? null,
+          album: data.album ?? null,
+          sortOrder: data.sort_order ?? 0,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      return respondAdmin(c, galleryRowToOut(inserted), 201);
+    } catch (err) {
+      return mapGalleryConstraintError(c, err);
+    }
+  });
+
+  router.put("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const body = await parseBody(c, adminGalleryUpdate);
+    if (!body.ok) return body.res;
+    const data = body.data;
+
+    const db = getDb(c.env);
+    const existing = await db
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+
+    const now = Math.floor(Date.now() / 1000);
+    const patch: Partial<typeof galleryItems.$inferInsert> = { updatedAt: now };
+    if (data.image_url !== undefined) patch.imageUrl = data.image_url;
+    if (data.caption !== undefined) patch.caption = data.caption ?? null;
+    if (data.taken_at !== undefined) patch.takenAt = data.taken_at ?? null;
+    if (data.event_id !== undefined) patch.eventId = data.event_id ?? null;
+    if (data.album !== undefined) patch.album = data.album ?? null;
+    if (data.sort_order !== undefined) patch.sortOrder = data.sort_order;
+
+    try {
+      const updated = await db
+        .update(galleryItems)
+        .set(patch)
+        .where(eq(galleryItems.id, idParse.id))
+        .returning()
+        .get();
+      return respondAdmin(c, galleryRowToOut(updated));
+    } catch (err) {
+      return mapGalleryConstraintError(c, err);
+    }
+  });
+
+  router.delete("/:id", async (c) => {
+    const idParse = parseId(c);
+    if (!idParse.ok) return idParse.res;
+    const db = getDb(c.env);
+    const existing = await db
+      .select({ id: galleryItems.id })
+      .from(galleryItems)
+      .where(eq(galleryItems.id, idParse.id))
+      .get();
+    if (!existing) return adminError(c, 404, "not_found");
+    await db.delete(galleryItems).where(eq(galleryItems.id, idParse.id)).run();
     c.header("Cache-Control", "no-store");
     c.header("Vary", "Origin");
     return c.body(null, 204);
