@@ -28,10 +28,7 @@ worker/             Cloudflare Worker (Hono backend)
   src/              routes, auth, db schema (drizzle)
   migrations/       D1 SQL migrations
   tests/            vitest-pool-workers tests
-public/             static assets (only chrome — no content)
-scripts/migrate/    one-shot data migration scripts
-cloudflare/         CF infra setup docs (manual one-time steps)
-docs/               historical architecture + design notes (P1–P8, M-phase)
+public/             static assets (chrome only)
 .github/workflows/  CI: test, deploy-worker, preview-worker, cleanup
 ```
 
@@ -82,18 +79,11 @@ npx tsc --noEmit               # typecheck
 - Open PR with `worker/**` changes → `preview-worker.yml` deploys preview Worker, comments URL on the PR
 - Close the PR → preview Worker auto-deleted
 
-D1 schema migrations are NEVER auto-applied. After a PR with a new `worker/migrations/*.sql` file merges, the repo owner runs `wrangler d1 migrations apply bangdream-na-db --remote` once.
+D1 schema migrations are NEVER auto-applied. After a PR with a new `worker/migrations/*.sql` file merges, the repo owner runs `npm run d1:migrate:prod` (from `worker/`) once.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). TL;DR: fork → branch → push → PR. You never need to install wrangler or touch the Cloudflare dashboard.
-
-## Documentation
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) — contributor onboarding, local dev, PR conventions
-- [CLAUDE.md](CLAUDE.md) — architecture rules + CI/CD config
-- [cloudflare/README.md](cloudflare/README.md) — one-time Cloudflare infra setup (R2 bucket, D1, OAuth app, secrets)
-- [docs/](docs/) — historical phase architecture + design specs (P1–P8 + M-phase)
 
 ## License
 

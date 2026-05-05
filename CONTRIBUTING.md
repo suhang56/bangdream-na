@@ -42,8 +42,6 @@ worker/                 Cloudflare Worker backend (Hono + D1 + R2)
   migrations/           D1 schema migrations (0001–0004) — owner-managed
 
 public/                 Static assets (_redirects, _headers, favicon)
-cloudflare/             Infra setup notes (read-only reference)
-scripts/migrate/        One-time backfill scripts (historical, don't run)
 ```
 
 ---
@@ -92,7 +90,7 @@ Most features live in `src/`. The frontend reads all dynamic data from `src/lib/
 
 - Add new components under `src/components/`
 - Add new pages under `src/pages/` and wire up routes in `src/App.jsx`
-- Every visible UI string needs entries in **both** `zh` and `en` in `public/i18n.json`
+- Every visible UI string needs entries in **both** `zh` and `en` in `src/data/i18n.json`
 - Follow the Mobile/Desktop component pattern already in use (see `src/components/News*` for examples)
 - Test: `npm test -- --run` — must pass before PR
 
@@ -142,7 +140,7 @@ Both are required to pass in CI. Fix failures before pushing — it's faster tha
 
 - **Conventional commits** (mandatory): `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
 - **No `Co-Authored-By:` trailers** — project policy, please strip these if your tooling adds them
-- **Bilingual UI strings** — every new visible string needs `zh` + `en` in `public/i18n.json`
+- **Bilingual UI strings** — every new visible string needs `zh` + `en` in `src/data/i18n.json`
 - **Tests for new features** — new components should have corresponding test files in `src/`
 
 ---
@@ -161,9 +159,9 @@ Both are required to pass in CI. Fix failures before pushing — it's faster tha
 
 ## Architecture notes
 
-R-phase (current) migrated all content to **D1 + R2**. Admin operations go through the Worker API + GitHub OAuth at `/admin`. There is no PR-based content-update flow — content is edited live via the admin UI.
+All content lives in **D1 + R2**. Admin operations go through the Worker API + GitHub OAuth at `/admin`. There is no PR-based content-update flow — content is edited live via the admin UI.
 
-For full architecture details, see [CLAUDE.md](CLAUDE.md).
+For the architecture overview, see [README.md](README.md).
 
 ---
 
