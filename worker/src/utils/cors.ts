@@ -8,9 +8,26 @@ export function parseAllowedOrigins(env: Env): string[] {
     .filter(Boolean);
 }
 
+// Cloudflare Pages auto-deploys a preview per branch + per deploy hash. Origins
+// look like `https://<8hex>.bangdream-na.pages.dev` and
+// `https://<branch-slug>.bangdream-na.pages.dev`. Allowing this suffix lets
+// preview frontends call the prod API for read-only smoke testing. Admin
+// cookies won't reach previews anyway (cookie is __Host- + SameSite=Lax,
+// scoped to api.bangdream.org), so this exposes only public GET routes.
+const PAGES_PREVIEW_SUFFIX = ".bangdream-na.pages.dev";
+
 export function isCorsAllowed(env: Env, origin: string | null): boolean {
   if (!origin) return false;
-  return parseAllowedOrigins(env).includes(origin);
+  if (parseAllowedOrigins(env).includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "https:" && url.hostname.endsWith(PAGES_PREVIEW_SUFFIX)) {
+      return true;
+    }
+  } catch {
+    // not a valid URL — fall through to deny
+  }
+  return false;
 }
 
 function applyCorsHeaders(
