@@ -173,13 +173,19 @@ export default function Comments({ targetKind, targetId }) {
   )
 }
 
+// Sentinel body for soft-deleted comments. The actual translated label is
+// resolved at RENDER time in CommentItem (`t('comments.deleted')`) so the
+// language switch updates already-deleted rows. Server-deleted rows that
+// arrive with a pre-translated body still render as-is.
+export const DELETED_BODY_SENTINEL = '__DELETED__'
+
 function softDelete(list, id) {
   return list.map((row) => {
     if (row.id === id) {
       return {
         ...row,
         deleted: 1,
-        body: t('comments.deleted'),
+        body: DELETED_BODY_SENTINEL,
         user: null,
       }
     }
@@ -188,7 +194,7 @@ function softDelete(list, id) {
         ...row,
         replies: row.replies.map((reply) =>
           reply.id === id
-            ? { ...reply, deleted: 1, body: t('comments.deleted'), user: null }
+            ? { ...reply, deleted: 1, body: DELETED_BODY_SENTINEL, user: null }
             : reply,
         ),
       }

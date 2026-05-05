@@ -1,4 +1,13 @@
+import { useSyncExternalStore } from 'react'
+import { getLanguage, subscribeLanguage, t } from '../../lib/uiLanguage.js'
 import './PhotoGrid.css'
+
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
 
 /**
  * Stateless thumbnail grid. Renders a list of <li><button> cells; the parent
@@ -7,10 +16,15 @@ import './PhotoGrid.css'
  *
  * Accepts UI-shaped items (post-adaptGalleryRow) — `imageUrl`, `caption`, etc.
  */
-export default function PhotoGrid({ items, onItemClick, ariaLabel = '相册照片' }) {
+export default function PhotoGrid({ items, onItemClick, ariaLabel }) {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   if (!Array.isArray(items) || items.length === 0) return null
+  const gridLabel =
+    typeof ariaLabel === 'string' && ariaLabel.length > 0
+      ? ariaLabel
+      : t('gallery.gridLabel')
   return (
-    <ul className="gallery-grid" role="list" aria-label={ariaLabel}>
+    <ul className="gallery-grid" role="list" aria-label={gridLabel}>
       {items.map((item, index) => {
         const caption = typeof item.caption === 'string' ? item.caption : ''
         const altText = caption
@@ -19,7 +33,7 @@ export default function PhotoGrid({ items, onItemClick, ariaLabel = '相册照�
             <button
               type="button"
               className="gallery-thumb__btn"
-              aria-label={caption || `第 ${index + 1} 张照片`}
+              aria-label={caption || t('gallery.photoFallbackLabel', { n: index + 1 })}
               onClick={() => onItemClick?.(index, item)}
             >
               <img

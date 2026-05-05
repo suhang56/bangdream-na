@@ -1,14 +1,14 @@
 .comments {
   margin: 3rem 0 1rem;
   padding: 1.5rem 0 0;
-  border-top: 1px solid var(--border, #e5e7eb);
+  border-top: 1px solid var(--color-border);
 }
 
 .comments__title {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 1rem;
-  color: var(--text-primary, #111827);
+  color: var(--color-text);
 }
 
 .comments__loading,
@@ -34,7 +34,7 @@
 .comment-list--replies {
   margin: 0.5rem 0 0 3rem;
   gap: 0.75rem;
-  border-left: 2px solid var(--border, #e5e7eb);
+  border-left: 2px solid var(--color-border);
   padding-left: 0.75rem;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .comment-list__empty {
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-muted);
   font-size: 0.95rem;
   margin: 1rem 0 1.5rem;
 }
@@ -67,7 +67,7 @@
   height: 2.5rem;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--surface-2, #f3f4f6);
+  background: var(--color-bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,7 +82,7 @@
 
 .comment-item__avatar-fallback {
   font-weight: 700;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-muted);
   font-size: 1rem;
 }
 
@@ -100,17 +100,17 @@
 
 .comment-item__author {
   font-weight: 600;
-  color: var(--text-primary, #111827);
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
 .comment-item__time {
   font-size: 0.8rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-text-muted);
 }
 
 .comment-item__body {
-  color: var(--text-primary, #111827);
+  color: var(--color-text);
   font-size: 0.95rem;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -118,7 +118,7 @@
 }
 
 .comment-item__body--deleted {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
@@ -134,7 +134,7 @@
   border: none;
   padding: 0;
   font-size: 0.85rem;
-  color: var(--accent, #6366f1);
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -148,11 +148,11 @@
 }
 
 .comment-item__action--danger {
-  color: var(--danger, #dc2626);
+  color: var(--color-error);
 }
 
 .comment-item__error {
-  color: var(--danger, #dc2626);
+  color: var(--color-error);
   font-size: 0.85rem;
   margin: 0.4rem 0 0;
 }
@@ -167,7 +167,7 @@
 }
 
 .comment-form--anon {
-  background: var(--surface-2, #f3f4f6);
+  background: var(--color-bg-card);
   border-radius: 0.5rem;
   padding: 1rem;
   align-items: flex-start;
@@ -180,13 +180,13 @@
 .comment-form__login-prompt {
   margin: 0;
   font-size: 0.95rem;
-  color: var(--text-secondary, #4b5563);
+  color: var(--color-text-muted);
 }
 
 .comment-form__login-btn {
   display: inline-flex;
   align-items: center;
-  background: var(--accent, #6366f1);
+  background: var(--color-primary);
   color: #fff;
   text-decoration: none;
   font-weight: 600;
@@ -206,20 +206,20 @@
   padding: 0.65rem 0.75rem;
   font-family: inherit;
   font-size: 0.95rem;
-  color: var(--text-primary, #111827);
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #d1d5db);
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 0.4rem;
   box-sizing: border-box;
 }
 
 .comment-form__textarea:focus {
-  outline: 2px solid var(--accent, #6366f1);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
 
 .comment-form__error {
-  color: var(--danger, #dc2626);
+  color: var(--color-error);
   font-size: 0.85rem;
   margin: 0;
 }
@@ -232,7 +232,7 @@
 
 .comment-form__submit {
   appearance: none;
-  background: var(--accent, #6366f1);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   padding: 0.5rem 1rem;
@@ -254,8 +254,8 @@
 .comment-form__cancel {
   appearance: none;
   background: none;
-  border: 1px solid var(--border, #d1d5db);
-  color: var(--text-primary, #111827);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   border-radius: 0.4rem;
@@ -263,7 +263,7 @@
 }
 
 .comment-form__cancel:hover:not(:disabled) {
-  background: var(--surface-2, #f3f4f6);
+  background: var(--color-bg-card);
 }
 
 @media (max-width: 640px) {
