@@ -123,34 +123,127 @@ export async function adminFetch(method, path, body) {
 }
 
 // Convenience wrappers — one per (kind, op).
+//
+// Each write awaits the API response THEN evicts the matching public-read
+// cache prefix. Order matters: a failed write (4xx/5xx) bubbles via ApiError
+// before invalidate runs, so a stale-but-valid cache survives a rejected
+// write instead of forcing the next public read into a needless Worker hit.
 
-export const createNews = (data) => adminFetch('POST', '/api/admin/news', data)
-export const updateNews = (id, data) => adminFetch('PUT', `/api/admin/news/${id}`, data)
-export const deleteNews = (id) => adminFetch('DELETE', `/api/admin/news/${id}`)
+export const createNews = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/news', data)
+  cache.invalidate('news:')
+  return r
+}
+export const updateNews = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/news/${id}`, data)
+  cache.invalidate('news:')
+  return r
+}
+export const deleteNews = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/news/${id}`)
+  cache.invalidate('news:')
+  return r
+}
 
-export const createEvent = (data) => adminFetch('POST', '/api/admin/events', data)
-export const updateEvent = (id, data) => adminFetch('PUT', `/api/admin/events/${id}`, data)
-export const deleteEvent = (id) => adminFetch('DELETE', `/api/admin/events/${id}`)
+export const createEvent = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/events', data)
+  cache.invalidate('events:')
+  return r
+}
+export const updateEvent = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/events/${id}`, data)
+  cache.invalidate('events:')
+  return r
+}
+export const deleteEvent = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/events/${id}`)
+  cache.invalidate('events:')
+  return r
+}
 
-export const createMember = (data) => adminFetch('POST', '/api/admin/members', data)
-export const updateMember = (id, data) => adminFetch('PUT', `/api/admin/members/${id}`, data)
-export const deleteMember = (id) => adminFetch('DELETE', `/api/admin/members/${id}`)
+export const createMember = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/members', data)
+  cache.invalidate('members:')
+  return r
+}
+export const updateMember = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/members/${id}`, data)
+  cache.invalidate('members:')
+  return r
+}
+export const deleteMember = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/members/${id}`)
+  cache.invalidate('members:')
+  return r
+}
 
-export const createCategory = (data) => adminFetch('POST', '/api/admin/categories', data)
-export const updateCategory = (id, data) => adminFetch('PUT', `/api/admin/categories/${id}`, data)
-export const deleteCategory = (id) => adminFetch('DELETE', `/api/admin/categories/${id}`)
+export const createCategory = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/categories', data)
+  cache.invalidate('categories:')
+  // Inactive-category gating in /api/news may also flip; clear news too.
+  cache.invalidate('news:')
+  return r
+}
+export const updateCategory = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/categories/${id}`, data)
+  cache.invalidate('categories:')
+  cache.invalidate('news:')
+  return r
+}
+export const deleteCategory = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/categories/${id}`)
+  cache.invalidate('categories:')
+  cache.invalidate('news:')
+  return r
+}
 
-export const createFeaturedPost = (data) => adminFetch('POST', '/api/admin/featured-posts', data)
-export const updateFeaturedPost = (id, data) => adminFetch('PUT', `/api/admin/featured-posts/${id}`, data)
-export const deleteFeaturedPost = (id) => adminFetch('DELETE', `/api/admin/featured-posts/${id}`)
+export const createFeaturedPost = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/featured-posts', data)
+  cache.invalidate('posts:')
+  return r
+}
+export const updateFeaturedPost = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/featured-posts/${id}`, data)
+  cache.invalidate('posts:')
+  return r
+}
+export const deleteFeaturedPost = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/featured-posts/${id}`)
+  cache.invalidate('posts:')
+  return r
+}
 
-export const createSocialLink = (data) => adminFetch('POST', '/api/admin/social-links', data)
-export const updateSocialLink = (id, data) => adminFetch('PUT', `/api/admin/social-links/${id}`, data)
-export const deleteSocialLink = (id) => adminFetch('DELETE', `/api/admin/social-links/${id}`)
+export const createSocialLink = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/social-links', data)
+  cache.invalidate('social:')
+  return r
+}
+export const updateSocialLink = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/social-links/${id}`, data)
+  cache.invalidate('social:')
+  return r
+}
+export const deleteSocialLink = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/social-links/${id}`)
+  cache.invalidate('social:')
+  return r
+}
 
-export const createAboutSection = (data) => adminFetch('POST', '/api/admin/about-sections', data)
-export const updateAboutSection = (id, data) => adminFetch('PUT', `/api/admin/about-sections/${id}`, data)
-export const deleteAboutSection = (id) => adminFetch('DELETE', `/api/admin/about-sections/${id}`)
+export const createAboutSection = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/about-sections', data)
+  cache.invalidate('about:')
+  return r
+}
+export const updateAboutSection = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/about-sections/${id}`, data)
+  cache.invalidate('about:')
+  return r
+}
+export const deleteAboutSection = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/about-sections/${id}`)
+  cache.invalidate('about:')
+  return r
+}
 
 // ── Gallery (G-phase) ──────────────────────────────────────────────────────
 //
@@ -159,18 +252,18 @@ export const deleteAboutSection = (id) => adminFetch('DELETE', `/api/admin/about
 
 const GALLERY_CACHE_PREFIX = 'gallery:'
 
-export const createGalleryItem = (data) => {
-  const r = adminFetch('POST', '/api/admin/gallery', data)
+export const createGalleryItem = async (data) => {
+  const r = await adminFetch('POST', '/api/admin/gallery', data)
   cache.invalidate(GALLERY_CACHE_PREFIX)
   return r
 }
-export const updateGalleryItem = (id, data) => {
-  const r = adminFetch('PUT', `/api/admin/gallery/${id}`, data)
+export const updateGalleryItem = async (id, data) => {
+  const r = await adminFetch('PUT', `/api/admin/gallery/${id}`, data)
   cache.invalidate(GALLERY_CACHE_PREFIX)
   return r
 }
-export const deleteGalleryItem = (id) => {
-  const r = adminFetch('DELETE', `/api/admin/gallery/${id}`)
+export const deleteGalleryItem = async (id) => {
+  const r = await adminFetch('DELETE', `/api/admin/gallery/${id}`)
   cache.invalidate(GALLERY_CACHE_PREFIX)
   return r
 }
@@ -389,45 +482,36 @@ export async function fetchGalleryByEventSlug(slug) {
   return body
 }
 
-/** Admin variant: list all rows including drafts. Falls back to public + ?t cache-bust. */
+// Admin list endpoints — call /api/admin/<kind> directly so drafts (news)
+// and soft-deleted rows (categories/featured-posts/social-links/about-sections)
+// are visible. Public routes filter by draft=0 / active=1 and would render
+// these rows invisible to the operator.
+
 export async function adminListNews(opts = {}) {
   const ts = Date.now()
   const params = new URLSearchParams({ t: String(ts) })
   if (opts.limit != null) params.set('limit', String(opts.limit))
   if (opts.offset != null) params.set('offset', String(opts.offset))
-  // Public route excludes drafts. R4 has no admin list endpoint, so admin UI
-  // sees only published rows; full list-with-drafts arrives in a future phase.
-  const url = `/api/news?${params.toString()}`
+  if (opts.draft != null) params.set('draft', String(opts.draft))
+  const url = `/api/admin/news?${params.toString()}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
 }
 
 export async function adminListEvents() {
-  // Admin list must show BOTH past and upcoming events so the operator can
-  // edit historical entries (e.g. backfill descriptions, fix typos). Public
-  // route only returns one scope per request, so fetch both in parallel and
-  // merge. Cache-bust each call so admin sees fresh data after a save.
+  // Admin GET returns BOTH upcoming AND past in a single call (no scope
+  // partition). Cache-bust so admin sees fresh data after a save.
   const ts = Date.now()
-  async function fetchScope(scope) {
-    const url = `/api/events?scope=${scope}&t=${ts}`
-    const res = await fetch(buildUrl(url), { credentials: 'include' })
-    await throwForBadStatus(res, `GET ${url}`)
-    return res.json()
-  }
-  const [upcoming, past] = await Promise.all([
-    fetchScope('upcoming'),
-    fetchScope('past'),
-  ])
-  return {
-    items: [...(upcoming.items ?? []), ...(past.items ?? [])],
-    total: (upcoming.total ?? 0) + (past.total ?? 0),
-  }
+  const url = `/api/admin/events?t=${ts}`
+  const res = await fetch(buildUrl(url), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${url}`)
+  return res.json()
 }
 
 export async function adminListMembers() {
   const ts = Date.now()
-  const url = `/api/members?t=${ts}`
+  const url = `/api/admin/members?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
@@ -435,7 +519,7 @@ export async function adminListMembers() {
 
 export async function adminListCategories() {
   const ts = Date.now()
-  const url = `/api/categories?t=${ts}`
+  const url = `/api/admin/categories?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
@@ -443,7 +527,7 @@ export async function adminListCategories() {
 
 export async function adminListFeaturedPosts() {
   const ts = Date.now()
-  const url = `/api/posts?t=${ts}`
+  const url = `/api/admin/featured-posts?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
@@ -451,7 +535,7 @@ export async function adminListFeaturedPosts() {
 
 export async function adminListSocialLinks() {
   const ts = Date.now()
-  const url = `/api/social?t=${ts}`
+  const url = `/api/admin/social-links?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()
@@ -459,7 +543,7 @@ export async function adminListSocialLinks() {
 
 export async function adminListAboutSections() {
   const ts = Date.now()
-  const url = `/api/about?t=${ts}`
+  const url = `/api/admin/about-sections?t=${ts}`
   const res = await fetch(buildUrl(url), { credentials: 'include' })
   await throwForBadStatus(res, `GET ${url}`)
   return res.json()

@@ -76,10 +76,12 @@ export function buildPublicNewsRoutes() {
     const db = getDb(c.env);
 
     if (category) {
+      // Match GET /api/categories — public callers must not filter by an
+      // inactive (soft-deleted) slug. Inactive slug treated as unknown.
       const exists = await db
         .select({ slug: categories.slug })
         .from(categories)
-        .where(eq(categories.slug, category))
+        .where(and(eq(categories.slug, category), eq(categories.active, 1)))
         .get();
       if (!exists) return badRequest(c, { category: "unknown_category" });
     }

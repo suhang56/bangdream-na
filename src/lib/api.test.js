@@ -367,32 +367,37 @@ describe('api.js', () => {
   })
 
   describe('admin list helpers', () => {
-    it('adminListNews uses credentials:include + cache-bust query', async () => {
+    it('adminListNews calls /api/admin/news with credentials:include + cache-bust', async () => {
       fetchMock.mockResolvedValue(jsonResponse({ items: [], total: 0 }))
       await adminListNews()
       const [url, init] = fetchMock.mock.calls[0]
-      expect(url).toContain('/api/news?')
+      expect(url).toContain('/api/admin/news?')
       expect(url).toMatch(/[?&]t=\d+/)
       expect(init.credentials).toBe('include')
     })
 
-    it('adminListEvents/Members/Categories all include cache-bust', async () => {
+    it('admin list helpers all hit /api/admin/* with credentials:include', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ items: [], total: 0 })))
       await adminListEvents()
       await adminListMembers()
       await adminListCategories()
+      const urls = fetchMock.mock.calls.map((c) => c[0])
+      expect(urls[0]).toContain('/api/admin/events')
+      expect(urls[1]).toContain('/api/admin/members')
+      expect(urls[2]).toContain('/api/admin/categories')
       for (const call of fetchMock.mock.calls) {
         expect(call[0]).toMatch(/[?&]t=\d+/)
         expect(call[1].credentials).toBe('include')
       }
     })
 
-    it('adminListNews accepts limit/offset', async () => {
+    it('adminListNews accepts limit/offset/draft', async () => {
       fetchMock.mockResolvedValue(jsonResponse({ items: [], total: 0 }))
-      await adminListNews({ limit: 50, offset: 0 })
+      await adminListNews({ limit: 50, offset: 0, draft: 'all' })
       const [url] = fetchMock.mock.calls[0]
       expect(url).toContain('limit=50')
       expect(url).toContain('offset=0')
+      expect(url).toContain('draft=all')
     })
   })
 
@@ -639,6 +644,110 @@ describe('api.js', () => {
         jsonResponse({ error: 'webhook_url_invalid_or_missing' }, 422),
       )
       await expect(testAdminWebhook()).rejects.toBeInstanceOf(ApiError)
+    })
+  })
+
+  describe('admin write cache invalidation (PR-B)', () => {
+    // Verify each write awaits the API response THEN evicts the matching
+    // public-read cache prefix. Failed writes must NOT evict the cache.
+
+    it('createNews invalidates news: cache after success', async () => {
+      cache.set('news:list:{"limit":5}', { items: [], total: 0 }, 60_000)
+      cache.set('news:slug:abc', { slug: 'abc' }, 60_000)
+      cache.set('events:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }, 201))
+      await createNews({ title_zh: 'x' })
+      expect(cache.get('news:list:{"limit":5}')).toBeNull()
+      expect(cache.get('news:slug:abc')).toBeNull()
+      // Other namespaces survive.
+      expect(cache.get('events:list:{}')).not.toBeNull()
+    })
+
+    it('updateNews invalidates news: cache after success', async () => {
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }))
+      await updateNews(1, { title_zh: 'y' })
+      expect(cache.get('news:list:{}')).toBeNull()
+    })
+
+    it('deleteNews invalidates news: cache after success', async () => {
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(emptyResponse(204))
+      await deleteNews(7)
+      expect(cache.get('news:list:{}')).toBeNull()
+    })
+
+    it('createEvent invalidates events: cache, leaves news: alone', async () => {
+      cache.set('events:list:{}', { items: [] }, 60_000)
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }, 201))
+      await createEvent({ title_zh: 'x' })
+      expect(cache.get('events:list:{}')).toBeNull()
+      expect(cache.get('news:list:{}')).not.toBeNull()
+    })
+
+    it('updateEvent and deleteEvent both invalidate events: cache', async () => {
+      cache.set('events:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }))
+      await updateEvent(1, { city: 'x' })
+      expect(cache.get('events:list:{}')).toBeNull()
+
+      cache.set('events:slug:abc', { slug: 'abc' }, 60_000)
+      fetchMock.mockResolvedValue(emptyResponse(204))
+      await deleteEvent(1)
+      expect(cache.get('events:slug:abc')).toBeNull()
+    })
+
+    it('createMember/updateMember/deleteMember invalidate members: cache', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }, 201))
+      cache.set('members:list:', { items: [] }, 60_000)
+      await createMember({ display_name: 'x' })
+      expect(cache.get('members:list:')).toBeNull()
+
+      cache.set('members:list:', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }))
+      await updateMember(1, { city: 'x' })
+      expect(cache.get('members:list:')).toBeNull()
+
+      cache.set('members:list:', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(emptyResponse(204))
+      await deleteMember(1)
+      expect(cache.get('members:list:')).toBeNull()
+    })
+
+    it('category writes invalidate BOTH categories: AND news: caches', async () => {
+      // Inactive-category gating in /api/news depends on categories.active.
+      // A category soft-delete must invalidate the news read cache too.
+      cache.set('categories:list:', { items: [] }, 60_000)
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ id: 1 }, 201))
+      await createCategory({ slug: 'x', display_zh: 'X' })
+      expect(cache.get('categories:list:')).toBeNull()
+      expect(cache.get('news:list:{}')).toBeNull()
+
+      cache.set('categories:list:', { items: [] }, 60_000)
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(emptyResponse(204))
+      await deleteCategory(1)
+      expect(cache.get('categories:list:')).toBeNull()
+      expect(cache.get('news:list:{}')).toBeNull()
+    })
+
+    it('failed write (4xx) does NOT invalidate cache', async () => {
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'unique_violation' }, 409))
+      await expect(createNews({ title_zh: 'x' })).rejects.toBeInstanceOf(ApiError)
+      // Cache must survive — the write failed; existing data is still valid.
+      expect(cache.get('news:list:{}')).not.toBeNull()
+    })
+
+    it('updateNews ApiError on 403 does NOT invalidate cache', async () => {
+      cache.set('news:list:{}', { items: [] }, 60_000)
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'forbidden' }, 403))
+      await expect(updateNews(1, { title_zh: 'y' })).rejects.toBeInstanceOf(
+        ApiError,
+      )
+      expect(cache.get('news:list:{}')).not.toBeNull()
     })
   })
 })

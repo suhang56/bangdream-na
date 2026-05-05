@@ -1897,3 +1897,363 @@ describe("Admin /api/admin/about-sections", () => {
   });
 });
 
+// ── Admin GET list routes — drafts/inactive must be visible (PR-B) ─────────
+
+describe("GET /api/admin/news (admin list)", () => {
+  it("returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/news",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for non-admin member", async () => {
+    const cookie = await memberCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/news",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("includes draft rows in response", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/news",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_NEWS, slug: "live", draft: false }),
+      },
+      env,
+    );
+    await createApp().request(
+      "https://x/api/admin/news",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_NEWS, slug: "drafty", draft: true }),
+      },
+      env,
+    );
+
+    const res = await createApp().request(
+      "https://x/api/admin/news",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ slug: string; draft: number }>;
+      total: number;
+    };
+    const slugs = body.items.map((i) => i.slug).sort();
+    expect(slugs).toContain("drafty");
+    expect(slugs).toContain("live");
+    expect(body.total).toBe(2);
+    // Public route at /api/news must NOT include the draft row.
+    const pub = await createApp().request("https://x/api/news", {}, env);
+    const pubBody = (await pub.json()) as {
+      items: Array<{ slug: string }>;
+    };
+    const pubSlugs = pubBody.items.map((i) => i.slug);
+    expect(pubSlugs).toContain("live");
+    expect(pubSlugs).not.toContain("drafty");
+  });
+
+  it("supports ?draft=1 to filter only drafts", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/news",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_NEWS, slug: "pub", draft: false }),
+      },
+      env,
+    );
+    await createApp().request(
+      "https://x/api/admin/news",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_NEWS, slug: "drf", draft: true }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/news?draft=1",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: Array<{ slug: string }> };
+    expect(body.items.map((i) => i.slug)).toEqual(["drf"]);
+  });
+
+  it("returns 400 for invalid ?draft value", async () => {
+    const cookie = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/news?draft=bogus",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/admin/events (admin list)", () => {
+  it("returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/events",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns BOTH past and upcoming events in one call", async () => {
+    const cookie = await adminCookie();
+    const now = Math.floor(Date.now() / 1000);
+    await createApp().request(
+      "https://x/api/admin/events",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          ...VALID_EVENT,
+          slug: "future",
+          start_at: now + 86400,
+          end_at: now + 90000,
+        }),
+      },
+      env,
+    );
+    await createApp().request(
+      "https://x/api/admin/events",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          ...VALID_EVENT,
+          slug: "past",
+          start_at: now - 200000,
+          end_at: now - 100000,
+        }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/events",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: Array<{ slug: string }> };
+    const slugs = body.items.map((i) => i.slug).sort();
+    expect(slugs).toEqual(["future", "past"]);
+  });
+});
+
+describe("GET /api/admin/categories (admin list)", () => {
+  it("returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/categories",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("includes inactive (soft-deleted) categories", async () => {
+    const cookie = await adminCookie();
+    const created = await createApp().request(
+      "https://x/api/admin/categories",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_CATEGORY, slug: "to-delete" }),
+      },
+      env,
+    );
+    const row = (await created.json()) as { id: number };
+    // Soft-delete flips active=0
+    await createApp().request(
+      `https://x/api/admin/categories/${row.id}`,
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/categories",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ slug: string; active: number }>;
+    };
+    const tombstone = body.items.find((i) => i.slug === "to-delete");
+    expect(tombstone).toBeDefined();
+    expect(tombstone?.active).toBe(0);
+
+    // Public route must NOT return the inactive row.
+    const pub = await createApp().request(
+      "https://x/api/categories",
+      {},
+      env,
+    );
+    const pubBody = (await pub.json()) as { items: Array<{ slug: string }> };
+    expect(pubBody.items.map((i) => i.slug)).not.toContain("to-delete");
+  });
+});
+
+describe("GET /api/admin/members (admin list)", () => {
+  it("returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/members",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns rows alphabetically by display_name", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_MEMBER, display_name: "Zoe" }),
+      },
+      env,
+    );
+    await createApp().request(
+      "https://x/api/admin/members",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({ ...VALID_MEMBER, display_name: "Alice" }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/members",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ display_name: string }>;
+    };
+    expect(body.items.map((i) => i.display_name)).toEqual(["Alice", "Zoe"]);
+  });
+});
+
+describe("GET /api/admin/featured-posts / social-links / about-sections (admin list)", () => {
+  it("featured-posts: returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("featured-posts: includes inactive rows", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/featured-posts",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          slug: "fp-inactive",
+          title_zh: "X",
+          active: false,
+        }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/featured-posts",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ slug: string; active: number }>;
+    };
+    const row = body.items.find((i) => i.slug === "fp-inactive");
+    expect(row?.active).toBe(0);
+  });
+
+  it("social-links: returns 401 without admin cookie", async () => {
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      { method: "GET" },
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("social-links: includes inactive rows", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/social-links",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          platform: "x-old",
+          label_zh: "X",
+          url: "https://example.com",
+          active: false,
+        }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/social-links",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ platform: string; active: number }>;
+    };
+    expect(body.items.find((i) => i.platform === "x-old")?.active).toBe(0);
+  });
+
+  it("about-sections: includes inactive rows", async () => {
+    const cookie = await adminCookie();
+    await createApp().request(
+      "https://x/api/admin/about-sections",
+      {
+        method: "POST",
+        headers: adminHeaders(cookie),
+        body: JSON.stringify({
+          slug: "old-section",
+          title_zh: "已下线",
+          body_md: "x",
+          active: false,
+        }),
+      },
+      env,
+    );
+    const res = await createApp().request(
+      "https://x/api/admin/about-sections",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: Array<{ slug: string; active: number }>;
+    };
+    expect(body.items.find((i) => i.slug === "old-section")?.active).toBe(0);
+  });
+});
+

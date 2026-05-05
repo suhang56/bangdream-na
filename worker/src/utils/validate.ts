@@ -78,6 +78,15 @@ export const adminCheckSlugQuery = z.object({
   slug: z.string().min(1).max(120),
 });
 
+// Admin GET /api/admin/news supports `?draft=0|1|all` so the operator can
+// filter by publication state. Default `all` so the admin list shows BOTH
+// drafts and published rows by default — that's the point of the admin route.
+export const adminNewsListQuery = z.object({
+  limit: intFromQuery(100).pipe(z.number().int().min(1).max(200)),
+  offset: intFromQuery(0).pipe(z.number().int().min(0)),
+  draft: z.enum(["0", "1", "all"]).default("all"),
+});
+
 export const adminNewsCreate = z.object({
   slug: optionalSlug,
   title_zh: z.string().min(1).max(200),
