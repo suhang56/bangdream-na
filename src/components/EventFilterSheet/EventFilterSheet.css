@@ -1,4 +1,8 @@
-/* Native <dialog> in top layer; ::backdrop renders the modal scrim. */
+/* Native <dialog> in top layer; ::backdrop renders the modal scrim.
+   z-index is a fallback for browsers/contexts where showModal() does not
+   promote the dialog to the top layer — without it, the navbar (z:100) and
+   the events-mobile sticky bar (z:5) cover the dialog header, hiding the
+   close button. Top-layer ignores z-index, so this is a no-op when active. */
 .event-filter-sheet {
   position: fixed;
   inset: auto 0 0 0;
@@ -17,6 +21,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 1000;
 }
 
 .event-filter-sheet[open] {
