@@ -1,9 +1,9 @@
 /* Native <dialog> in top layer; ::backdrop renders the modal scrim.
-   `display` is scoped to [open] so the UA's `dialog:not([open]) { display: none }`
-   keeps the sheet hidden when closed — author `display: flex` on the base
-   selector would override that and leave the bottom sheet permanently visible.
-   z-index is a fallback for browsers where showModal() does not promote the
-   dialog to the top layer; top-layer ignores z-index when active. */
+   We force `display: none` when [open] is absent rather than relying on
+   the UA stylesheet, so older browsers without full <dialog> support
+   (e.g. iOS Safari <15.4) still hide the sheet correctly.
+   z-index is a fallback for browsers where showModal() does not promote
+   the dialog to the top layer; top-layer ignores z-index when active. */
 .event-filter-sheet {
   position: fixed;
   inset: auto 0 0 0;
@@ -22,6 +22,10 @@
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
+}
+
+.event-filter-sheet:not([open]) {
+  display: none;
 }
 
 .event-filter-sheet[open] {
