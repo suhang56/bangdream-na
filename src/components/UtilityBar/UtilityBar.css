@@ -1,0 +1,72 @@
+.bf-utility {
+  background: var(--ink);
+  color: #d9d5c8;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+.bf-utility .bf-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  gap: 12px;
+}
+.bf-utility .bf-uleft {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  opacity: 0.85;
+}
+.bf-utility .bf-uright {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  opacity: 0.7;
+}
+.bf-utility .bf-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7be0a3;
+  box-shadow: 0 0 0 0 rgba(123, 224, 163, 0.6);
+  animation: pulse 1.8s infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* UtilityBar's LangToggle is rendered inline with mono styling: override default */
+.bf-utility .lang-toggle {
+  display: inline-flex;
+  gap: 6px;
+}
+.bf-utility .lang-toggle-btn {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.bf-utility .lang-toggle-btn--active {
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .bf-utility {
+    font-size: 10px;
+  }
+  .bf-utility .bf-uleft,
+  .bf-utility .bf-uright {
+    gap: 8px;
+  }
+  /* hide non-essentials on mobile per spec */
+  .bf-utility .bf-uleft .bf-u-updated,
+  .bf-utility .bf-uleft .bf-u-members,
+  .bf-utility .bf-uright .bf-u-disclaimer {
+    display: none;
+  }
+}

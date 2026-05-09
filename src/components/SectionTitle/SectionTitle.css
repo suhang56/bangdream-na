@@ -1,0 +1,54 @@
+.bf-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+.bf-section-title .st-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.bf-section-title .st-title .st-jp {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-family: var(--mono);
+  margin-left: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.bf-section-title .st-more {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.bf-section-title .st-more:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .bf-section-title {
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .bf-section-title .st-title {
+    font-size: 20px;
+  }
+  .bf-section-title .st-title .st-jp {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 480px) {
+  .bf-section-title .st-more {
+    font-size: 10px;
+  }
+}

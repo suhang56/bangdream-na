@@ -87,19 +87,27 @@ describe('<App />', () => {
     vi.clearAllMocks()
   })
 
-  it('renders Navbar + Home + Footer at "/"', async () => {
-    render(
+  it('renders LayoutShell (utility + masthead + nav + footer) + Home at "/"', async () => {
+    const { container } = render(
       <ThemeProvider>
         <App />
       </ThemeProvider>,
     )
+    // wait for masthead logo with the brand wordmark to appear (proves shell mounted)
+    await waitFor(() => {
+      expect(container.querySelector('.bf-logo')).toBeInTheDocument()
+    })
+    // shell pieces all present
+    expect(container.querySelector('.bf-utility')).toBeInTheDocument()
+    expect(container.querySelector('.bf-mast')).toBeInTheDocument()
+    expect(container.querySelector('.bf-nav')).toBeInTheDocument()
+    expect(container.querySelector('.bf-foot')).toBeInTheDocument()
+    // primary nav has aria-label
     expect(
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
+      screen.getByRole('navigation', { name: /主导航/ }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('navigation', { name: /primary/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/not affiliated/i)).toBeInTheDocument()
+    // footer disclaimer (CN, hardcoded per Designer §4)
+    expect(container.textContent).toMatch(/与株式会社 Bushiroad/)
   })
 
   it('renders Events page when initial pathname is /events', async () => {
@@ -145,6 +153,7 @@ describe('<App />', () => {
         <App />
       </ThemeProvider>,
     )
+    // About page <h1> still renders the community name; LayoutShell wraps it.
     expect(
       await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
@@ -161,9 +170,11 @@ describe('<App />', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
     )
-    // Public-site navbar (with primary nav role) is NOT in DOM on /admin
-    expect(screen.queryByRole('navigation', { name: /primary/i })).toBeNull()
-    // Footer copy ("not affiliated") is NOT in DOM on /admin
-    expect(screen.queryByText(/not affiliated/i)).toBeNull()
+    // Public LayoutShell (utility bar + masthead + primary nav + footer) is NOT
+    // in DOM on /admin — admin routes bypass the shell per App.jsx isAdmin gate.
+    expect(document.body.querySelector('.bf-utility')).toBeNull()
+    expect(document.body.querySelector('.bf-mast')).toBeNull()
+    expect(document.body.querySelector('.bf-nav')).toBeNull()
+    expect(document.body.querySelector('.bf-foot')).toBeNull()
   })
 })
