@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import EventCalendar from '../components/EventCalendar/EventCalendar.jsx'
 import EventFilterSheet from '../components/EventFilterSheet/EventFilterSheet.jsx'
 import { formatDate } from '../lib/dateFormat.js'
@@ -27,18 +28,11 @@ function formatLocationShort(loc) {
     .join(' · ')
 }
 
-function tileHref(event) {
-  if (Array.isArray(event?.links) && event.links.length > 0) {
-    const first = event.links[0]
-    if (first && typeof first.url === 'string' && first.url.length > 0) {
-      return first.url
-    }
-  }
-  return null
-}
-
 function EventTile({ event }) {
-  const href = tileHref(event)
+  const detailHref =
+    typeof event.id === 'string' && event.id.length > 0
+      ? `/events/${encodeURIComponent(event.id)}`
+      : null
   const hasImage = typeof event.image === 'string' && event.image.length > 0
   const dateText = formatDate(event.date)
   const locationText = formatLocationShort(event.location)
@@ -63,17 +57,15 @@ function EventTile({ event }) {
     </>
   )
   const ariaLabel = dateText ? `${event.title}, ${dateText}` : event.title
-  if (href) {
+  if (detailHref) {
     return (
-      <a
+      <Link
+        to={detailHref}
         className="events-mobile__tile events-mobile__tile--link"
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
         aria-label={ariaLabel}
       >
         {inner}
-      </a>
+      </Link>
     )
   }
   return (
