@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import EventsMobile from './Events.mobile.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
+
+function render(ui, options) {
+  return rtlRender(ui, { wrapper: MemoryRouter, ...options })
+}
 
 const upcoming = [
   {
@@ -116,21 +121,103 @@ describe('<EventsMobile />', () => {
     expect(container.querySelector('.events-mobile__list')).toBeNull()
   })
 
-  it('tile with first link renders <a href> to that link', () => {
+  it('tile with id renders <Link> to /events/<encoded id> (replaces external link target)', () => {
     render(<EventsMobile {...baseProps} />)
     const link = screen.getByRole('link', {
       name: /Upcoming Concert XYZ/i,
     })
-    expect(link).toHaveAttribute('href', 'https://example.com/tickets')
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute('href', '/events/up-1')
+    expect(link).not.toHaveAttribute('target')
+    expect(link).not.toHaveAttribute('rel')
   })
 
-  it('tile without links renders non-interactive <article>', () => {
-    const { container } = render(<EventsMobile {...baseProps} />)
-    const articles = container.querySelectorAll('article.events-mobile__tile')
-    expect(articles).toHaveLength(1)
-    expect(articles[0].textContent).toContain('Upcoming Fanmeet QRS')
+  it('tile id is encoded in href (URL-special chars)', () => {
+    const ev = [
+      {
+        id: 'roselia/la 2025',
+        title: 'Roselia LA 2025',
+        date: '2099-09-01T19:00:00-07:00',
+        type: 'concert',
+      },
+    ]
+    render(
+      <EventsMobile
+        {...baseProps}
+        groups={{ upcoming: ev, past: [] }}
+        visible={ev}
+      />,
+    )
+    const link = screen.getByRole('link', { name: /Roselia LA 2025/i })
+    expect(link).toHaveAttribute('href', '/events/roselia%2Fla%202025')
+  })
+
+  it('tile without id renders non-interactive <article>, not <a> (edge)', () => {
+    const ev = [
+      {
+        title: 'No Id Event',
+        date: '2099-09-01T19:00:00-07:00',
+        type: 'concert',
+      },
+    ]
+    const { container } = render(
+      <EventsMobile
+        {...baseProps}
+        groups={{ upcoming: ev, past: [] }}
+        visible={ev}
+      />,
+    )
+    expect(container.querySelector('a.events-mobile__tile')).toBeNull()
+    expect(container.querySelector('article.events-mobile__tile')).not.toBeNull()
+  })
+
+  it('tile with empty-string id renders <article> (edge)', () => {
+    const ev = [
+      {
+        id: '',
+        title: 'Empty Id Event',
+        date: '2099-09-01T19:00:00-07:00',
+        type: 'concert',
+      },
+    ]
+    const { container } = render(
+      <EventsMobile
+        {...baseProps}
+        groups={{ upcoming: ev, past: [] }}
+        visible={ev}
+      />,
+    )
+    expect(container.querySelector('a.events-mobile__tile')).toBeNull()
+    expect(container.querySelector('article.events-mobile__tile')).not.toBeNull()
+  })
+
+  it('aria-label preserved on linked tile', () => {
+    render(<EventsMobile {...baseProps} />)
+    const link = screen.getByRole('link', {
+      name: /Upcoming Concert XYZ/i,
+    })
+    const ariaLabel = link.getAttribute('aria-label')
+    expect(ariaLabel).toContain('Upcoming Concert XYZ')
+    expect(ariaLabel).toMatch(/2099/)
+  })
+
+  it('aria-label preserved on inert tile', () => {
+    const ev = [
+      {
+        title: 'Inert Event',
+        date: '2099-09-01T19:00:00-07:00',
+        type: 'concert',
+      },
+    ]
+    const { container } = render(
+      <EventsMobile
+        {...baseProps}
+        groups={{ upcoming: ev, past: [] }}
+        visible={ev}
+      />,
+    )
+    const article = container.querySelector('article.events-mobile__tile')
+    expect(article).not.toBeNull()
+    expect(article.getAttribute('aria-label')).toContain('Inert Event')
   })
 
   it('object location renders city · venue', () => {
@@ -242,39 +329,5 @@ describe('<EventsMobile />', () => {
         />,
       ),
     ).not.toThrow()
-  })
-
-  it('handles event with empty links array (no <a>) (edge)', () => {
-    const ev = [
-      {
-        id: 'no-link',
-        title: 'No Link Event',
-        date: '2099-09-01T19:00:00-07:00',
-        location: 'Somewhere',
-        type: 'concert',
-        links: [],
-      },
-    ]
-    const { container } = render(
-      <EventsMobile {...baseProps} groups={{ upcoming: ev, past: [] }} visible={ev} />,
-    )
-    expect(container.querySelector('a.events-mobile__tile')).toBeNull()
-    expect(container.querySelector('article.events-mobile__tile')).not.toBeNull()
-  })
-
-  it('skips link when first link missing url (edge)', () => {
-    const ev = [
-      {
-        id: 'bad-link',
-        title: 'Bad Link Event',
-        date: '2099-09-01T19:00:00-07:00',
-        type: 'concert',
-        links: [{ label: 'Broken' }],
-      },
-    ]
-    const { container } = render(
-      <EventsMobile {...baseProps} groups={{ upcoming: ev, past: [] }} visible={ev} />,
-    )
-    expect(container.querySelector('a.events-mobile__tile')).toBeNull()
   })
 })
