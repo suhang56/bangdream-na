@@ -1,7 +1,9 @@
 import YARLightbox from 'yet-another-react-lightbox'
 import Captions from 'yet-another-react-lightbox/plugins/captions'
+import Counter from 'yet-another-react-lightbox/plugins/counter'
 import 'yet-another-react-lightbox/styles.css'
 import 'yet-another-react-lightbox/plugins/captions.css'
+import 'yet-another-react-lightbox/plugins/counter.css'
 import './Lightbox.css'
 
 function isoDate(sec) {
@@ -37,7 +39,7 @@ export default function Lightbox({ items, open, index, onClose }) {
       close={onClose}
       index={typeof index === 'number' && index >= 0 ? index : 0}
       slides={slides}
-      plugins={[Captions]}
+      plugins={[Captions, Counter]}
     />
   )
 }
