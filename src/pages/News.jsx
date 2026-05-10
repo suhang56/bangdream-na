@@ -9,22 +9,23 @@ import './News.css'
 export default function News() {
   const [items, setItems] = useState([])
   const [total, setTotal] = useState(0)
-  const [status, setStatus] = useState('loading')
+  // Status derived from fetchOutcome: null => 'loading', 'ready'/'error' => self.
+  const [fetchOutcome, setFetchOutcome] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const status = fetchOutcome === null ? 'loading' : fetchOutcome
 
   useEffect(() => {
     let cancelled = false
-    setStatus('loading')
     fetchNews()
       .then((res) => {
         if (cancelled) return
         setItems(adaptNewsList(res))
         setTotal(typeof res?.total === 'number' ? res.total : 0)
-        setStatus('ready')
+        setFetchOutcome('ready')
       })
       .catch(() => {
         if (cancelled) return
-        setStatus('error')
+        setFetchOutcome('error')
       })
     return () => {
       cancelled = true
@@ -32,6 +33,7 @@ export default function News() {
   }, [reloadKey])
 
   function retry() {
+    setFetchOutcome(null)
     setReloadKey((k) => k + 1)
   }
 

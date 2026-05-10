@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { render } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
