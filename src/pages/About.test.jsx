@@ -182,4 +182,83 @@ describe('<About />', () => {
       await screen.findByRole('heading', { level: 2, name: /mission/i }),
     ).toBeInTheDocument()
   })
+
+  // Edge tests (D6)
+  it('long FAQ answer (>300 chars) renders fully without truncation', async () => {
+    const longAnswer = '这是一个非常长的答案。'.repeat(40)
+    vi.mocked(fetchAbout).mockResolvedValue({
+      items: [
+        ...aboutRows().items.filter((i) => i.slug !== 'faq'),
+        {
+          id: 99,
+          slug: 'faq',
+          title_zh: 'FAQ',
+          body_md: JSON.stringify([{ q: '长问题？', a: longAnswer }]),
+          sort_order: 30,
+        },
+      ],
+    })
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /faq/i })
+    await waitFor(() => {
+      const details = container.querySelector('details')
+      expect(details).not.toBeNull()
+    })
+    const answer = container.querySelector('.about-faq-answer')
+    expect(answer).not.toBeNull()
+    expect(answer.textContent.length).toBeGreaterThan(100)
+  })
+
+  it('empty FAQ list renders noFaq empty state', async () => {
+    vi.mocked(fetchAbout).mockResolvedValue({
+      items: [
+        ...aboutRows().items.filter((i) => i.slug !== 'faq'),
+        { id: 99, slug: 'faq', title_zh: 'FAQ', body_md: '[]', sort_order: 30 },
+      ],
+    })
+    renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /faq/i })
+    expect(screen.getByText(/FAQ coming soon/i)).toBeInTheDocument()
+  })
+
+  it('missing mission renders Mission heading with no crash', async () => {
+    vi.mocked(fetchAbout).mockResolvedValue({
+      items: aboutRows().items.filter((i) => i.slug !== 'mission'),
+    })
+    renderWithProviders(<About />, { route: '/about' })
+    expect(
+      await screen.findByRole('heading', { level: 2, name: /mission/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('missing joinInstructions renders Join section with no crash', async () => {
+    vi.mocked(fetchAbout).mockResolvedValue({
+      items: aboutRows().items.filter((i) => i.slug !== 'joinInstructions'),
+    })
+    renderWithProviders(<About />, { route: '/about' })
+    expect(
+      await screen.findByRole('heading', { level: 2, name: /how to join/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('QQ CTA hidden when social entry disabled', async () => {
+    vi.mocked(fetchSocial).mockResolvedValue({
+      items: [
+        { id: 1, platform: 'discord', label_zh: 'Discord', url: 'https://discord.gg/test', icon: null, sort_order: 0, active: 1 },
+        { id: 2, platform: 'qq', label_zh: 'QQ', url: 'https://qm.qq.com/q/test', icon: null, sort_order: 1, active: 0 },
+      ],
+      total: 2,
+    })
+    renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    expect(screen.queryByRole('link', { name: /join qq/i })).toBeNull()
+  })
+
+  it('stats grid renders 4 cells in bf-about-stats block', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    const stats = container.querySelector('.bf-about-stats')
+    expect(stats).not.toBeNull()
+    expect(stats.children.length).toBe(4)
+  })
 })
