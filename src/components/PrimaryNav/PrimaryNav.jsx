@@ -6,12 +6,9 @@ const NAV_ITEMS = [
   { id: 'news', cn: '新闻', en: 'NEWS', to: '/news' },
   { id: 'events', cn: '活动', en: 'EVENTS', to: '/events' },
   { id: 'gallery', cn: '相册', en: 'GALLERY', to: '/gallery' },
-  { id: 'tickets', cn: '出票公告', en: 'TICKETS', to: '/tickets' },
-  { id: 'guides', cn: '现地攻略', en: 'GUIDES', to: '/guide' },
   { id: 'members', cn: '成员', en: 'MEMBERS', to: '/members' },
   { id: 'about', cn: '关于', en: 'ABOUT', to: '/about' },
   { id: 'rules', cn: '群规', en: 'RULES', to: '/rules' },
-  { id: 'forum', cn: '论坛', en: 'FORUM', to: '#forum' },
 ]
 
 function isActive(pathname, to) {

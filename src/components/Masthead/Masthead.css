@@ -79,6 +79,14 @@
 .bf-logo:hover .lg-tag {
   color: var(--accent);
 }
+.bf-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+.bf-logo:hover .bf-logo-img {
+  opacity: 0.85;
+}
 
 .bf-mast-meta {
   display: flex;
@@ -178,6 +186,9 @@
   .bf-logo .lg-strip {
     font-size: 9px;
     gap: 6px;
+  }
+  .bf-logo-img {
+    height: 28px;
   }
 }
 @media (max-width: 480px) {

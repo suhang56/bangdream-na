@@ -231,4 +231,199 @@ describe('<Home />', () => {
     expect(link.getAttribute('href')).toBe('/events/roselia-anime-expo-2026')
     expect(link.getAttribute('href')).not.toContain('42')
   })
+
+  // H1: hero image tests
+  it('H1: hero feature card shows backgroundImage with url() when hero_image_url provided', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [{ ...HAPPY_NEWS.items[0], hero_image_url: 'https://example.com/img.jpg' }],
+      total: 1,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
+    })
+    const feature = container.querySelector('.bf-hh-feature')
+    // jsdom may quote the URL: url("https://...") — check for the URL hostname
+    expect(feature.style.backgroundImage).toContain('example.com/img.jpg')
+    expect(feature.style.backgroundImage).toContain('linear-gradient')
+  })
+
+  it('H1: hero feature card does NOT set backgroundImage when hero_image_url is null (uses gradient fallback)', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [{ ...HAPPY_NEWS.items[0], hero_image_url: null }],
+      total: 1,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
+    })
+    const feature = container.querySelector('.bf-hh-feature')
+    // When no image, backgroundImage is empty (no url() reference)
+    expect(feature.style.backgroundImage).not.toContain('example.com')
+  })
+
+  it('H1: hero feature card does NOT set backgroundImage when hero_image_url is empty string (uses gradient fallback)', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [{ ...HAPPY_NEWS.items[0], hero_image_url: '' }],
+      total: 1,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
+    })
+    const feature = container.querySelector('.bf-hh-feature')
+    // Empty string is falsy — falls back to FIXED_GRADIENT, no external url() reference
+    expect(feature.style.backgroundImage).not.toContain('example.com')
+  })
+
+  it('H1: news card thumb shows backgroundImage with url() when hero_image_url provided', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [
+        HAPPY_NEWS.items[0],
+        { ...HAPPY_NEWS.items[1], hero_image_url: 'https://example.com/card.jpg' },
+      ],
+      total: 2,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.nc-thumb')).toBeInTheDocument()
+    })
+    const thumb = container.querySelector('.nc-thumb')
+    // jsdom may quote the URL: url("https://...") — check for the URL hostname
+    expect(thumb.style.backgroundImage).toContain('example.com/card.jpg')
+    expect(thumb.style.backgroundImage).toContain('linear-gradient')
+  })
+
+  // H2: community links tests
+  it('H2: QQ card has correct href and rel attributes', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-join-card')).toBeInTheDocument()
+    })
+    const qqCard = container.querySelector('.bf-join-card')
+    expect(qqCard.getAttribute('href')).toBe('https://qm.qq.com/q/Dir9OC5TYA')
+    expect(qqCard.getAttribute('rel')).toBe('noopener noreferrer')
+    expect(qqCard.getAttribute('target')).toBe('_blank')
+  })
+
+  it('H2: all community link tiles have correct hrefs', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-link')).toBeInTheDocument()
+    })
+    const links = container.querySelectorAll('.bf-link')
+    const hrefs = Array.from(links).map((l) => l.getAttribute('href'))
+    expect(hrefs).toContain('https://discord.gg/WfMBKaW8Br')
+    expect(hrefs).toContain('https://xhslink.com/m/1s9XmQRoAug')
+    expect(hrefs).toContain('https://x.com/BandoriNACC')
+    expect(hrefs).toContain('https://forum.bangdream.org')
+    // none should be #
+    expect(hrefs.every((h) => h !== '#')).toBe(true)
+  })
+
+  // H4: stat tiles are links
+  it('H4: 同好 stat tile links to /members', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const statsLinks = container.querySelectorAll('.bf-hh-stats a')
+    const hrefs = Array.from(statsLinks).map((a) => a.getAttribute('href'))
+    expect(hrefs).toContain('/members')
+  })
+
+  it('H4: 活动 stat tile links to /events', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const statsLinks = container.querySelectorAll('.bf-hh-stats a')
+    const hrefs = Array.from(statsLinks).map((a) => a.getAttribute('href'))
+    expect(hrefs).toContain('/events')
+  })
+
+  // H6: community link tone stripes
+  it('H6: each .bf-link has --tone inline style, QQ card has --tone:#12B7F5', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-link')).toBeInTheDocument()
+    })
+    const links = container.querySelectorAll('.bf-link')
+    links.forEach((l) => {
+      expect(l.getAttribute('style')).toContain('--tone')
+    })
+    const qqCard = container.querySelector('.bf-join-card')
+    expect(qqCard.getAttribute('style')).toContain('#12B7F5')
+  })
+
+  // H11: news tag band-aware color
+  it('H11: ANNOUNCEMENT news card nc-tag has red background', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [
+        HAPPY_NEWS.items[0],
+        { ...HAPPY_NEWS.items[1], category: 'announcement', band_theme: null },
+      ],
+      total: 2,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.nc-tag')).toBeInTheDocument()
+    })
+    const tags = container.querySelectorAll('.nc-tag')
+    const announcementTag = tags[0]
+    expect(announcementTag.style.background).toBe('rgb(205, 44, 52)')
+  })
+
+  it('H11: EVENT news card nc-tag has Roselia band color', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [
+        HAPPY_NEWS.items[0],
+        { ...HAPPY_NEWS.items[1], category: 'event', band_theme: 'roselia' },
+      ],
+      total: 2,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.nc-tag')).toBeInTheDocument()
+    })
+    const tags = container.querySelectorAll('.nc-tag')
+    const eventTag = tags[0]
+    // Roselia color is #3a3f7a → rgb(58, 63, 122)
+    expect(eventTag.style.background).toBe('rgb(58, 63, 122)')
+  })
 })

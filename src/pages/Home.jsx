@@ -24,10 +24,10 @@ const INK_2_FALLBACK = '#45413b'
 const FIXED_GRADIENT = `linear-gradient(135deg, ${INK_FALLBACK} 0%, ${INK_2_FALLBACK} 100%)`
 
 const COMMUNITY_LINKS = [
-  { id: 'discord', name: 'Discord', handle: 'discord.gg/bandori-na', desc: '主社群 · 实时聊天 / 语音频道' },
-  { id: 'xhs', name: '小红书', handle: '@北美炸梦同好会', desc: '现场报告 / 二创发布 / 活动预告' },
-  { id: 'x', name: 'X (Twitter)', handle: '@BandoriNACC', desc: '官方公告 / 北美演出转发' },
-  { id: 'forum', name: '论坛', handle: 'forum.bangdream.org', desc: '深度讨论 / 长文报告 / 攻略归档' },
+  { id: 'discord', name: 'Discord', handle: 'discord.gg/bandori-na', desc: '主社群 · 实时聊天 / 语音频道', href: 'https://discord.gg/WfMBKaW8Br', tone: '#5865F2' },
+  { id: 'xhs', name: '小红书', handle: '@北美炸梦同好会', desc: '现场报告 / 二创发布 / 活动预告', href: 'https://xhslink.com/m/1s9XmQRoAug', tone: '#FF2442' },
+  { id: 'x', name: 'X (Twitter)', handle: '@BandoriNACC', desc: '官方公告 / 北美演出转发', href: 'https://x.com/BandoriNACC', tone: '#000000' },
+  { id: 'forum', name: '论坛', handle: 'forum.bangdream.org', desc: '深度讨论 / 长文报告 / 攻略归档', href: 'https://forum.bangdream.org', tone: '#E8466E' },
 ]
 
 function subscribe(cb) {
@@ -85,7 +85,11 @@ function HomeHero({ news, upcomingEvents, eventsTotal }) {
             <Link
               to={`/news/${encodeURIComponent(featured.slug)}`}
               className="bf-hh-feature"
-              style={{ background: FIXED_GRADIENT }}
+              style={featured.hero_image_url ? {
+                backgroundImage: `linear-gradient(135deg, rgba(31,29,26,0.30) 0%, transparent 60%), url(${featured.hero_image_url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              } : { background: FIXED_GRADIENT }}
             >
               <span className="hhf-tag">{t('home.hero.latestReport')}</span>
               <span className="hhf-d">{formatYmd(featured.published_at)}</span>
@@ -130,18 +134,18 @@ function HomeHero({ news, upcomingEvents, eventsTotal }) {
               </div>
             )}
             <div className="bf-hh-stats">
-              <div>
+              <Link to="/members" style={{ display: 'block' }}>
                 <span className="num">{HARDCODED_MEMBERS}</span>
                 <span className="lbl">{t('home.stats.members')}</span>
-              </div>
-              <div>
+              </Link>
+              <Link to="/about" style={{ display: 'block' }}>
                 <span className="num">{HARDCODED_CHAPTERS}</span>
                 <span className="lbl">{t('home.stats.chapters')}</span>
-              </div>
-              <div>
+              </Link>
+              <Link to="/events" style={{ display: 'block' }}>
                 <span className="num">{eventsTotal === null ? '—' : eventsTotal}</span>
                 <span className="lbl">{t('home.stats.events')}</span>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -169,12 +173,23 @@ function HomeNews({ news }) {
               to={`/news/${encodeURIComponent(n.slug)}`}
               className="bf-news-card"
             >
-              <div className="nc-thumb" style={{ background: FIXED_GRADIENT }}>
+              <div className="nc-thumb" style={n.hero_image_url ? {
+                backgroundImage: `linear-gradient(135deg, rgba(31,29,26,0.30) 0%, transparent 60%), url(${n.hero_image_url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              } : { background: FIXED_GRADIENT }}>
                 <span className="nc-band-name">REPORT</span>
               </div>
               <div className="nc-body">
                 <div className="nc-meta">
-                  <span className="nc-tag">
+                  <span
+                    className="nc-tag"
+                    style={
+                      (n.category || '').toLowerCase() === 'announcement'
+                        ? { background: '#cd2c34', color: '#fff' }
+                        : { background: bandFor(n.band_theme).color, color: bandFor(n.band_theme).ink }
+                    }
+                  >
                     {(n.category || '').toUpperCase() || 'NEWS'}
                   </span>
                   <span className="nc-d">{formatYmd(n.published_at)}</span>
@@ -306,7 +321,7 @@ function HomeJoin() {
           href="/about"
         />
         <div className="bf-join">
-          <a href="#" className="bf-join-card">
+          <a href="https://qm.qq.com/q/Dir9OC5TYA" className="bf-join-card" target="_blank" rel="noopener noreferrer" style={{'--tone': '#12B7F5'}}>
             <span className="jc-tag">{t('home.join.qqTag')}</span>
             <span className="jc-title">{t('home.join.qqTitle')}</span>
             <span className="jc-sub">{t('home.join.qqSub')}</span>
@@ -314,7 +329,7 @@ function HomeJoin() {
           </a>
           <div className="bf-links-list">
             {COMMUNITY_LINKS.map((l) => (
-              <a key={l.id} href="#" className="bf-link">
+              <a key={l.id} href={l.href} className="bf-link" target="_blank" rel="noopener noreferrer" style={{'--tone': l.tone}}>
                 <span className="lk-name">{l.name}</span>
                 <span className="lk-handle">{l.handle}</span>
                 <span className="lk-desc">{l.desc}</span>
