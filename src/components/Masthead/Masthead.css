@@ -5,9 +5,35 @@
 }
 .bf-mast .bf-container {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 32px;
   align-items: end;
+}
+.bf-mast-misc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  padding-bottom: 8px;
+  margin-right: -16px;
+}
+.bf-mast-misc a {
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bf-mast-misc a:hover {
+  color: var(--ink-2);
+}
+.bf-mast-misc a:focus-visible {
+  color: var(--ink-2);
+  outline: 1px solid var(--rule-2);
+  outline-offset: 2px;
+}
+.bf-mast-misc span[aria-hidden="true"] {
+  color: var(--ink-4);
 }
 
 .bf-logo {
@@ -176,6 +202,9 @@
     gap: 16px;
   }
   .bf-mast-meta {
+    display: none;
+  }
+  .bf-mast-misc {
     display: none;
   }
   .bf-search {

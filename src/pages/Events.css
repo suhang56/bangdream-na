@@ -38,6 +38,24 @@
 .bf-events-gap {
   height: 40px;
 }
+.bf-tbl tr.bf-tr-link {
+  position: relative;
+  cursor: pointer;
+}
+.bf-tbl tr.bf-tr-link .td-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.bf-tbl tr.bf-tr-link .td-buy {
+  position: relative;
+  z-index: 2;
+}
+.bf-tbl tr.bf-tr-link .td-title a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 @media (max-width: 700px) {
   .bf-page-hd {
     padding: 28px 0 20px;

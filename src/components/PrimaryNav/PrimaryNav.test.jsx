@@ -90,41 +90,34 @@ describe('<PrimaryNav />', () => {
     }
   })
 
-  it('D8: nav-misc QQ link wired with target=_blank + rel=noopener', () => {
+  it('DENSITY-FIX: nav has NO .bf-nav-misc block (moved to Masthead)', () => {
     const { container } = renderAt('/')
-    const qq = container.querySelector(
-      `.bf-nav-misc a[href="${QQ_GROUP_URL}"]`,
-    )
-    expect(qq).toBeInTheDocument()
-    expect(qq.getAttribute('target')).toBe('_blank')
-    expect(qq.getAttribute('rel')).toContain('noopener')
-    expect(qq.textContent).toContain('QQ')
+    expect(container.querySelector('.bf-nav .bf-nav-misc')).toBeNull()
+    expect(container.querySelector('.bf-nav .bf-nav-spacer')).toBeNull()
   })
 
-  it('D8: nav-misc Discord link wired with target=_blank', () => {
+  it('DENSITY-FIX: nav has NO QQ/Discord/X anchors (relocated to Masthead)', () => {
     const { container } = renderAt('/')
-    const discord = container.querySelector(
-      `.bf-nav-misc a[href="${DISCORD_INVITE_URL}"]`,
-    )
-    expect(discord).toBeInTheDocument()
-    expect(discord.getAttribute('target')).toBe('_blank')
-    expect(discord.textContent).toContain('Discord')
+    expect(
+      container.querySelector(`.bf-nav a[href="${QQ_GROUP_URL}"]`),
+    ).toBeNull()
+    expect(
+      container.querySelector(`.bf-nav a[href="${DISCORD_INVITE_URL}"]`),
+    ).toBeNull()
+    expect(
+      container.querySelector(`.bf-nav a[href="${X_PROFILE_URL}"]`),
+    ).toBeNull()
   })
 
-  it('D8: nav-misc X link wired with target=_blank', () => {
+  it('DENSITY-FIX: all 10 NAV_ITEMS render unconditionally (no mobile hide in JSX)', () => {
     const { container } = renderAt('/')
-    const x = container.querySelector(
-      `.bf-nav-misc a[href="${X_PROFILE_URL}"]`,
-    )
-    expect(x).toBeInTheDocument()
-    expect(x.getAttribute('target')).toBe('_blank')
-    expect(x.textContent).toContain('BandoriNACC')
-  })
-
-  it('D8: nav-misc renders exactly 3 anchor links (QQ/Discord/X)', () => {
-    const { container } = renderAt('/')
-    const links = container.querySelectorAll('.bf-nav-misc a')
-    expect(links.length).toBe(3)
+    const anchors = container.querySelectorAll('.bf-nav a')
+    expect(anchors.length).toBe(10)
+    const hrefs = [...anchors].map((a) => a.getAttribute('href'))
+    expect(hrefs).toContain('/rules')
+    expect(hrefs).toContain(TICKETS_DOC_URL)
+    expect(hrefs).toContain(GUIDE_WIKI_URL)
+    expect(hrefs).toContain(FORUM_URL)
   })
 
   it('marks home active when path = /', () => {

@@ -244,6 +244,88 @@ describe('<Events /> — H9 band column', () => {
   })
 })
 
+describe('<Events /> — DENSITY-FIX row-link', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
+  })
+
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('DENSITY-FIX: upcoming row has .bf-tr-link class', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'r1', title: 'Row One' })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Row One')).toBeInTheDocument()
+    })
+    const upcomingTable = container.querySelector('.bf-tbl:not(.bf-tbl-muted)')
+    const row = upcomingTable.querySelector('tbody tr')
+    expect(row.classList.contains('bf-tr-link')).toBe(true)
+  })
+
+  it('DENSITY-FIX: past row has .bf-tr-link class', async () => {
+    mockFetchEventsWith({
+      upcoming: [],
+      past: [eventApiRow({ slug: 'p1', title: 'Past One' })],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Past One')).toBeInTheDocument()
+    })
+    const mutedTable = container.querySelector('.bf-tbl.bf-tbl-muted')
+    const row = mutedTable.querySelector('tbody tr')
+    expect(row.classList.contains('bf-tr-link')).toBe(true)
+  })
+
+  it('DENSITY-FIX: title link inside .bf-tr-link points to /events/<slug>', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'r2', title: 'Title Link Row' })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Title Link Row')).toBeInTheDocument()
+    })
+    const titleLink = container.querySelector('.bf-tr-link .td-title a')
+    expect(titleLink).toBeInTheDocument()
+    expect(titleLink.getAttribute('href')).toBe('/events/r2')
+  })
+
+  it('DENSITY-FIX: .td-buy anchor in row carries ticketUrl + target=_blank', async () => {
+    mockFetchEventsWith({
+      upcoming: [
+        eventApiRow({
+          slug: 'r3',
+          title: 'Buy Row',
+          ticketUrl: 'https://ticket.example.com/r3',
+        }),
+      ],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Buy Row')).toBeInTheDocument()
+    })
+    const buy = container.querySelector('.bf-tr-link .td-buy')
+    expect(buy).toBeInTheDocument()
+    expect(buy.getAttribute('href')).toBe('https://ticket.example.com/r3')
+    expect(buy.getAttribute('target')).toBe('_blank')
+  })
+})
+
 describe('<Events /> — loading and error states', () => {
   beforeEach(() => {
     _resetForTests()
