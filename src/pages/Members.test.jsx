@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import { cache } from '../lib/cache.js'
 
@@ -47,163 +47,211 @@ const sampleApiRows = [
   },
 ]
 
-describe('Members page (with sample roster)', () => {
-  beforeEach(() => {
-    cache.clear()
-    vi.mocked(fetchMembers).mockReset()
-    vi.mocked(fetchMembers).mockResolvedValue({
-      items: sampleApiRows,
-      total: sampleApiRows.length,
-    })
-  })
-  afterEach(() => {
-    cache.clear()
-  })
+function mockResolved(rows) {
+  vi.mocked(fetchMembers).mockResolvedValue({ items: rows, total: rows.length })
+}
 
-  it('renders H1 "Members"', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Members' }),
-    ).toBeInTheDocument()
-  })
+beforeEach(() => {
+  cache.clear()
+  vi.mocked(fetchMembers).mockReset()
+  mockResolved(sampleApiRows)
+})
 
-  it('renders one chip per band present in roster', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    expect(await screen.findByRole('button', { name: 'Roselia' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'MyGO!!!!!' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: "Poppin'Party" })).toBeInTheDocument()
-  })
+afterEach(() => {
+  cache.clear()
+  vi.clearAllMocks()
+})
 
-  it('renders all 3 sample members by default', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    expect(
-      await screen.findByRole('article', { name: 'Alice Anderson' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('article', { name: 'Bob Brown' })).toBeInTheDocument()
-    expect(screen.getByRole('article', { name: '戸山香澄' })).toBeInTheDocument()
-  })
-
-  it('clicking Roselia chip narrows grid to Roselia oshis', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    fireEvent.click(screen.getByRole('button', { name: 'Roselia' }))
-    expect(screen.getByRole('article', { name: 'Alice Anderson' })).toBeInTheDocument()
-    expect(screen.queryByRole('article', { name: 'Bob Brown' })).toBeNull()
-    expect(screen.queryByRole('article', { name: '戸山香澄' })).toBeNull()
-  })
-
-  it('clicking Organizers radio narrows grid to zero (no organizer in API)', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    fireEvent.click(screen.getByLabelText('Organizers'))
-    // R5b: D1 schema does not carry role; adapter sets role='member' for all,
-    // so Organizers filter narrows to empty set. Empty-state status appears.
-    expect(screen.queryByRole('article', { name: 'Alice Anderson' })).toBeNull()
-    expect(screen.queryByRole('article', { name: 'Bob Brown' })).toBeNull()
-  })
-
-  it('search input updates immediately but grid only updates after debounce', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    vi.useFakeTimers()
-    try {
-      const input = screen.getByLabelText('Search')
-      fireEvent.change(input, { target: { value: 'kasumi' } })
-      expect(input.value).toBe('kasumi')
-      expect(screen.getByRole('article', { name: 'Alice Anderson' })).toBeInTheDocument()
-      act(() => {
-        vi.advanceTimersByTime(250)
-      })
-      expect(screen.queryByRole('article', { name: 'Alice Anderson' })).toBeNull()
-      expect(screen.getByRole('article', { name: '戸山香澄' })).toBeInTheDocument()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('typing fast then clearing before debounce yields no flicker', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    vi.useFakeTimers()
-    try {
-      const input = screen.getByLabelText('Search')
-      fireEvent.change(input, { target: { value: 'kasumi' } })
-      act(() => {
-        vi.advanceTimersByTime(50)
-      })
-      fireEvent.change(input, { target: { value: '' } })
-      act(() => {
-        vi.advanceTimersByTime(250)
-      })
-      expect(screen.getByRole('article', { name: 'Alice Anderson' })).toBeInTheDocument()
-      expect(screen.getByRole('article', { name: 'Bob Brown' })).toBeInTheDocument()
-      expect(screen.getByRole('article', { name: '戸山香澄' })).toBeInTheDocument()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('combined chip + search narrow correctly to one match', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    vi.useFakeTimers()
-    try {
-      fireEvent.click(screen.getByRole('button', { name: 'Roselia' }))
-      fireEvent.change(screen.getByLabelText('Search'), {
-        target: { value: 'Yukina' },
-      })
-      act(() => {
-        vi.advanceTimersByTime(250)
-      })
-      expect(screen.getByRole('article', { name: 'Alice Anderson' })).toBeInTheDocument()
-      expect(screen.queryByRole('article', { name: 'Bob Brown' })).toBeNull()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('zero-result filter shows empty message with role="status"', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    vi.useFakeTimers()
-    try {
-      fireEvent.change(screen.getByLabelText('Search'), {
-        target: { value: 'no-such-thing' },
-      })
-      act(() => {
-        vi.advanceTimersByTime(250)
-      })
-      const status = screen.getByRole('status')
-      expect(status).toBeInTheDocument()
-      expect(status.textContent).toContain('No members')
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('subtitle is present and announces community context', async () => {
-    renderWithProviders(<Members />, { route: '/members' })
-    await screen.findByRole('article', { name: 'Alice Anderson' })
-    expect(screen.getByText(/BanG Dream! NA community/)).toBeInTheDocument()
-  })
-
-  it('shows LoadingState while pending', async () => {
-    let resolveFetch
-    vi.mocked(fetchMembers).mockImplementation(
-      () => new Promise((r) => { resolveFetch = r }),
-    )
+describe('Members page — page hero', () => {
+  it('renders ph-tag with // 成员', async () => {
     const { container } = renderWithProviders(<Members />, { route: '/members' })
-    expect(container.querySelector('.loading-state')).not.toBeNull()
-    resolveFetch({ items: sampleApiRows, total: sampleApiRows.length })
     await waitFor(() => {
-      expect(screen.queryByRole('article', { name: 'Alice Anderson' })).toBeInTheDocument()
+      expect(container.querySelector('.ph-tag')).not.toBeNull()
+    })
+    expect(container.querySelector('.ph-tag').textContent).toContain('// 成员')
+  })
+
+  it('renders h1 with 成员', async () => {
+    renderWithProviders(<Members />, { route: '/members' })
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('成员')
+  })
+
+  it('renders ph-meta with roster description', async () => {
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.ph-meta')).not.toBeNull()
+    })
+    expect(container.querySelector('.ph-meta').textContent).toContain('北美 BanG Dream')
+  })
+})
+
+describe('Members page — helper block', () => {
+  it('renders bf-helper with bf-helper-tag', async () => {
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.bf-helper')).not.toBeNull()
+    })
+    expect(container.querySelector('.bf-helper-tag').textContent).toContain('// 组织者')
+  })
+
+  it('shows member count from API in the helper', async () => {
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.bf-helper strong')).not.toBeNull()
+    })
+    expect(container.querySelector('.bf-helper strong').textContent).toBe('3')
+  })
+})
+
+describe('Members page — grid', () => {
+  it('renders bf-members-grid', async () => {
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.bf-members-grid')).not.toBeNull()
     })
   })
 
-  it('shows ErrorState with retry on fetch reject', async () => {
-    vi.mocked(fetchMembers).mockRejectedValueOnce(new Error('5xx'))
+  it('renders one bf-member tile per member', async () => {
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelectorAll('.bf-member').length).toBe(3)
+    })
+  })
+
+  it('each member name is visible in a bf-member tile', async () => {
     renderWithProviders(<Members />, { route: '/members' })
-    expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i)
+    expect(await screen.findByText('Alice Anderson')).toBeInTheDocument()
+    expect(screen.getByText('Bob Brown')).toBeInTheDocument()
+    expect(screen.getByText('戸山香澄')).toBeInTheDocument()
+  })
+
+  it('does NOT render band filter chips', async () => {
+    renderWithProviders(<Members />, { route: '/members' })
+    await screen.findByText('Alice Anderson')
+    expect(screen.queryByRole('button', { name: 'Roselia' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'MyGO!!!!!' })).toBeNull()
+  })
+
+  it('does NOT render a search input', async () => {
+    renderWithProviders(<Members />, { route: '/members' })
+    await screen.findByText('Alice Anderson')
+    expect(screen.queryByLabelText('Search')).toBeNull()
+    expect(screen.queryByRole('searchbox')).toBeNull()
+  })
+})
+
+describe('Members page — sort order', () => {
+  it('renders members sorted by pinyin ascending', async () => {
+    const unsortedRows = [
+      { id: 1, external_id: 'z', display_name: '西瓜', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+      { id: 2, external_id: 'a', display_name: '啊明', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+      { id: 3, external_id: 'b', display_name: '北京', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+    ]
+    vi.mocked(fetchMembers).mockResolvedValue({ items: unsortedRows, total: 3 })
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelectorAll('.bf-member').length).toBe(3)
+    })
+    const tiles = Array.from(container.querySelectorAll('.bf-member')).map((el) => el.textContent)
+    const ahIdx = tiles.indexOf('啊明')
+    const beiIdx = tiles.indexOf('北京')
+    const xiIdx = tiles.indexOf('西瓜')
+    expect(ahIdx).toBeLessThan(beiIdx)
+    expect(beiIdx).toBeLessThan(xiIdx)
+  })
+})
+
+describe('Members page — edge cases', () => {
+  it('empty list renders helper with count 0 and no bf-member tiles', async () => {
+    vi.mocked(fetchMembers).mockResolvedValue({ items: [], total: 0 })
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.bf-helper')).not.toBeNull()
+    })
+    expect(container.querySelector('.bf-helper strong').textContent).toBe('0')
+    expect(container.querySelectorAll('.bf-member').length).toBe(0)
+  })
+
+  it('single member renders exactly 1 bf-member tile', async () => {
+    vi.mocked(fetchMembers).mockResolvedValue({
+      items: [sampleApiRows[0]],
+      total: 1,
+    })
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelectorAll('.bf-member').length).toBe(1)
+    })
+  })
+
+  it('member with very long name renders without throwing', async () => {
+    const longName = 'A'.repeat(60) + ' 超長名前テスト Very Long Display Name For Testing'
+    vi.mocked(fetchMembers).mockResolvedValue({
+      items: [{ id: 99, external_id: 'long', display_name: longName, city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 }],
+      total: 1,
+    })
+    expect(() => renderWithProviders(<Members />, { route: '/members' })).not.toThrow()
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelectorAll('.bf-member').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('member with special chars (emoji, brackets, slashes) renders without throwing', async () => {
+    const specialRows = [
+      { id: 1, external_id: 's1', display_name: '🍊噶', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+      { id: 2, external_id: 's2', display_name: '[湾区] 红白', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+      { id: 3, external_id: 's3', display_name: '美西/北京 海鸥', city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 },
+    ]
+    vi.mocked(fetchMembers).mockResolvedValue({ items: specialRows, total: 3 })
+    expect(() => renderWithProviders(<Members />, { route: '/members' })).not.toThrow()
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelectorAll('.bf-member').length).toBe(3)
+    })
+  })
+
+  it('member with null name renders gracefully (no crash)', async () => {
+    vi.mocked(fetchMembers).mockResolvedValue({
+      items: [{ id: 1, external_id: 'n1', display_name: null, city: '', oshi_character: null, oshi_band: null, avatar_url: null, expedition_member: 0 }],
+      total: 1,
+    })
+    expect(() => renderWithProviders(<Members />, { route: '/members' })).not.toThrow()
+  })
+})
+
+describe('Members page — loading and error states', () => {
+  it('shows LoadingState while API is pending', async () => {
+    let resolve
+    vi.mocked(fetchMembers).mockImplementation(() => new Promise((r) => { resolve = r }))
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    expect(container.querySelector('.members-loading')).not.toBeNull()
+    resolve({ items: sampleApiRows, total: 3 })
+    await waitFor(() => {
+      expect(container.querySelector('.members-loading')).toBeNull()
+    })
+  })
+
+  it('shows ErrorState with retry button on API failure', async () => {
+    vi.mocked(fetchMembers).mockRejectedValueOnce(new Error('5xx'))
+    const { container } = renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(container.querySelector('.members-error')).not.toBeNull()
+    })
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+
+  it('clicking retry re-fetches members after error', async () => {
+    vi.mocked(fetchMembers)
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValueOnce({ items: sampleApiRows, total: 3 })
+    renderWithProviders(<Members />, { route: '/members' })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+    })
+    screen.getByRole('button', { name: /retry/i }).click()
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /retry/i })).toBeNull()
+    })
+    expect(await screen.findByText('Alice Anderson')).toBeInTheDocument()
   })
 })

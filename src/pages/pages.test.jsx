@@ -89,7 +89,7 @@ describe('routes smoke', () => {
   it('Members page renders title via /members route', async () => {
     renderWithProviders(<RoutesUnderTest />, { route: '/members' })
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Members' }),
+      await screen.findByRole('heading', { level: 1, name: '成员' }),
     ).toBeInTheDocument()
   })
 
