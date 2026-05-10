@@ -6,6 +6,13 @@ import ErrorState from '../components/ErrorState/ErrorState.jsx'
 import { fetchNews, fetchEvents, fetchGallery } from '../lib/api.js'
 import { BANDS } from '../data/bands.js'
 import {
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+  FORUM_URL,
+  XHS_URL,
+} from '../data/socialLinks.js'
+import {
   getLanguage,
   subscribeLanguage,
   t,
@@ -23,11 +30,19 @@ const INK_FALLBACK = '#1f1d1a'
 const INK_2_FALLBACK = '#45413b'
 const FIXED_GRADIENT = `linear-gradient(135deg, ${INK_FALLBACK} 0%, ${INK_2_FALLBACK} 100%)`
 
+function hostnameOf(url) {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
 const COMMUNITY_LINKS = [
-  { id: 'discord', name: 'Discord', handle: 'discord.gg/bandori-na', desc: '主社群 · 实时聊天 / 语音频道', href: 'https://discord.gg/WfMBKaW8Br', tone: '#5865F2' },
-  { id: 'xhs', name: '小红书', handle: '@北美炸梦同好会', desc: '现场报告 / 二创发布 / 活动预告', href: 'https://xhslink.com/m/1s9XmQRoAug', tone: '#FF2442' },
-  { id: 'x', name: 'X (Twitter)', handle: '@BandoriNACC', desc: '官方公告 / 北美演出转发', href: 'https://x.com/BandoriNACC', tone: '#000000' },
-  { id: 'forum', name: '论坛', handle: 'forum.bangdream.org', desc: '深度讨论 / 长文报告 / 攻略归档', href: 'https://forum.bangdream.org', tone: '#E8466E' },
+  { id: 'discord', name: 'Discord', handle: 'discord.gg/bandori-na', desc: '主社群 · 实时聊天 / 语音频道', href: DISCORD_INVITE_URL, tone: '#5865F2' },
+  { id: 'xhs', name: '小红书', handle: '@北美炸梦同好会', desc: '现场报告 / 二创发布 / 活动预告', href: XHS_URL, tone: '#FF2442' },
+  { id: 'x', name: 'X (Twitter)', handle: '@BandoriNACC', desc: '官方公告 / 北美演出转发', href: X_PROFILE_URL, tone: '#000000' },
+  { id: 'forum', name: '论坛', handle: hostnameOf(FORUM_URL), desc: '深度讨论 / 长文报告 / 攻略归档', href: FORUM_URL, tone: '#E8466E' },
 ]
 
 function subscribe(cb) {
@@ -321,7 +336,7 @@ function HomeJoin() {
           href="/about"
         />
         <div className="bf-join">
-          <a href="https://qm.qq.com/q/Dir9OC5TYA" className="bf-join-card" target="_blank" rel="noopener noreferrer" style={{'--tone': '#12B7F5'}}>
+          <a href={QQ_GROUP_URL} className="bf-join-card" target="_blank" rel="noopener noreferrer" style={{'--tone': '#12B7F5'}}>
             <span className="jc-tag">{t('home.join.qqTag')}</span>
             <span className="jc-title">{t('home.join.qqTitle')}</span>
             <span className="jc-sub">{t('home.join.qqSub')}</span>

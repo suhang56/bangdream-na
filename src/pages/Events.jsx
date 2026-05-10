@@ -59,12 +59,13 @@ export default function Events() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [upcoming, setUpcoming] = useState([])
   const [past, setPast] = useState([])
-  const [status, setStatus] = useState('loading')
+  // Status derived from fetchOutcome: null => 'loading', 'ready'/'error' => self.
+  const [fetchOutcome, setFetchOutcome] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const status = fetchOutcome === null ? 'loading' : fetchOutcome
 
   useEffect(() => {
     let cancelled = false
-    setStatus('loading')
     Promise.all([
       fetchEvents({ scope: 'upcoming' }),
       fetchEvents({ scope: 'past' }),
@@ -73,11 +74,11 @@ export default function Events() {
         if (cancelled) return
         setUpcoming(adaptEventList(upResp))
         setPast(adaptEventList(pastResp))
-        setStatus('ready')
+        setFetchOutcome('ready')
       })
       .catch(() => {
         if (cancelled) return
-        setStatus('error')
+        setFetchOutcome('error')
       })
     return () => {
       cancelled = true
@@ -85,6 +86,7 @@ export default function Events() {
   }, [reloadKey])
 
   function retry() {
+    setFetchOutcome(null)
     setReloadKey((k) => k + 1)
   }
 

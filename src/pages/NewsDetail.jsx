@@ -43,32 +43,38 @@ export default function NewsDetail() {
     }
   }, [id])
 
-  const initialStatus = decodedId ? 'loading' : 'notfound'
   const [item, setItem] = useState(null)
   const [rawId, setRawId] = useState(null)
-  const [status, setStatus] = useState(initialStatus)
+  // Status derived from (decodedId, fetchOutcome). No decodedId => 'notfound'
+  // immediately; otherwise null => 'loading', else echoes fetchOutcome
+  // ('ready' | 'notfound' | 'error').
+  const [fetchOutcome, setFetchOutcome] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const status = !decodedId
+    ? 'notfound'
+    : fetchOutcome === null
+      ? 'loading'
+      : fetchOutcome
 
   useEffect(() => {
     let cancelled = false
     if (!decodedId) return undefined
-    setStatus('loading')
     fetchNewsBySlug(decodedId)
       .then((row) => {
         if (cancelled) return
         if (row === null) {
           setItem(null)
           setRawId(null)
-          setStatus('notfound')
+          setFetchOutcome('notfound')
           return
         }
         setItem(adaptNewsRow(row))
         setRawId(typeof row.id === 'number' ? row.id : null)
-        setStatus('ready')
+        setFetchOutcome('ready')
       })
       .catch(() => {
         if (cancelled) return
-        setStatus('error')
+        setFetchOutcome('error')
       })
     return () => {
       cancelled = true
@@ -76,6 +82,7 @@ export default function NewsDetail() {
   }, [decodedId, reloadKey])
 
   function retry() {
+    setFetchOutcome(null)
     setReloadKey((k) => k + 1)
   }
 

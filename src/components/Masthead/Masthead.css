@@ -87,6 +87,20 @@
 .bf-logo:hover .bf-logo-img {
   opacity: 0.85;
 }
+.bf-logo .lg-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bf-logo .lg-site-name {
+  font-family: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC",
+    ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
 
 .bf-mast-meta {
   display: flex;
@@ -118,6 +132,9 @@
   padding: 0;
   height: 36px;
   min-width: 280px;
+}
+.bf-search:focus-within {
+  border-color: var(--accent);
 }
 .bf-search input {
   flex: 1;
@@ -189,6 +206,12 @@
   }
   .bf-logo-img {
     height: 28px;
+  }
+  .bf-logo .lg-brand {
+    gap: 8px;
+  }
+  .bf-logo .lg-site-name {
+    font-size: 16px;
   }
 }
 @media (max-width: 480px) {

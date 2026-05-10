@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom'
+import {
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+  XHS_URL,
+  FORUM_URL,
+} from '../../data/socialLinks.js'
 import './Footer.css'
 
 const COMMUNITY_LINKS = [
   { to: '/about', label: '关于', external: false },
   { to: '/members', label: '成员', external: false },
   { to: '/rules', label: '群规', external: false },
-  { to: 'https://qm.qq.com/q/Dir9OC5TYA', label: 'QQ 群', external: true },
-  { to: 'https://discord.gg/WfMBKaW8Br', label: 'Discord', external: true },
+  { to: QQ_GROUP_URL, label: 'QQ 群', external: true },
+  { to: DISCORD_INVITE_URL, label: 'Discord', external: true },
 ]
 
 const RESOURCE_LINKS = [
@@ -15,10 +22,18 @@ const RESOURCE_LINKS = [
   { to: '/gallery', label: '相册', external: false },
 ]
 
+function hostnameOf(url) {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
 const EXTERNAL_LINKS = [
-  { to: 'https://x.com/BandoriNACC', label: 'X @BandoriNACC ↗' },
-  { to: 'https://xhslink.com/m/1s9XmQRoAug', label: '小红书 @北美炸梦 ↗' },
-  { to: 'https://forum.bangdream.org', label: '论坛 forum.bangdream.org ↗' },
+  { to: X_PROFILE_URL, label: 'X @BandoriNACC ↗' },
+  { to: XHS_URL, label: '小红书 @北美炸梦 ↗' },
+  { to: FORUM_URL, label: `论坛 ${hostnameOf(FORUM_URL)} ↗` },
 ]
 
 /**
