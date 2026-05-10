@@ -21,8 +21,9 @@ All dynamic content (news, events, members, categories, posts, social links, abo
 
 ```
 src/                React 19 + Vite SPA (frontend)
-  pages/            route-level components
-  components/       shared UI
+  pages/            route-level components (Home / News / Events / Members / Gallery / About / Rules / Search / Admin)
+  components/       shared UI (Masthead, PrimaryNav, Footer, …)
+  data/             shared constants (socialLinks, bands, i18n)
   lib/              api client, cache, admin schemas
 worker/             Cloudflare Worker (Hono backend)
   src/              routes, auth, db schema (drizzle)
