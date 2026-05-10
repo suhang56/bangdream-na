@@ -43,7 +43,7 @@ const sampleApiRow = {
   updated_at: 0,
 }
 
-describe('<NewsDetail /> shell', () => {
+describe('<NewsDetail /> bf-design', () => {
   beforeEach(() => {
     _resetForTests()
     window.localStorage.clear()
@@ -62,23 +62,36 @@ describe('<NewsDetail /> shell', () => {
       () => new Promise((r) => { resolveFetch = r }),
     )
     const { container } = renderWithRoute('news-a')
-    expect(container.querySelector('.news-detail__loading')).not.toBeNull()
+    expect(container.querySelector('.loading-state')).not.toBeNull()
     resolveFetch(sampleApiRow)
     await waitFor(() => {
-      expect(container.querySelector('.news-detail__loading')).toBeNull()
+      expect(container.querySelector('.loading-state')).toBeNull()
     })
   })
 
-  it('renders post when fetch resolves with row', async () => {
+  it('renders bf-page-hd section on success', async () => {
+    vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
+    const { container } = renderWithRoute('news-a')
+    await screen.findByRole('heading', { level: 1, name: '公告标题' })
+    expect(container.querySelector('.bf-page-hd')).not.toBeNull()
+  })
+
+  it('renders post heading when fetch resolves', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
     renderWithRoute('news-a')
     expect(
       await screen.findByRole('heading', { level: 1, name: '公告标题' }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/First paragraph line./)).toBeInTheDocument()
   })
 
-  it('renders not-found state when fetch returns null (404)', async () => {
+  it('renders body paragraphs', async () => {
+    vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
+    renderWithRoute('news-a')
+    await screen.findByRole('heading', { level: 1, name: '公告标题' })
+    expect(screen.getByText(/First paragraph line/)).toBeInTheDocument()
+  })
+
+  it('renders not-found state when fetch returns null', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue(null)
     renderWithRoute('missing')
     expect(
@@ -98,13 +111,14 @@ describe('<NewsDetail /> shell', () => {
     ).toBeInTheDocument()
   })
 
-  it('passes the URL slug param to fetchNewsBySlug', async () => {
+  it('passes URL slug param to fetchNewsBySlug', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
     renderWithRoute('some-encoded-slug')
     await screen.findByRole('heading', { level: 1, name: '公告标题' })
     expect(fetchNewsBySlug).toHaveBeenCalledWith('some-encoded-slug')
   })
 
+  // Edge 7: URL-encoded Chinese slug
   it('decodes URL-encoded Chinese slug before calling fetch', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
     const encoded = encodeURIComponent('北美邦花篮-53萝p')
@@ -113,17 +127,36 @@ describe('<NewsDetail /> shell', () => {
     expect(fetchNewsBySlug).toHaveBeenCalledWith('北美邦花篮-53萝p')
   })
 
-  it('renders hero image when hero_image_url present', async () => {
+  it('renders nd-hero-img when hero_image_url present', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
     const { container } = renderWithRoute('news-a')
     await screen.findByRole('heading', { level: 1, name: '公告标题' })
-    expect(container.querySelector('.news-detail__hero-img')).not.toBeNull()
+    expect(container.querySelector('.nd-hero-img')).not.toBeNull()
   })
 
-  it('omits hero figure when hero_image_url null', async () => {
+  // Edge 2: missing image
+  it('omits hero image when hero_image_url is null', async () => {
     vi.mocked(fetchNewsBySlug).mockResolvedValue({ ...sampleApiRow, hero_image_url: null })
     const { container } = renderWithRoute('news-a')
     await screen.findByRole('heading', { level: 1, name: '公告标题' })
-    expect(container.querySelector('.news-detail__hero')).toBeNull()
+    expect(container.querySelector('.nd-hero-img')).toBeNull()
+  })
+
+  it('renders nd-back link pointing to /news', async () => {
+    vi.mocked(fetchNewsBySlug).mockResolvedValue(sampleApiRow)
+    const { container } = renderWithRoute('news-a')
+    await screen.findByRole('heading', { level: 1, name: '公告标题' })
+    const back = container.querySelector('.nd-back')
+    expect(back).not.toBeNull()
+    expect(back.getAttribute('href')).toBe('/news')
+  })
+
+  // Edge 8: malformed date published_at
+  it('renders without crash when published_at is null', async () => {
+    vi.mocked(fetchNewsBySlug).mockResolvedValue({ ...sampleApiRow, published_at: null })
+    renderWithRoute('news-a')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '公告标题' }),
+    ).toBeInTheDocument()
   })
 })
