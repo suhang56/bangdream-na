@@ -110,6 +110,53 @@ describe('<App />', () => {
     expect(container.textContent).toMatch(/与株式会社 Bushiroad/)
   })
 
+  // HIGH-1 regression guard (PR #111 reviewer): the body background rule that
+  // wins the cascade on public routes MUST read --bg (paper #f3f1ec), NOT
+  // theme.css's legacy --color-bg (navy #0f0f19). jsdom's getComputedStyle
+  // can't substitute CSS vars, so we walk document.styleSheets ourselves:
+  // collect every body-matching `background` rule, take the last one in
+  // document order (cascade tiebreak when specificity is equal), and assert
+  // its value points at --bg.
+  //
+  // D7 dark-mode work that re-orders these stylesheets MUST keep this test
+  // green — flipping order back would silently re-regress the visual.
+  it('REGRESSION HIGH-1: winning body background rule reads var(--bg), not var(--color-bg)', async () => {
+    await import('./index.css')
+    await import('./theme/theme.css')
+    await import('./theme/tokens.css')
+
+    function bodyBgRules() {
+      const out = []
+      for (const sheet of document.styleSheets) {
+        let rules
+        try {
+          rules = sheet.cssRules
+        } catch {
+          continue
+        }
+        if (!rules) continue
+        for (const rule of rules) {
+          if (!rule.selectorText) continue
+          // match `body`, `html body`, etc. — tokens.css uses html body to win
+          // specificity ties; theme.css uses bare `body`.
+          if (!/(^|,\s*)(html\s+)?body(\s|$|,)/.test(rule.selectorText)) continue
+          const bg = rule.style?.background || rule.style?.backgroundColor
+          if (bg && bg.length > 0) out.push({ selector: rule.selectorText, bg })
+        }
+      }
+      return out
+    }
+
+    const rules = bodyBgRules()
+    expect(rules.length).toBeGreaterThan(0)
+    // Higher specificity wins regardless of order. `html body` (0,0,2) beats
+    // `body` (0,0,1). Find the highest-specificity match.
+    const htmlBody = rules.find((r) => /html\s+body/.test(r.selector))
+    expect(htmlBody).toBeDefined()
+    expect(htmlBody.bg).toMatch(/var\(--bg\)/)
+    expect(htmlBody.bg).not.toMatch(/var\(--color-bg\)/)
+  })
+
   it('renders Events page when initial pathname is /events', async () => {
     window.history.replaceState(null, '', '/events')
     render(

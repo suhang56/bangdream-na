@@ -38,7 +38,17 @@
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
-body {
+/*
+ * Higher-specificity (html body, 0,0,2) than the legacy theme.css `body` rule
+ * (0,0,1) so the paper palette wins regardless of stylesheet import order or
+ * ThemeProvider's imperative `:root.style` writes (which only feed rules that
+ * READ --color-bg; this rule reads --bg + --ink instead).
+ *
+ * Public routes mount LayoutShell + tokens (paper #f3f1ec). Admin pages own
+ * their own dark background via their component CSS, so the legacy dark theme
+ * still works there.
+ */
+html body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
