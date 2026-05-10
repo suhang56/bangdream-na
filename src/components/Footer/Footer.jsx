@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { fetchMembers } from '../../lib/api.js'
 import {
   QQ_GROUP_URL,
   DISCORD_INVITE_URL,
@@ -43,6 +45,24 @@ const EXTERNAL_LINKS = [
 export default function Footer() {
   const year = new Date().getFullYear()
   const buildDate = `build ${year}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`
+  const [members, setMembers] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMembers()
+      .then((r) => {
+        if (cancelled) return
+        const total = typeof r?.total === 'number'
+          ? r.total
+          : Array.isArray(r?.items) ? r.items.length : null
+        setMembers(total)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setMembers(null)
+      })
+    return () => { cancelled = true }
+  }, [])
   return (
     <footer className="bf-foot">
       <div className="bf-container">
@@ -100,7 +120,11 @@ export default function Footer() {
         </div>
         <div className="bf-foot-bottom">
           <span>© 2024–{year} 北美炸梦同好会 / fan-run · 非营利 · 非官方</span>
-          <span>{buildDate} · 150+ 同好 · 9 分会 · since 2024</span>
+          <span>
+            {buildDate}
+            {typeof members === 'number' ? ` · ${members} 同好 · 9 分会` : ''}
+            {' · since 2024'}
+          </span>
         </div>
       </div>
     </footer>

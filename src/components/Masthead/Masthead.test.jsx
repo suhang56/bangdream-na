@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, fireEvent, act } from '@testing-library/react'
+import { render, fireEvent, act, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Masthead from './Masthead.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
+import * as api from '../../lib/api.js'
+import { cache } from '../../lib/cache.js'
 import {
   QQ_GROUP_URL,
   DISCORD_INVITE_URL,
@@ -42,9 +44,13 @@ describe('<Masthead />', () => {
   beforeEach(() => {
     _resetForTests()
     setLanguage('zh')
+    cache.clear()
+    // Default: stub fetchMembers so unrelated tests don't fire real network.
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 147 })
   })
   afterEach(() => {
     vi.restoreAllMocks()
+    cache.clear()
   })
 
   it('H5: renders bf-logo-img with src ending in logo.png and correct alt', () => {
@@ -238,5 +244,42 @@ describe('<Masthead />', () => {
       )
     })
     expect(document.activeElement).not.toBe(input)
+  })
+
+  // ── D9-HOTFIX: real member count in description prose ─────────────────────
+  it('D9-HOTFIX: .ml-desc embeds live member count from fetchMembers, no 150+', async () => {
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 213 })
+    const { container } = renderMast()
+    await waitFor(() => {
+      const desc = container.querySelector('.ml-desc')
+      expect(desc.textContent).toContain('213')
+    })
+    const desc = container.querySelector('.ml-desc')
+    expect(desc.textContent).not.toContain('150+')
+  })
+
+  it('D9-HOTFIX: .ml-desc hides count sentence while fetchMembers pending', () => {
+    vi.spyOn(api, 'fetchMembers').mockReturnValue(new Promise(() => {}))
+    const { container } = renderMast()
+    const desc = container.querySelector('.ml-desc')
+    expect(desc).toBeInTheDocument()
+    // No skeleton dots / no 0 / no 150+ leak into prose
+    expect(desc.textContent).not.toContain('150+')
+    expect(desc.textContent).not.toContain('···')
+  })
+
+  it('D9-HOTFIX: .ml-desc hides count sentence on fetchMembers error', async () => {
+    vi.spyOn(api, 'fetchMembers').mockRejectedValue(new Error('net'))
+    const { container } = renderMast()
+    await waitFor(() => {
+      const desc = container.querySelector('.ml-desc')
+      // Description still renders the main paragraph
+      expect(desc.textContent).toContain('北美华人')
+    })
+    const desc = container.querySelector('.ml-desc')
+    expect(desc.textContent).not.toContain('150+')
+    // Don't leak "— 名同好" / "— 分会" placeholders in prose on error
+    expect(desc.textContent).not.toMatch(/名同好/)
+    expect(desc.textContent).not.toMatch(/个分会/)
   })
 })

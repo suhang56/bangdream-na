@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { fetchMembers } from '../../lib/api.js'
 import {
   QQ_GROUP_URL,
   DISCORD_INVITE_URL,
@@ -18,6 +19,7 @@ import './Masthead.css'
  */
 export default function Masthead() {
   const [search, setSearch] = useState('')
+  const [members, setMembers] = useState(null)
   const navigate = useNavigate()
   const inputRef = useRef(null)
 
@@ -30,6 +32,23 @@ export default function Masthead() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMembers()
+      .then((r) => {
+        if (cancelled) return
+        const total = typeof r?.total === 'number'
+          ? r.total
+          : Array.isArray(r?.items) ? r.items.length : null
+        setMembers(total)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setMembers(null)
+      })
+    return () => { cancelled = true }
   }, [])
 
   function onSubmit(e) {
@@ -67,7 +86,8 @@ export default function Masthead() {
           <span className="ml-desc">
             北美华人 BanG Dream! 同好社群 —— 散落在洛杉矶、纽约、湾区、西雅图、
             多伦多、匹兹堡、休斯顿、芝加哥、温哥华的同好们在这里相遇。组织线下聚会、
-            协调远征、应援花篮、出票互助。150+ 名同好，9 个分会。
+            协调远征、应援花篮、出票互助。
+            {typeof members === 'number' ? `${members} 名同好，9 个分会。` : null}
           </span>
         </div>
         <div className="bf-mast-misc bf-hide-mobile">

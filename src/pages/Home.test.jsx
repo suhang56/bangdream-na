@@ -99,6 +99,8 @@ const HAPPY_PAST = { items: [], total: 7 }
 
 const HAPPY_GALLERY = { items: [], total: 0 }
 
+const HAPPY_MEMBERS = { items: [], total: 147 }
+
 function mockHappy() {
   vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
   vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
@@ -106,6 +108,7 @@ function mockHappy() {
     return Promise.resolve(HAPPY_UPCOMING)
   })
   vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+  vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
 }
 
 describe('<Home />', () => {
@@ -137,6 +140,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-tbl')).toBeInTheDocument()
@@ -149,6 +153,7 @@ describe('<Home />', () => {
     vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
     vi.spyOn(api, 'fetchEvents').mockResolvedValue({ items: [], total: 0 })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-home-hero')).toBeInTheDocument()
@@ -170,6 +175,7 @@ describe('<Home />', () => {
       })
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { container } = renderHome()
     await waitFor(() => {
@@ -195,6 +201,7 @@ describe('<Home />', () => {
       })
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-tbl tbody tr')).toBeInTheDocument()
@@ -217,6 +224,7 @@ describe('<Home />', () => {
       })
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-hh-next')).toBeInTheDocument()
@@ -236,6 +244,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-hh-feature .hhf-title')).toBeInTheDocument()
@@ -267,6 +276,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
@@ -287,6 +297,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
@@ -306,6 +317,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
@@ -328,6 +340,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.nc-thumb')).toBeInTheDocument()
@@ -419,6 +432,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.nc-tag')).toBeInTheDocument()
@@ -443,6 +457,7 @@ describe('<Home />', () => {
     vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
     vi.spyOn(api, 'fetchEvents').mockResolvedValue({ items: [], total: 0 })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.bf-tbl tbody tr')).toBeInTheDocument()
@@ -502,6 +517,7 @@ describe('<Home />', () => {
       return Promise.resolve(HAPPY_UPCOMING)
     })
     vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
     const { container } = renderHome()
     await waitFor(() => {
       expect(container.querySelector('.nc-tag')).toBeInTheDocument()
@@ -510,5 +526,113 @@ describe('<Home />', () => {
     const eventTag = tags[0]
     // Roselia color is #3a3f7a → rgb(58, 63, 122)
     expect(eventTag.style.background).toBe('rgb(58, 63, 122)')
+  })
+
+  // ── D9-HOTFIX: Change 1 — Home stat tile real member count ────────────────
+  it('D9-HOTFIX: 同好 stat tile renders integer from fetchMembers total, no + suffix', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const membersTile = container.querySelector('.bf-hh-stats a[href="/members"]')
+    expect(membersTile).toBeInTheDocument()
+    await waitFor(() => {
+      const num = membersTile.querySelector('.num')
+      expect(num.textContent).toBe('147')
+    })
+    const num = membersTile.querySelector('.num')
+    expect(num.textContent).not.toContain('+')
+    expect(num.textContent).not.toContain('150')
+  })
+
+  it('D9-HOTFIX: 同好 stat tile shows loading skeleton (· · ·) before fetchMembers resolves', () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockReturnValue(new Promise(() => {}))
+    const { container } = renderHome()
+    // During initial render, status='loading' so Home returns <LoadingState />.
+    // We don't assert specific DOM here — just that nothing crashes and no
+    // hardcoded '150+' bleed makes it onto the page.
+    expect(container.textContent).not.toContain('150+')
+  })
+
+  it('D9-HOTFIX: 同好 stat tile renders em-dash on fetchMembers error', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockRejectedValue(new Error('net'))
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      const membersTile = container.querySelector('.bf-hh-stats a[href="/members"]')
+      const num = membersTile.querySelector('.num')
+      expect(num.textContent).toBe('—')
+    })
+  })
+
+  it('D9-HOTFIX: 同好 stat tile falls back to items.length when total missing', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({
+      items: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+    })
+    const { container } = renderHome()
+    await waitFor(() => {
+      const num = container
+        .querySelector('.bf-hh-stats a[href="/members"]')
+        .querySelector('.num')
+      expect(num.textContent).toBe('4')
+    })
+  })
+
+  // ── D9-HOTFIX: Change 2 — Home stat tile to /members still works ──────────
+  it('D9-HOTFIX: Home 同好 stat tile Link to /members is present even though nav hides it', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const link = container.querySelector('.bf-hh-stats a[href="/members"]')
+    expect(link).toBeInTheDocument()
+    expect(link.tagName).toBe('A')
+  })
+
+  // ── D9-HOTFIX: Change 3 — stat strip CSS regression fix ───────────────────
+  it('D9-HOTFIX: .bf-hh-stats has 3 direct child <a> elements (selector hit)', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const anchors = container.querySelectorAll('.bf-hh-stats > a')
+    expect(anchors.length).toBe(3)
+  })
+
+  it('D9-HOTFIX: stat tile Links have NO inline display:block style (CSS handles it)', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-stats')).toBeInTheDocument()
+    })
+    const anchors = container.querySelectorAll('.bf-hh-stats > a')
+    expect(anchors.length).toBe(3)
+    anchors.forEach((a) => {
+      expect(a.getAttribute('style')).toBeNull()
+      expect(a.style.display).not.toBe('block')
+    })
   })
 })

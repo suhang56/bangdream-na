@@ -1,13 +1,12 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import LangToggle from '../LangToggle/LangToggle.jsx'
+import { fetchMembers } from '../../lib/api.js'
 import {
   getLanguage,
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
 import './UtilityBar.css'
-
-const HARDCODED_MEMBERS = '150+'
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -42,6 +41,24 @@ function computeJstTimestamp() {
 export default function UtilityBar() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const [jstTimestamp] = useState(computeJstTimestamp)
+  const [members, setMembers] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMembers()
+      .then((r) => {
+        if (cancelled) return
+        const total = typeof r?.total === 'number'
+          ? r.total
+          : Array.isArray(r?.items) ? r.items.length : null
+        setMembers(total)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setMembers(null)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="bf-utility">
@@ -52,7 +69,9 @@ export default function UtilityBar() {
             {t('utility.online')}
           </span>
           <span>{jstTimestamp}</span>
-          <span className="bf-hide-mobile">{t('utility.membersCount', { count: HARDCODED_MEMBERS })}</span>
+          {typeof members === 'number' ? (
+            <span className="bf-hide-mobile">{t('utility.membersCount', { count: members })}</span>
+          ) : null}
         </div>
         <div className="bf-uright">
           <span className="bf-u-disclaimer">{t('utility.disclaimer')}</span>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import SectionTitle from '../components/SectionTitle/SectionTitle.jsx'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
-import { fetchNews, fetchEvents, fetchGallery } from '../lib/api.js'
+import { fetchNews, fetchEvents, fetchGallery, fetchMembers } from '../lib/api.js'
 import { BANDS } from '../data/bands.js'
 import {
   QQ_GROUP_URL,
@@ -23,7 +23,6 @@ const NEWS_LIMIT = 5
 const EVENTS_LIMIT = 4
 const GALLERY_LIMIT = 6
 
-const HARDCODED_MEMBERS = '150+'
 const HARDCODED_CHAPTERS = 9
 
 const INK_FALLBACK = '#1f1d1a'
@@ -88,7 +87,7 @@ function truncate(s, max) {
   return clean.slice(0, max) + '…'
 }
 
-function HomeHero({ news, upcomingEvents, eventsTotal }) {
+function HomeHero({ news, upcomingEvents, eventsTotal, membersTotal, membersStatus }) {
   const featured = news && news.length > 0 ? news[0] : null
   const next = upcomingEvents && upcomingEvents.length > 0 ? upcomingEvents[0] : null
 
@@ -149,15 +148,23 @@ function HomeHero({ news, upcomingEvents, eventsTotal }) {
               </div>
             )}
             <div className="bf-hh-stats">
-              <Link to="/members" style={{ display: 'block' }}>
-                <span className="num">{HARDCODED_MEMBERS}</span>
+              <Link to="/members">
+                <span className="num">
+                  {membersStatus === 'loading' ? (
+                    <span className="bf-num-skeleton" aria-label="loading">···</span>
+                  ) : membersStatus === 'error' || membersTotal === null ? (
+                    '—'
+                  ) : (
+                    membersTotal
+                  )}
+                </span>
                 <span className="lbl">{t('home.stats.members')}</span>
               </Link>
-              <Link to="/about" style={{ display: 'block' }}>
+              <Link to="/about">
                 <span className="num">{HARDCODED_CHAPTERS}</span>
                 <span className="lbl">{t('home.stats.chapters')}</span>
               </Link>
-              <Link to="/events" style={{ display: 'block' }}>
+              <Link to="/events">
                 <span className="num">{eventsTotal === null ? '—' : eventsTotal}</span>
                 <span className="lbl">{t('home.stats.events')}</span>
               </Link>
@@ -364,6 +371,8 @@ export default function Home() {
   const [upcoming, setUpcoming] = useState([])
   const [gallery, setGallery] = useState([])
   const [eventsTotal, setEventsTotal] = useState(null)
+  const [membersTotal, setMembersTotal] = useState(null)
+  const [membersStatus, setMembersStatus] = useState('loading')
   const [status, setStatus] = useState('loading')
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -396,6 +405,22 @@ export default function Home() {
           if (cancelled) return
           setEventsTotal(null)
         }
+
+        // Member count (independent of upcoming/past totals — failure here
+        // must not blank news/events).
+        try {
+          const m = await fetchMembers()
+          if (cancelled) return
+          const total = typeof m?.total === 'number'
+            ? m.total
+            : Array.isArray(m?.items) ? m.items.length : null
+          setMembersTotal(total)
+          setMembersStatus(total === null ? 'error' : 'ready')
+        } catch {
+          if (cancelled) return
+          setMembersTotal(null)
+          setMembersStatus('error')
+        }
         setStatus('ready')
       })
       .catch(() => {
@@ -409,6 +434,8 @@ export default function Home() {
 
   function retry() {
     setStatus('loading')
+    setMembersStatus('loading')
+    setMembersTotal(null)
     setReloadKey((k) => k + 1)
   }
 
@@ -421,7 +448,13 @@ export default function Home() {
 
   return (
     <>
-      <HomeHero news={news} upcomingEvents={upcoming} eventsTotal={eventsTotal} />
+      <HomeHero
+        news={news}
+        upcomingEvents={upcoming}
+        eventsTotal={eventsTotal}
+        membersTotal={membersTotal}
+        membersStatus={membersStatus}
+      />
       <HomeNews news={news} />
       <HomeEvents events={upcoming} />
       <HomeGallery items={gallery} />
