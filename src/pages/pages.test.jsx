@@ -93,10 +93,10 @@ describe('routes smoke', () => {
     ).toBeInTheDocument()
   })
 
-  it('News page renders heading + empty status via /news route', async () => {
+  it('News page renders heading via /news route', async () => {
     renderWithProviders(<RoutesUnderTest />, { route: '/news' })
     expect(
-      await screen.findByRole('heading', { level: 1, name: /news/i }),
+      await screen.findByRole('heading', { level: 1, name: /新闻/ }),
     ).toBeInTheDocument()
   })
 

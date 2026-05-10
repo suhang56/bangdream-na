@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
@@ -6,10 +6,6 @@ import Comments from '../components/Comments/Comments.jsx'
 import { fetchNewsBySlug } from '../lib/api.js'
 import { adaptNewsRow } from '../lib/apiAdapter.js'
 import { formatDate } from '../lib/dateFormat.js'
-import {
-  getLanguage,
-  subscribeLanguage,
-} from '../lib/uiLanguage.js'
 import './NewsDetail.css'
 
 const CATEGORY_LABELS = {
@@ -19,20 +15,13 @@ const CATEGORY_LABELS = {
   release: 'Release',
 }
 
-function subscribe(cb) {
-  return subscribeLanguage(cb)
-}
-function getSnapshot() {
-  return getLanguage()
-}
-
 function renderBody(body) {
   if (typeof body !== 'string' || body.trim() === '') return null
   const paragraphs = body.split(/\n{2,}/).filter((p) => p.trim() !== '')
   return paragraphs.map((p, i) => {
     const lines = p.split(/\n/)
     return (
-      <p key={i} className="news-detail__paragraph">
+      <p key={i} className="nd-paragraph">
         {lines.map((line, j) => (
           <span key={j}>
             {line}
@@ -45,7 +34,6 @@ function renderBody(body) {
 }
 
 export default function NewsDetail() {
-  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const { id } = useParams()
   const decodedId = useMemo(() => {
     try {
@@ -64,6 +52,7 @@ export default function NewsDetail() {
   useEffect(() => {
     let cancelled = false
     if (!decodedId) return undefined
+    setStatus('loading')
     fetchNewsBySlug(decodedId)
       .then((row) => {
         if (cancelled) return
@@ -87,79 +76,71 @@ export default function NewsDetail() {
   }, [decodedId, reloadKey])
 
   function retry() {
-    setStatus('loading')
     setReloadKey((k) => k + 1)
   }
 
   if (status === 'loading') {
-    return <LoadingState className="news-detail__loading" />
+    return <LoadingState className="loading-state" />
   }
   if (status === 'error') {
-    return <ErrorState className="news-detail__error" onRetry={retry} />
+    return <ErrorState className="news-detail-error" onRetry={retry} />
   }
 
   if (status === 'notfound' || !item) {
     return (
-      <main className="news-detail">
-        <div className="news-detail__inner">
-          <Link to="/news" className="news-detail__back">
-            ← 返回新闻列表
-          </Link>
-          <h1 className="news-detail__title">未找到这条新闻</h1>
-          <p className="news-detail__missing">
-            可能链接已失效，或者这条新闻已被删除。
-          </p>
+      <section className="bf-page-hd">
+        <div className="bf-container">
+          <Link to="/news" className="nd-back">← 返回新闻列表</Link>
+          <h1>未找到这条新闻</h1>
+          <p className="nd-missing">可能链接已失效，或者这条新闻已被删除。</p>
         </div>
-      </main>
+      </section>
     )
   }
 
   const date = formatDate(item.date)
   const rawCategory = item.category ?? item.tag
-  const categoryKey = Object.prototype.hasOwnProperty.call(
-    CATEGORY_LABELS,
-    rawCategory,
-  )
+  const categoryKey = Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, rawCategory)
     ? rawCategory
     : 'announcement'
   const categoryLabel = CATEGORY_LABELS[categoryKey] ?? 'Announcement'
   const hasImage = typeof item.image === 'string' && item.image.length > 0
 
   return (
-    <main className="news-detail">
-      <div className="news-detail__inner">
-        <Link to="/news" className="news-detail__back">
-          ← 返回新闻列表
-        </Link>
-        {hasImage ? (
-          <figure className="news-detail__hero">
+    <>
+      <section className="bf-page-hd bf-page-hd--detail">
+        <div className="bf-container">
+          <Link to="/news" className="nd-back">← 返回新闻列表</Link>
+          <div>
+            <span className="ph-tag">{categoryLabel}</span>
+            <h1>{item.title ?? ''}</h1>
+          </div>
+          {date ? (
+            <span className="ph-meta">
+              <time dateTime={item.date}>{date}</time>
+            </span>
+          ) : null}
+        </div>
+      </section>
+      <main className="bf-page-body">
+        <div className="bf-container bf-container--narrow">
+          {hasImage ? (
             <img
               src={item.image}
               alt={item.title ?? ''}
-              className="news-detail__hero-img"
+              className="nd-hero-img"
               loading="eager"
               decoding="async"
             />
-          </figure>
-        ) : null}
-        <div className="news-detail__meta">
-          <span
-            className={`news-detail__category news-detail__category--${categoryKey}`}
-          >
-            {categoryLabel}
-          </span>
-          {date ? (
-            <time className="news-detail__date" dateTime={item.date}>
-              {date}
-            </time>
+          ) : null}
+          <div className="bf-news-detail-body">
+            {renderBody(item.body)}
+          </div>
+          {typeof rawId === 'number' ? (
+            <Comments targetKind="news" targetId={rawId} />
           ) : null}
         </div>
-        <h1 className="news-detail__title">{item.title ?? ''}</h1>
-        <div className="news-detail__body">{renderBody(item.body)}</div>
-        {typeof rawId === 'number' ? (
-          <Comments targetKind="news" targetId={rawId} />
-        ) : null}
-      </div>
-    </main>
+      </main>
+    </>
   )
 }
