@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import {
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+} from '../../data/socialLinks.js'
 import './Masthead.css'
 
 /**
@@ -64,6 +69,19 @@ export default function Masthead() {
             多伦多、匹兹堡、休斯顿、芝加哥、温哥华的同好们在这里相遇。组织线下聚会、
             协调远征、应援花篮、出票互助。150+ 名同好，9 个分会。
           </span>
+        </div>
+        <div className="bf-mast-misc bf-hide-mobile">
+          <a href={QQ_GROUP_URL} target="_blank" rel="noopener noreferrer">
+            加入 QQ 群 ↗
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer">
+            Discord ↗
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href={X_PROFILE_URL} target="_blank" rel="noopener noreferrer">
+            X @BandoriNACC ↗
+          </a>
         </div>
         <form className="bf-search" onSubmit={onSubmit} role="search">
           <input

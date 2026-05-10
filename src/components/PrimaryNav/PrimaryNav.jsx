@@ -1,8 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
-  QQ_GROUP_URL,
-  DISCORD_INVITE_URL,
-  X_PROFILE_URL,
   FORUM_URL,
   TICKETS_DOC_URL,
   GUIDE_WIKI_URL,
@@ -66,20 +63,6 @@ export default function PrimaryNav() {
             </Link>
           )
         })}
-        <div className="bf-nav-spacer" />
-        <div className="bf-nav-misc bf-hide-mobile">
-          <a href={QQ_GROUP_URL} target="_blank" rel="noopener noreferrer">
-            加入 QQ 群 ↗
-          </a>
-          <span aria-hidden="true">·</span>
-          <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer">
-            Discord ↗
-          </a>
-          <span aria-hidden="true">·</span>
-          <a href={X_PROFILE_URL} target="_blank" rel="noopener noreferrer">
-            X @BandoriNACC ↗
-          </a>
-        </div>
       </div>
     </nav>
   )

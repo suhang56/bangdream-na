@@ -3,6 +3,11 @@ import { render, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Masthead from './Masthead.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
+import {
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+} from '../../data/socialLinks.js'
 
 function LocationProbe() {
   const loc = useLocation()
@@ -176,6 +181,51 @@ describe('<Masthead />', () => {
         new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
       )
     }).not.toThrow()
+  })
+
+  it('DENSITY-FIX: .bf-mast-misc renders inside .bf-mast', () => {
+    const { container } = renderMast()
+    const misc = container.querySelector('.bf-mast .bf-mast-misc')
+    expect(misc).toBeInTheDocument()
+  })
+
+  it('DENSITY-FIX: .bf-mast-misc contains exactly 3 anchor links', () => {
+    const { container } = renderMast()
+    const anchors = container.querySelectorAll('.bf-mast-misc a')
+    expect(anchors.length).toBe(3)
+  })
+
+  it('DENSITY-FIX: QQ link in .bf-mast-misc has correct href + target=_blank + rel=noopener', () => {
+    const { container } = renderMast()
+    const qq = container.querySelector(
+      `.bf-mast-misc a[href="${QQ_GROUP_URL}"]`,
+    )
+    expect(qq).toBeInTheDocument()
+    expect(qq.getAttribute('target')).toBe('_blank')
+    expect(qq.getAttribute('rel')).toContain('noopener')
+    expect(qq.textContent).toContain('QQ')
+  })
+
+  it('DENSITY-FIX: Discord link in .bf-mast-misc has correct href + target=_blank', () => {
+    const { container } = renderMast()
+    const dc = container.querySelector(
+      `.bf-mast-misc a[href="${DISCORD_INVITE_URL}"]`,
+    )
+    expect(dc).toBeInTheDocument()
+    expect(dc.getAttribute('target')).toBe('_blank')
+    expect(dc.getAttribute('rel')).toContain('noopener')
+    expect(dc.textContent).toContain('Discord')
+  })
+
+  it('DENSITY-FIX: X link in .bf-mast-misc has correct href + target=_blank', () => {
+    const { container } = renderMast()
+    const x = container.querySelector(
+      `.bf-mast-misc a[href="${X_PROFILE_URL}"]`,
+    )
+    expect(x).toBeInTheDocument()
+    expect(x.getAttribute('target')).toBe('_blank')
+    expect(x.getAttribute('rel')).toContain('noopener')
+    expect(x.textContent).toContain('BandoriNACC')
   })
 
   it('D8: bare K (no modifier) does NOT focus the search input', () => {

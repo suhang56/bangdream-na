@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { render, waitFor, within, fireEvent } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import Home from './Home.jsx'
 import * as api from '../lib/api.js'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
@@ -11,6 +11,30 @@ function renderHome() {
     <MemoryRouter initialEntries={['/']}>
       <Routes>
         <Route path="/" element={<Home />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+function LocationProbe() {
+  const loc = useLocation()
+  return <div data-testid="loc" data-pathname={loc.pathname} />
+}
+
+function renderHomeWithProbe() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <Home />
+              <LocationProbe />
+            </>
+          }
+        />
+        <Route path="/events/:slug" element={<LocationProbe />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -402,6 +426,67 @@ describe('<Home />', () => {
     const tags = container.querySelectorAll('.nc-tag')
     const announcementTag = tags[0]
     expect(announcementTag.style.background).toBe('rgb(205, 44, 52)')
+  })
+
+  // DENSITY-FIX: Issue 2 — stretched-link event rows
+  it('DENSITY-FIX: upcoming event tr has .bf-tr-link class', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr')).toBeInTheDocument()
+    })
+    const row = container.querySelector('.bf-tbl tbody tr')
+    expect(row.classList.contains('bf-tr-link')).toBe(true)
+  })
+
+  it('DENSITY-FIX: empty-state row does NOT get .bf-tr-link class', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockResolvedValue({ items: [], total: 0 })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr')).toBeInTheDocument()
+    })
+    const row = container.querySelector('.bf-tbl tbody tr')
+    expect(row.classList.contains('bf-tr-link')).toBe(false)
+  })
+
+  it('DENSITY-FIX: title link inside .bf-tr-link points to /events/<slug>', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr.bf-tr-link')).toBeInTheDocument()
+    })
+    const titleLink = container.querySelector('.bf-tr-link .td-title a')
+    expect(titleLink).toBeInTheDocument()
+    expect(titleLink.getAttribute('href')).toBe('/events/roselia-anime-expo-2026')
+  })
+
+  it('DENSITY-FIX: clicking title link navigates to /events/<slug>', async () => {
+    mockHappy()
+    const { container, getByTestId } = renderHomeWithProbe()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr.bf-tr-link')).toBeInTheDocument()
+    })
+    const titleLink = container.querySelector('.bf-tr-link .td-title a')
+    fireEvent.click(titleLink)
+    await waitFor(() => {
+      expect(getByTestId('loc').getAttribute('data-pathname')).toBe(
+        '/events/roselia-anime-expo-2026',
+      )
+    })
+  })
+
+  it('DENSITY-FIX: .td-buy anchor is a separate link with its own external href (independently clickable)', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr.bf-tr-link')).toBeInTheDocument()
+    })
+    const buy = container.querySelector('.bf-tr-link .td-buy')
+    expect(buy).toBeInTheDocument()
+    expect(buy.getAttribute('href')).toBe('https://example.com/buy')
+    expect(buy.getAttribute('target')).toBe('_blank')
   })
 
   it('H11: EVENT news card nc-tag has Roselia band color', async () => {

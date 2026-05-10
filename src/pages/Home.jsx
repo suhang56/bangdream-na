@@ -251,7 +251,7 @@ function HomeEvents({ events }) {
               </tr>
             ) : (
               events.map((e) => (
-                <tr key={e.id ?? e.slug}>
+                <tr key={e.id ?? e.slug} className="bf-tr-link">
                   <td className="td-d">{formatYmd(e.start_at)}</td>
                   <td>
                     <span className="td-kind">{daysOutLabel(e.start_at)}</span>

@@ -24,7 +24,7 @@ function EventRow({ item }) {
   const b = item.bands && item.bands.length > 0 ? bandById(item.bands[0]) : null
 
   return (
-    <tr>
+    <tr className="bf-tr-link">
       <td className="td-d">{dateStr}</td>
       <td>
         {b
