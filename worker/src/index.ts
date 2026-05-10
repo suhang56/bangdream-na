@@ -11,6 +11,7 @@ import {
   buildAdminNewsRoutes,
   buildAdminSocialLinksRoutes,
 } from "./routes/admin";
+import { buildAdminEmailRoutes } from "./routes/admin-email";
 import { buildAdminSettingsRoutes } from "./routes/admin-settings";
 import { buildCommentRoutes } from "./routes/comments";
 import { buildPublicGalleryRoutes } from "./routes/gallery";
@@ -57,6 +58,7 @@ export function createApp() {
   app.route("/api/admin/about-sections", buildAdminAboutSectionsRoutes());
   app.route("/api/admin/gallery", buildAdminGalleryRoutes());
   app.route("/api/admin/settings", buildAdminSettingsRoutes());
+  app.route("/api/admin/email", buildAdminEmailRoutes());
 
   app.notFound((c) => {
     c.header("Cache-Control", "no-store");

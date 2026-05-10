@@ -25,3 +25,5 @@ pattern = "api.bangdream.org"
 custom_domain = true
 
 # Secrets set via `wrangler secret put GITHUB_CLIENT_SECRET` and `wrangler secret put JWT_SECRET`
+# RESEND_API_KEY set via: cd worker && npx wrangler secret put RESEND_API_KEY
+# Optional: EMAIL_FROM_DEFAULT and ADMIN_NOTIFICATION_EMAIL can be added under [vars] for prod overrides.

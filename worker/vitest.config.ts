@@ -22,6 +22,8 @@ export default defineWorkersConfig({
             ADMIN_GITHUB_LOGINS: "suhang56",
             ALLOWED_ORIGINS:
               "https://bangdream.org,http://localhost:5173,http://localhost:4173",
+            RESEND_API_KEY: "test-resend-key",
+            EMAIL_FROM_DEFAULT: "contact@bangdream.org",
             TEST_MIGRATIONS: migrations,
           },
         },

@@ -44,3 +44,15 @@ backups/
 # Worker build artifacts
 worker/dist/
 worker/coverage/
+
+# Pipeline spec artifacts (planner/designer/architect/PR body)
+EMAIL-PLAN.md
+EMAIL-DESIGN.md
+EMAIL-ARCH.md
+PLAN.md
+DESIGN.md
+ARCHITECT.md
+DENSITY-FIX.md
+STATS-FIX.md
+PR_BODY.md
+dev.log
