@@ -1,23 +1,11 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
 import { fetchEventBySlug } from '../lib/api.js'
 import { adaptEventRow } from '../lib/apiAdapter.js'
 import { formatDate } from '../lib/dateFormat.js'
-import {
-  getLanguage,
-  subscribeLanguage,
-  t,
-} from '../lib/uiLanguage.js'
 import './EventDetail.css'
-
-function subscribe(cb) {
-  return subscribeLanguage(cb)
-}
-function getSnapshot() {
-  return getLanguage()
-}
 
 function renderBody(body) {
   if (typeof body !== 'string' || body.trim() === '') return null
@@ -38,7 +26,6 @@ function renderBody(body) {
 }
 
 export default function EventDetail() {
-  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const { slug } = useParams()
   const decodedSlug = useMemo(() => {
     try {
@@ -91,12 +78,10 @@ export default function EventDetail() {
   if (status === 'notfound' || !item) {
     return (
       <main className="event-detail">
-        <div className="event-detail__inner">
-          <Link to="/events" className="event-detail__back">
-            {t('events.detail.back')}
-          </Link>
-          <h1 className="event-detail__title">{t('events.detail.notFoundTitle')}</h1>
-          <p className="event-detail__missing">{t('events.detail.notFoundBody')}</p>
+        <div className="bf-container event-detail__inner">
+          <Link to="/events" className="event-detail__back">← 返回活动</Link>
+          <h1 className="event-detail__title">未找到这个活动</h1>
+          <p className="event-detail__missing">该活动不存在或已被移除。</p>
         </div>
       </main>
     )
@@ -106,14 +91,13 @@ export default function EventDetail() {
   const formattedEnd = formatDate(item.endDate)
   const hasImage = typeof item.image === 'string' && item.image.length > 0
   const ticketUrl = typeof item.ticketUrl === 'string' && item.ticketUrl.length > 0 ? item.ticketUrl : null
-  const hasBands = Array.isArray(item.bands) && item.bands.length > 0
+  const hasDescription = typeof item.description === 'string' && item.description.trim().length > 0
 
   return (
     <main className="event-detail">
-      <div className="event-detail__inner">
-        <Link to="/events" className="event-detail__back">
-          {t('events.detail.back')}
-        </Link>
+      <div className="bf-container event-detail__inner">
+        <Link to="/events" className="event-detail__back">← 返回活动</Link>
+
         {hasImage ? (
           <figure className="event-detail__hero">
             <img
@@ -125,50 +109,48 @@ export default function EventDetail() {
             />
           </figure>
         ) : null}
+
         <h1 className="event-detail__title">{item.title ?? ''}</h1>
-        <dl className="event-detail__meta">
-          {formattedStart ? (
-            <>
-              <dt>{t('events.detail.startsAt')}</dt>
-              <dd>
-                <time dateTime={item.date}>{formattedStart}</time>
-              </dd>
-            </>
-          ) : null}
-          {formattedEnd ? (
-            <>
-              <dt>{t('events.detail.endsAt')}</dt>
-              <dd>
-                <time dateTime={item.endDate}>{formattedEnd}</time>
-              </dd>
-            </>
-          ) : null}
-          {item.location ? (
-            <>
-              <dt>{t('events.detail.location')}</dt>
-              <dd>{item.location}</dd>
-            </>
-          ) : null}
-          {hasBands ? (
-            <>
-              <dt>{t('events.detail.bands')}</dt>
-              <dd>{item.bands.join(' · ')}</dd>
-            </>
-          ) : null}
-        </dl>
-        {ticketUrl ? (
-          <p className="event-detail__ticket-row">
-            <a
-              href={ticketUrl}
-              className="event-detail__ticket-btn"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('btn.tickets')}
-            </a>
-          </p>
+
+        {(formattedStart || formattedEnd) ? (
+          <div className="bf-helper">
+            <span className="bf-helper-tag">时间</span>
+            <p>
+              {formattedStart ? <time dateTime={item.date}>{formattedStart}</time> : null}
+              {formattedEnd ? <> — <time dateTime={item.endDate}>{formattedEnd}</time></> : null}
+            </p>
+          </div>
         ) : null}
-        <div className="event-detail__body">{renderBody(item.description)}</div>
+
+        {item.location ? (
+          <div className="bf-helper">
+            <span className="bf-helper-tag">地点</span>
+            <p>{item.location}</p>
+          </div>
+        ) : null}
+
+        {ticketUrl ? (
+          <div className="bf-helper">
+            <span className="bf-helper-tag">票务</span>
+            <p>
+              <a
+                href={ticketUrl}
+                className="bf-cta"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                购票
+              </a>
+            </p>
+          </div>
+        ) : null}
+
+        {hasDescription ? (
+          <div className="bf-helper">
+            <span className="bf-helper-tag">备注</span>
+            <div className="event-detail__body">{renderBody(item.description)}</div>
+          </div>
+        ) : null}
       </div>
     </main>
   )

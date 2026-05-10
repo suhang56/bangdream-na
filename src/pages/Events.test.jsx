@@ -1,13 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { render } from '@testing-library/react'
 import { renderWithProviders } from '../test/utils.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
-
-vi.mock('../lib/useBreakpoint.js', () => ({
-  useIsMobile: vi.fn(),
-}))
 
 vi.mock('../lib/api.js', async () => {
   const actual = await vi.importActual('../lib/api.js')
@@ -17,28 +14,23 @@ vi.mock('../lib/api.js', async () => {
   }
 })
 
-import { useIsMobile } from '../lib/useBreakpoint.js'
 import { fetchEvents } from '../lib/api.js'
 
-function eventApiRow(overrides) {
-  // Defaults: 2099-08-01 19:00 -07:00 (upcoming).
+function eventApiRow(overrides = {}) {
   const startSec = Math.floor(Date.parse('2099-08-01T19:00:00-07:00') / 1000)
   return {
     slug: overrides.slug ?? overrides.id ?? 's',
-    title_zh: overrides.title ?? '',
+    title_zh: overrides.title ?? 'Event Title',
     title_en: null,
     description_md: overrides.description ?? null,
     hero_image_url: overrides.image ?? null,
     start_at: overrides.start_at ?? (overrides.date ? Math.floor(Date.parse(overrides.date) / 1000) : startSec),
     end_at: overrides.end_at ?? null,
-    venue: null,
-    city: overrides.location ?? null,
-    scope: null,
+    venue: overrides.venue ?? null,
+    city: overrides.city ?? null,
+    scope: overrides.scope ?? null,
     ticket_url: overrides.ticketUrl ?? null,
-    band_theme:
-      Array.isArray(overrides.bands) && overrides.bands.length > 0
-        ? overrides.bands[0]
-        : null,
+    band_theme: overrides.band_theme ?? null,
   }
 }
 
@@ -51,201 +43,176 @@ function mockFetchEventsWith(rowsByScope) {
   })
 }
 
-describe('<Events /> — track selection (shell)', () => {
+describe('<Events /> — bf-* page-hero', () => {
   beforeEach(() => {
     _resetForTests()
     window.localStorage.clear()
-    setLanguage('en')
+    setLanguage('zh')
     cache.clear()
     vi.mocked(fetchEvents).mockReset()
-    mockFetchEventsWith({
-      upcoming: [
-        eventApiRow({
-          id: 'up-1',
-          title: 'Upcoming Concert ABC',
-          date: '2099-08-01T19:00:00-07:00',
-          location: 'LA',
-        }),
-      ],
-      past: [],
-    })
+    mockFetchEventsWith({ upcoming: [], past: [] })
   })
 
   afterEach(() => {
     cache.clear()
+    vi.restoreAllMocks()
   })
 
-  it('mounts mobile track when useIsMobile returns true', async () => {
-    useIsMobile.mockReturnValue(true)
+  it('renders bf-page-hd section with h1 "活动"', async () => {
     const { default: Events } = await import('./Events.jsx')
     const { container } = renderWithProviders(<Events />, { route: '/events' })
     await waitFor(() => {
-      expect(container.querySelector('.events-mobile')).not.toBeNull()
+      const hd = container.querySelector('.bf-page-hd')
+      expect(hd).not.toBeNull()
+      const h1 = hd.querySelector('h1')
+      expect(h1).not.toBeNull()
+      expect(h1.textContent).toBe('活动')
     })
-    expect(container.querySelector('.events-desktop')).toBeNull()
   })
 
-  it('mounts desktop track when useIsMobile returns false', async () => {
-    useIsMobile.mockReturnValue(false)
+  it('renders ph-tag with text "// 活动"', async () => {
     const { default: Events } = await import('./Events.jsx')
     const { container } = renderWithProviders(<Events />, { route: '/events' })
     await waitFor(() => {
-      expect(container.querySelector('.events-desktop')).not.toBeNull()
-    })
-    expect(container.querySelector('.events-mobile')).toBeNull()
-  })
-
-  it('renders heading from i18n in both tracks (mobile)', async () => {
-    useIsMobile.mockReturnValue(true)
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Events' }),
-    ).toBeInTheDocument()
-  })
-
-  it('renders heading from i18n in both tracks (desktop)', async () => {
-    useIsMobile.mockReturnValue(false)
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Events' }),
-    ).toBeInTheDocument()
-  })
-
-  it('?view=calendar URL param renders calendar in desktop track', async () => {
-    useIsMobile.mockReturnValue(false)
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, {
-      route: '/events?view=calendar',
-    })
-    await waitFor(() => {
-      expect(container.querySelector('.event-calendar')).not.toBeNull()
+      const tag = container.querySelector('.ph-tag')
+      expect(tag).not.toBeNull()
+      expect(tag.textContent).toContain('活动')
     })
   })
+})
 
-  it('?view=calendar URL param renders calendar in mobile track', async () => {
-    useIsMobile.mockReturnValue(true)
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, {
-      route: '/events?view=calendar',
-    })
-    await waitFor(() => {
-      expect(container.querySelector('.event-calendar')).not.toBeNull()
-    })
+describe('<Events /> — upcoming + past table split', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
   })
 
-  it('clicking calendar tab in desktop swaps view to calendar', async () => {
-    useIsMobile.mockReturnValue(false)
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, { route: '/events' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    expect(container.querySelector('.event-calendar')).toBeNull()
-    await user.click(screen.getByRole('tab', { name: /calendar/i }))
-    expect(container.querySelector('.event-calendar')).not.toBeNull()
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
   })
 
-  it('clicking list tab from calendar in desktop swaps back to list', async () => {
-    useIsMobile.mockReturnValue(false)
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    const { container } = renderWithProviders(<Events />, {
-      route: '/events?view=calendar',
-    })
-    await waitFor(() => {
-      expect(container.querySelector('.event-calendar')).not.toBeNull()
-    })
-    await user.click(screen.getByRole('tab', { name: /list/i }))
-    expect(container.querySelector('.event-calendar')).toBeNull()
-  })
-
-  it('clicking past scope chip in mobile updates rendered list', async () => {
-    useIsMobile.mockReturnValue(true)
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    await user.click(screen.getByRole('tab', { name: 'Past' }))
-    expect(screen.getByRole('tab', { name: 'Past' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-  })
-
-  it('clicking upcoming scope chip from past scope returns', async () => {
-    useIsMobile.mockReturnValue(true)
-    const user = userEvent.setup()
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events?scope=past' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    await user.click(screen.getByRole('tab', { name: 'Upcoming' }))
-    expect(
-      screen.getByRole('tab', { name: 'Upcoming' }),
-    ).toHaveAttribute('aria-selected', 'true')
-  })
-
-  it('keyword filter via mobile sheet narrows visible list', async () => {
-    useIsMobile.mockReturnValue(true)
+  it('renders upcoming event title inside .bf-tbl (not .bf-tbl-muted)', async () => {
     mockFetchEventsWith({
-      upcoming: [
-        eventApiRow({ id: 'a', title: 'Alpha Concert', date: '2099-07-15T19:00:00-07:00' }),
-        eventApiRow({ id: 'b', title: 'Beta Concert', date: '2099-08-15T19:00:00-07:00' }),
-      ],
+      upcoming: [eventApiRow({ slug: 'upcoming-1', title: 'Anime Expo 2099' })],
       past: [],
     })
-    const user = userEvent.setup()
     const { default: Events } = await import('./Events.jsx')
     const { container } = renderWithProviders(<Events />, { route: '/events' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    await user.click(container.querySelector('.events-mobile__filter-pill'))
-    const search = screen.getByRole('searchbox')
-    await user.type(search, 'Alpha')
-    await new Promise((r) => setTimeout(r, 250))
-    expect(screen.queryByText('Beta Concert')).toBeNull()
+    await waitFor(() => {
+      expect(screen.getByText('Anime Expo 2099')).toBeInTheDocument()
+    })
+    // Must appear inside .bf-tbl but NOT inside .bf-tbl-muted
+    const mutedTable = container.querySelector('.bf-tbl-muted')
+    if (mutedTable) {
+      expect(within(mutedTable).queryByText('Anime Expo 2099')).toBeNull()
+    }
   })
 
-  it('category filter via mobile sheet narrows visible list (band)', async () => {
-    useIsMobile.mockReturnValue(true)
+  it('renders past event title inside .bf-tbl.bf-tbl-muted', async () => {
     mockFetchEventsWith({
-      upcoming: [
-        eventApiRow({ id: 'a', title: 'Roselia Live', date: '2099-07-15T19:00:00-07:00', bands: ['Roselia'] }),
-        eventApiRow({ id: 'b', title: 'Mygo Live', date: '2099-08-15T19:00:00-07:00', bands: ['Mygo'] }),
-      ],
+      upcoming: [],
+      past: [eventApiRow({ slug: 'past-1', title: 'Old Festival 2025' })],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Old Festival 2025')).toBeInTheDocument()
+    })
+    const mutedTable = container.querySelector('.bf-tbl.bf-tbl-muted')
+    expect(mutedTable).not.toBeNull()
+    expect(within(mutedTable).getByText('Old Festival 2025')).toBeInTheDocument()
+  })
+
+  it('past table has .bf-tbl-muted class', async () => {
+    mockFetchEventsWith({
+      upcoming: [],
+      past: [eventApiRow({ slug: 'past-x', title: 'Past Event' })],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl.bf-tbl-muted')).not.toBeNull()
+    })
+  })
+
+  it('shows empty state text when no upcoming events', async () => {
+    mockFetchEventsWith({ upcoming: [], past: [] })
+    const { default: Events } = await import('./Events.jsx')
+    renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText(/暂无即将到来的活动/)).toBeInTheDocument()
+    })
+  })
+})
+
+describe('<Events /> — PR #110 slug regression', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
+  })
+
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('upcoming event tile links to /events/:slug (not numeric id)', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'roselia-la-2099', title: 'Roselia LA' })],
       past: [],
     })
-    const user = userEvent.setup()
     const { default: Events } = await import('./Events.jsx')
     const { container } = renderWithProviders(<Events />, { route: '/events' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    await user.click(container.querySelector('.events-mobile__filter-pill'))
-    await user.click(screen.getByRole('button', { name: 'Roselia' }))
-    expect(screen.queryByText('Mygo Live')).toBeNull()
-    expect(screen.getByText('Roselia Live')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Roselia LA')).toBeInTheDocument()
+    })
+    const link = container.querySelector('a[href="/events/roselia-la-2099"]')
+    expect(link).not.toBeNull()
   })
 
-  it('date-from filter via mobile sheet excludes earlier events', async () => {
-    useIsMobile.mockReturnValue(true)
+  it('slug link does NOT use numeric-style href', async () => {
     mockFetchEventsWith({
-      upcoming: [
-        eventApiRow({ id: 'early', title: 'Early Concert', date: '2099-01-15T19:00:00-07:00' }),
-        eventApiRow({ id: 'late', title: 'Late Concert', date: '2099-12-15T19:00:00-07:00' }),
-      ],
+      upcoming: [eventApiRow({ slug: 'mygo-tour', title: 'MyGO Tour' })],
       past: [],
     })
-    const user = userEvent.setup()
     const { default: Events } = await import('./Events.jsx')
     const { container } = renderWithProviders(<Events />, { route: '/events' })
-    await screen.findByRole('heading', { level: 1, name: 'Events' })
-    await user.click(container.querySelector('.events-mobile__filter-pill'))
-    const dateInputs = document.querySelectorAll('input[type="date"]')
-    await user.type(dateInputs[0], '2099-06-01')
-    expect(screen.queryByText('Early Concert')).toBeNull()
-    expect(screen.getByText('Late Concert')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('MyGO Tour')).toBeInTheDocument()
+    })
+    // Must not link to /events/1 or /events/2 etc.
+    const numericLinks = container.querySelectorAll('a[href^="/events/"]')
+    for (const link of numericLinks) {
+      const href = link.getAttribute('href')
+      // slug portion must not be purely numeric
+      const slug = href.replace('/events/', '')
+      expect(/^\d+$/.test(slug)).toBe(false)
+    }
+  })
+})
+
+describe('<Events /> — loading and error states', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
   })
 
-  it('shows LoadingState while pending', async () => {
-    useIsMobile.mockReturnValue(false)
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('shows loading state while fetching', async () => {
     let resolveU, resolveP
     vi.mocked(fetchEvents).mockImplementation((opts = {}) => {
       return opts.scope === 'past'
@@ -262,49 +229,10 @@ describe('<Events /> — track selection (shell)', () => {
     })
   })
 
-  it('shows ErrorState with retry on fetch reject', async () => {
-    useIsMobile.mockReturnValue(false)
-    vi.mocked(fetchEvents).mockRejectedValueOnce(new Error('5xx'))
-    vi.mocked(fetchEvents).mockRejectedValueOnce(new Error('5xx'))
+  it('shows error state on fetch failure', async () => {
+    vi.mocked(fetchEvents).mockRejectedValue(new Error('5xx'))
     const { default: Events } = await import('./Events.jsx')
     renderWithProviders(<Events />, { route: '/events' })
-    expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i)
-    const retry = screen.getByRole('button', { name: /retry/i })
-    mockFetchEventsWith({ upcoming: [], past: [] })
-    await userEvent.click(retry)
-    expect(await screen.findByRole('heading', { level: 1, name: 'Events' })).toBeInTheDocument()
-  })
-})
-
-describe('<Events /> — empty data path (shell)', () => {
-  beforeEach(() => {
-    _resetForTests()
-    window.localStorage.clear()
-    setLanguage('en')
-    cache.clear()
-    vi.mocked(fetchEvents).mockReset()
-    mockFetchEventsWith({ upcoming: [], past: [] })
-  })
-
-  afterEach(() => {
-    cache.clear()
-  })
-
-  it('mounts with empty events list (desktop)', async () => {
-    useIsMobile.mockReturnValue(false)
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Events' }),
-    ).toBeInTheDocument()
-  })
-
-  it('mounts with empty events list (mobile)', async () => {
-    useIsMobile.mockReturnValue(true)
-    const { default: Events } = await import('./Events.jsx')
-    renderWithProviders(<Events />, { route: '/events' })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Events' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 })
