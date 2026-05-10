@@ -1,25 +1,38 @@
 import { Link, useLocation } from 'react-router-dom'
+import {
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+  FORUM_URL,
+  TICKETS_DOC_URL,
+  GUIDE_WIKI_URL,
+} from '../../data/socialLinks.js'
 import './PrimaryNav.css'
 
 const NAV_ITEMS = [
-  { id: 'top', cn: '首页', en: 'TOP', to: '/' },
-  { id: 'news', cn: '新闻', en: 'NEWS', to: '/news' },
-  { id: 'events', cn: '活动', en: 'EVENTS', to: '/events' },
-  { id: 'gallery', cn: '相册', en: 'GALLERY', to: '/gallery' },
-  { id: 'members', cn: '成员', en: 'MEMBERS', to: '/members' },
-  { id: 'about', cn: '关于', en: 'ABOUT', to: '/about' },
-  { id: 'rules', cn: '群规', en: 'RULES', to: '/rules' },
+  { id: 'top',     cn: '首页',     en: 'TOP',     to: '/' },
+  { id: 'news',    cn: '新闻',     en: 'NEWS',    to: '/news' },
+  { id: 'events',  cn: '活动',     en: 'EVENTS',  to: '/events' },
+  { id: 'tickets', cn: '出票公告', external: true, to: TICKETS_DOC_URL },
+  { id: 'guide',   cn: '现地攻略', external: true, to: GUIDE_WIKI_URL },
+  { id: 'gallery', cn: '相册',     en: 'GALLERY', to: '/gallery' },
+  { id: 'members', cn: '成员',     en: 'MEMBERS', to: '/members' },
+  { id: 'about',   cn: '关于',     en: 'ABOUT',   to: '/about' },
+  { id: 'rules',   cn: '群规',     en: 'RULES',   to: '/rules' },
+  { id: 'forum',   cn: '论坛',     external: true, to: FORUM_URL },
 ]
 
 function isActive(pathname, to) {
   if (to === '/') return pathname === '/'
-  if (to.startsWith('#')) return false
   return pathname === to || pathname.startsWith(to + '/')
 }
 
 /**
  * Sticky primary nav. CN labels are HARDCODED per Designer §4 carve-out
  * (site-chrome nav never translates; only UI controls flip language).
+ *
+ * External entries (出票公告 / 现地攻略 / 论坛) render plain anchors with
+ * target="_blank"; internal entries use React Router <Link>.
  */
 export default function PrimaryNav() {
   const { pathname } = useLocation()
@@ -27,6 +40,19 @@ export default function PrimaryNav() {
     <nav className="bf-nav" aria-label="主导航">
       <div className="bf-container">
         {NAV_ITEMS.map((item) => {
+          if (item.external) {
+            return (
+              <a
+                key={item.id}
+                href={item.to}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="nv-jp">{item.cn}</span>
+                <span className="nv-ext-arrow" aria-hidden="true">↗</span>
+              </a>
+            )
+          }
           const active = isActive(pathname, item.to)
           return (
             <Link
@@ -42,11 +68,17 @@ export default function PrimaryNav() {
         })}
         <div className="bf-nav-spacer" />
         <div className="bf-nav-misc bf-hide-mobile">
-          <span>加入 QQ 群 ↗</span>
-          <span>·</span>
-          <span>Discord ↗</span>
-          <span>·</span>
-          <span>X @BandoriNACC ↗</span>
+          <a href={QQ_GROUP_URL} target="_blank" rel="noopener noreferrer">
+            加入 QQ 群 ↗
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer">
+            Discord ↗
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href={X_PROFILE_URL} target="_blank" rel="noopener noreferrer">
+            X @BandoriNACC ↗
+          </a>
         </div>
       </div>
     </nav>

@@ -15,12 +15,27 @@
   align-items: center;
   gap: 8px;
   padding: 0 18px;
-  height: 42px;
+  height: 44px;
   font-size: 12.5px;
   color: var(--ink-2);
   border-right: 1px solid var(--rule);
   position: relative;
   text-decoration: none;
+}
+.bf-nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.bf-nav a:focus:not(:focus-visible) {
+  outline: none;
+}
+.bf-nav a .nv-ext-arrow {
+  font-size: 9px;
+  color: var(--ink-4);
+  margin-left: 3px;
+}
+.bf-nav a:hover .nv-ext-arrow {
+  color: var(--ink-2);
 }
 .bf-nav a:first-child {
   border-left: 1px solid var(--rule);
@@ -64,6 +79,18 @@
   color: var(--ink-3);
   padding: 0 4px;
 }
+.bf-nav-misc a {
+  color: inherit;
+  text-decoration: none;
+}
+.bf-nav-misc a:hover {
+  color: var(--ink-2);
+}
+.bf-nav-misc a:focus-visible {
+  color: var(--ink-2);
+  outline: 1px solid var(--rule-2);
+  outline-offset: 2px;
+}
 
 @media (max-width: 700px) {
   .bf-nav .bf-container {
@@ -88,7 +115,7 @@
   }
   .bf-nav a {
     padding: 0 11px;
-    height: 38px;
+    height: 44px;
     flex-shrink: 0;
     font-size: 12px;
     border-right: 1px solid var(--rule);
@@ -100,9 +127,11 @@
   .bf-nav .bf-nav-misc {
     display: none;
   }
-  /* hide secondary items on mobile to shorten the strip */
+  /* hide secondary + external items on mobile to shorten the strip */
   .bf-nav a[href*="rules"],
-  .bf-nav a[href$="#forum"] {
+  .bf-nav a[href*="docs.qq.com"],
+  .bf-nav a[href*="feishu.cn"],
+  .bf-nav a[href*="forum.bangdream.org"] {
     display: none;
   }
 }

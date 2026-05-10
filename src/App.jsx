@@ -9,6 +9,7 @@ import News from './pages/News.jsx'
 import NewsDetail from './pages/NewsDetail.jsx'
 import About from './pages/About.jsx'
 import Rules from './pages/Rules.jsx'
+import Search from './pages/Search.jsx'
 import Admin from './pages/Admin.jsx'
 import NotFound from './pages/NotFound.jsx'
 import './App.css'
@@ -27,6 +28,7 @@ function ChromeAndRoutes() {
       <Route path="/members" element={<Members />} />
       <Route path="/about" element={<About />} />
       <Route path="/rules" element={<Rules />} />
+      <Route path="/search" element={<Search />} />
       <Route path="/admin/*" element={<Admin />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
