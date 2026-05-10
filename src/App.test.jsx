@@ -87,19 +87,74 @@ describe('<App />', () => {
     vi.clearAllMocks()
   })
 
-  it('renders Navbar + Home + Footer at "/"', async () => {
-    render(
+  it('renders LayoutShell (utility + masthead + nav + footer) + Home at "/"', async () => {
+    const { container } = render(
       <ThemeProvider>
         <App />
       </ThemeProvider>,
     )
+    // wait for masthead logo with the brand wordmark to appear (proves shell mounted)
+    await waitFor(() => {
+      expect(container.querySelector('.bf-logo')).toBeInTheDocument()
+    })
+    // shell pieces all present
+    expect(container.querySelector('.bf-utility')).toBeInTheDocument()
+    expect(container.querySelector('.bf-mast')).toBeInTheDocument()
+    expect(container.querySelector('.bf-nav')).toBeInTheDocument()
+    expect(container.querySelector('.bf-foot')).toBeInTheDocument()
+    // primary nav has aria-label
     expect(
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
+      screen.getByRole('navigation', { name: /主导航/ }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('navigation', { name: /primary/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/not affiliated/i)).toBeInTheDocument()
+    // footer disclaimer (CN, hardcoded per Designer §4)
+    expect(container.textContent).toMatch(/与株式会社 Bushiroad/)
+  })
+
+  // HIGH-1 regression guard (PR #111 reviewer): the body background rule that
+  // wins the cascade on public routes MUST read --bg (paper #f3f1ec), NOT
+  // theme.css's legacy --color-bg (navy #0f0f19). jsdom's getComputedStyle
+  // can't substitute CSS vars, so we walk document.styleSheets ourselves:
+  // collect every body-matching `background` rule, take the last one in
+  // document order (cascade tiebreak when specificity is equal), and assert
+  // its value points at --bg.
+  //
+  // D7 dark-mode work that re-orders these stylesheets MUST keep this test
+  // green — flipping order back would silently re-regress the visual.
+  it('REGRESSION HIGH-1: winning body background rule reads var(--bg), not var(--color-bg)', async () => {
+    await import('./index.css')
+    await import('./theme/theme.css')
+    await import('./theme/tokens.css')
+
+    function bodyBgRules() {
+      const out = []
+      for (const sheet of document.styleSheets) {
+        let rules
+        try {
+          rules = sheet.cssRules
+        } catch {
+          continue
+        }
+        if (!rules) continue
+        for (const rule of rules) {
+          if (!rule.selectorText) continue
+          // match `body`, `html body`, etc. — tokens.css uses html body to win
+          // specificity ties; theme.css uses bare `body`.
+          if (!/(^|,\s*)(html\s+)?body(\s|$|,)/.test(rule.selectorText)) continue
+          const bg = rule.style?.background || rule.style?.backgroundColor
+          if (bg && bg.length > 0) out.push({ selector: rule.selectorText, bg })
+        }
+      }
+      return out
+    }
+
+    const rules = bodyBgRules()
+    expect(rules.length).toBeGreaterThan(0)
+    // Higher specificity wins regardless of order. `html body` (0,0,2) beats
+    // `body` (0,0,1). Find the highest-specificity match.
+    const htmlBody = rules.find((r) => /html\s+body/.test(r.selector))
+    expect(htmlBody).toBeDefined()
+    expect(htmlBody.bg).toMatch(/var\(--bg\)/)
+    expect(htmlBody.bg).not.toMatch(/var\(--color-bg\)/)
   })
 
   it('renders Events page when initial pathname is /events', async () => {
@@ -145,6 +200,7 @@ describe('<App />', () => {
         <App />
       </ThemeProvider>,
     )
+    // About page <h1> still renders the community name; LayoutShell wraps it.
     expect(
       await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
     ).toBeInTheDocument()
@@ -161,9 +217,11 @@ describe('<App />', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /使用 GitHub 登录/ })).toBeInTheDocument(),
     )
-    // Public-site navbar (with primary nav role) is NOT in DOM on /admin
-    expect(screen.queryByRole('navigation', { name: /primary/i })).toBeNull()
-    // Footer copy ("not affiliated") is NOT in DOM on /admin
-    expect(screen.queryByText(/not affiliated/i)).toBeNull()
+    // Public LayoutShell (utility bar + masthead + primary nav + footer) is NOT
+    // in DOM on /admin — admin routes bypass the shell per App.jsx isAdmin gate.
+    expect(document.body.querySelector('.bf-utility')).toBeNull()
+    expect(document.body.querySelector('.bf-mast')).toBeNull()
+    expect(document.body.querySelector('.bf-nav')).toBeNull()
+    expect(document.body.querySelector('.bf-foot')).toBeNull()
   })
 })

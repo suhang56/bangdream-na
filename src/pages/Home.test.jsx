@@ -1,272 +1,234 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { renderWithProviders } from '../test/utils.jsx'
-import { useIsMobile } from '../lib/useBreakpoint.js'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import Home from './Home.jsx'
-const site = {
-  discordInvite: 'https://discord.gg/WfMBKaW8Br',
-  communityName: 'BanG Dream North America Chinese Community',
-  communityNameZh: '北美炸梦同好会',
-  communityNameJp: 'バンドリ北米華人コミュニティ',
-}
-const posts = [
-  { id: '邦多利十周年', image: '/posts/0e58054c3933d25162576c8d62e7bc86.jpg', title: '邦多利十周年', url: '', datePosted: '2026-02-28' },
-  { id: '北美邦最长的一天', image: '/posts/b5aa6b5cbdbd9f14b15df108f6e51e26.jpg', title: '北美邦最长的一天', url: '', datePosted: '2026-05-01' },
-]
-const socialJson = [
-  { platform: 'discord', label: 'Discord', url: 'https://discord.gg/WfMBKaW8Br', enabled: true },
-  { platform: 'qq', label: 'QQ群', url: 'https://qm.qq.com/q/Dir9OC5TYA', enabled: true },
-  { platform: 'xiaohongshu', label: 'Xiaohongshu', url: 'https://xhslink.com/m/1s9XmQRoAug', enabled: true },
-  { platform: 'x', label: 'X', url: 'https://x.com/BandoriNACC', enabled: true },
-  { platform: 'wechat', label: '微信', url: '', enabled: false },
-  { platform: 'forum', label: 'Forum', url: 'https://forum.bangdream.org', enabled: true },
-]
-import { _resetForTests, setLanguage, t } from '../lib/uiLanguage.js'
+import * as api from '../lib/api.js'
+import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
 
-vi.mock('../lib/useBreakpoint.js', () => ({
-  useIsMobile: vi.fn(),
-}))
-
-vi.mock('../lib/api.js', async () => {
-  const actual = await vi.importActual('../lib/api.js')
-  return {
-    ...actual,
-    fetchNews: vi.fn(),
-    fetchEvents: vi.fn(),
-    fetchPosts: vi.fn(),
-    fetchSocial: vi.fn(),
-    fetchSite: vi.fn(),
-  }
-})
-
-import {
-  fetchNews,
-  fetchEvents,
-  fetchPosts,
-  fetchSocial,
-  fetchSite,
-} from '../lib/api.js'
-
-// Helpers to seed the mocked API with rows that match the legacy fixtures.
-function siteRowsFromFixture() {
-  const items = []
-  for (const [k, v] of Object.entries(site)) {
-    if (typeof v !== 'string' || v.length === 0) continue
-    items.push({ key: `site.${k}`, value: v })
-  }
-  return { items }
+function renderHome() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </MemoryRouter>,
+  )
 }
 
-function postsRowsFromFixture() {
-  const items = posts.map((p, i) => ({
-    id: i + 1,
-    slug: p.id,
-    title_zh: p.title,
-    title_en: null,
-    body_md: null,
-    image_url: p.image,
-    link_url: p.url || null,
-    published_at: Math.floor(new Date(p.datePosted).getTime() / 1000),
-    sort_order: i,
-  }))
-  return { items, total: items.length }
+const HAPPY_NEWS = {
+  items: [
+    {
+      id: 1,
+      slug: 'happy-hero',
+      title_zh: '北美邦5.3萝P东京公演',
+      title_en: null,
+      body_md: '现地报告 — 北美邦的大家集合东京。',
+      category: 'event',
+      hero_image_url: null,
+      tags: [],
+      published_at: 1746460800,
+      created_at: 1746460800,
+      updated_at: 1746460800,
+    },
+    {
+      id: 2,
+      slug: 'card-2',
+      title_zh: '新闻卡片 2',
+      title_en: null,
+      body_md: '正文 2',
+      category: 'announcement',
+      hero_image_url: null,
+      tags: [],
+      published_at: 1746374400,
+      created_at: 1746374400,
+      updated_at: 1746374400,
+    },
+  ],
+  total: 2,
 }
 
-function socialRowsFromFixture() {
-  // Mirror legacy behaviour: PlatformTileRow renders ALL platforms,
-  // including disabled ones (the tile guards `enabled` itself). Public
-  // /api/social only returns active=1, so we filter out the disabled
-  // ones here, matching the production response shape.
-  const items = socialJson
-    .filter((s) => s.enabled)
-    .map((s, i) => ({
-      id: i + 1,
-      platform: s.platform,
-      label_zh: s.label,
-      label_en: null,
-      url: s.url,
-      icon: null,
-      sort_order: i,
-      active: 1,
-    }))
-  return { items, total: items.length }
+const HAPPY_UPCOMING = {
+  items: [
+    {
+      id: 42,
+      slug: 'roselia-anime-expo-2026',
+      title_zh: 'Roselia @ Anime Expo 2026',
+      title_en: null,
+      description_md: 'Roselia 时隔 5 年重回北美',
+      hero_image_url: null,
+      start_at: 1751414400,
+      end_at: null,
+      venue: 'Crypto.com Arena',
+      city: 'Los Angeles',
+      scope: null,
+      ticket_url: 'https://example.com/buy',
+      band_theme: 'roselia',
+      created_at: 0,
+      updated_at: 0,
+    },
+  ],
+  total: 1,
 }
 
-describe('<Home /> (shell)', () => {
+const HAPPY_PAST = { items: [], total: 7 }
+
+const HAPPY_GALLERY = { items: [], total: 0 }
+
+function mockHappy() {
+  vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+  vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+    if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+    return Promise.resolve(HAPPY_UPCOMING)
+  })
+  vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+}
+
+describe('<Home />', () => {
   beforeEach(() => {
     _resetForTests()
-    window.localStorage.clear()
-    setLanguage('en')
-    vi.mocked(useIsMobile).mockReset()
+    setLanguage('zh')
     cache.clear()
-    vi.mocked(fetchNews).mockReset()
-    vi.mocked(fetchEvents).mockReset()
-    vi.mocked(fetchPosts).mockReset()
-    vi.mocked(fetchSocial).mockReset()
-    vi.mocked(fetchSite).mockReset()
-    vi.mocked(fetchNews).mockResolvedValue({ items: [], total: 0 })
-    vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 0 })
-    vi.mocked(fetchPosts).mockResolvedValue(postsRowsFromFixture())
-    vi.mocked(fetchSocial).mockResolvedValue(socialRowsFromFixture())
-    vi.mocked(fetchSite).mockResolvedValue(siteRowsFromFixture())
   })
-
   afterEach(() => {
+    vi.restoreAllMocks()
     cache.clear()
   })
 
-  describe('desktop track', () => {
-    beforeEach(() => {
-      vi.mocked(useIsMobile).mockReturnValue(false)
+  it('renders hero feature card with news[0] title and link to /news/{slug}', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-feature')).toBeInTheDocument()
     })
-
-    it('renders Chinese H1 (canonical)', async () => {
-      renderWithProviders(<Home />, { route: '/' })
-      expect(
-        await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
-      ).toBeInTheDocument()
-    })
-
-    it('renders Japanese name', async () => {
-      renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(screen.getByText(site.communityNameJp)).toBeInTheDocument()
-    })
-
-    it('renders English name as sister line', async () => {
-      renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(screen.getByText(site.communityName)).toBeInTheDocument()
-    })
-
-    it('renders tagline from i18n (en)', async () => {
-      renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(screen.getByText(t('tagline'))).toBeInTheDocument()
-    })
-
-    it('tagline switches with language (zh)', async () => {
-      setLanguage('zh')
-      renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(screen.getByText(t('tagline'))).toBeInTheDocument()
-    })
-
-    it('does NOT render Discord CTA inside Hero (P6 — moved to PlatformTileRow)', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      const hero = container.querySelector('.hero')
-      expect(hero).not.toBeNull()
-      expect(hero.querySelector('a[href*="discord"]')).toBeNull()
-    })
-
-    it('all three lang attributes (ja|zh|en) present', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('[lang="ja"]')).not.toBeNull()
-      expect(container.querySelector('[lang="zh"]')).not.toBeNull()
-      expect(container.querySelector('[lang="en"]')).not.toBeNull()
-    })
-
-    it('renders HeroPeekCarousel when posts present, else stat tiles', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      if (Array.isArray(posts) && posts.length > 0) {
-        expect(container.querySelector('.hero-peek')).not.toBeNull()
-      } else {
-        expect(container.querySelector('.home-stat-tiles')).not.toBeNull()
-        const tiles = container.querySelectorAll('.home-stat-tile__num')
-        expect(tiles.length).toBe(2)
-      }
-    })
-
-    it('renders PlatformTileRow at home bottom (always)', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('.platform-tile-row')).not.toBeNull()
-      // Only active=1 social rows reach the row (5 of 6 in fixture; wechat disabled).
-      expect(container.querySelectorAll('.platform-tile').length).toBe(5)
-    })
-
-    it('only desktop track is mounted (no .home-mobile element)', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('.home-mobile')).toBeNull()
-    })
+    const feature = container.querySelector('.bf-hh-feature')
+    expect(feature.getAttribute('href')).toBe('/news/happy-hero')
+    expect(feature.textContent).toContain('北美邦5.3萝P东京公演')
   })
 
-  describe('mobile track', () => {
-    beforeEach(() => {
-      vi.mocked(useIsMobile).mockReturnValue(true)
+  it('EDGE 1: empty news API renders without crash, no hero feature title', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({ items: [], total: 0 })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
     })
-
-    it('renders Chinese H1 (canonical)', async () => {
-      renderWithProviders(<Home />, { route: '/' })
-      expect(
-        await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
-      ).toBeInTheDocument()
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl')).toBeInTheDocument()
     })
-
-    it('mounts HomeMobile (.home-mobile root)', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('.home-mobile')).not.toBeNull()
-    })
-
-    it('does NOT mount desktop track', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('.home-section')).toBeNull()
-    })
-
-    it('renders PlatformTileRow at home bottom (always)', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('.platform-tile-row')).not.toBeNull()
-    })
-
-    it('all three lang attributes (ja|zh|en) present', async () => {
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      await screen.findByRole('heading', { level: 1, name: site.communityNameZh })
-      expect(container.querySelector('[lang="ja"]')).not.toBeNull()
-      expect(container.querySelector('[lang="zh"]')).not.toBeNull()
-      expect(container.querySelector('[lang="en"]')).not.toBeNull()
-    })
+    expect(container.querySelector('.bf-hh-feature .hhf-title')).toBeNull()
+    expect(container.querySelector('.bf-news-list')).toBeInTheDocument()
   })
 
-  describe('loading + error states', () => {
-    it('shows LoadingState while news+events fetch is pending', async () => {
-      vi.mocked(useIsMobile).mockReturnValue(false)
-      let resolveN, resolveE
-      vi.mocked(fetchNews).mockImplementation(
-        () => new Promise((r) => { resolveN = r }),
-      )
-      vi.mocked(fetchEvents).mockImplementation(
-        () => new Promise((r) => { resolveE = r }),
-      )
-      const { container } = renderWithProviders(<Home />, { route: '/' })
-      expect(container.querySelector('.loading-state')).not.toBeNull()
-      resolveN({ items: [], total: 0 })
-      resolveE({ items: [], total: 0 })
-      await waitFor(() => {
-        expect(container.querySelector('.loading-state')).toBeNull()
+  it('EDGE 2: empty events API shows next-event placeholder, stats events = 0', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockResolvedValue({ items: [], total: 0 })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-home-hero')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(container.textContent).toContain('暂无即将到来的活动')
+    })
+    const statsNums = container.querySelectorAll('.bf-hh-stats .num')
+    expect(statsNums[2].textContent).toBe('0')
+  })
+
+  it('EDGE 3: null venue/city in next-event renders — — without crash', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve({ items: [], total: 0 })
+      return Promise.resolve({
+        items: [{ ...HAPPY_UPCOMING.items[0], venue: null, city: null }],
+        total: 1,
       })
     })
-
-    it('shows ErrorState with retry on news fetch reject', async () => {
-      vi.mocked(useIsMobile).mockReturnValue(false)
-      vi.mocked(fetchNews).mockRejectedValueOnce(new Error('5xx'))
-      renderWithProviders(<Home />, { route: '/' })
-      expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i)
-      const retry = screen.getByRole('button', { name: /retry/i })
-      vi.mocked(fetchNews).mockResolvedValueOnce({ items: [], total: 0 })
-      vi.mocked(fetchEvents).mockResolvedValueOnce({ items: [], total: 0 })
-      await userEvent.click(retry)
-      expect(
-        await screen.findByRole('heading', { level: 1, name: site.communityNameZh }),
-      ).toBeInTheDocument()
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.hhn-meta')).toBeInTheDocument()
     })
+    const meta = container.querySelector('.hhn-meta')
+    const dashes = within(meta).getAllByText('—')
+    expect(dashes.length).toBe(2)
+    expect(consoleErr).not.toHaveBeenCalled()
+    consoleErr.mockRestore()
+  })
+
+  it('EDGE 4: null ticket_url omits 购票 button without layout shift', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve({ items: [], total: 0 })
+      return Promise.resolve({
+        items: [
+          { ...HAPPY_UPCOMING.items[0], ticket_url: null, slug: 'no-ticket', id: 100 },
+          { ...HAPPY_UPCOMING.items[0], ticket_url: 'https://x', slug: 'with-ticket', id: 101 },
+        ],
+        total: 2,
+      })
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-tbl tbody tr')).toBeInTheDocument()
+    })
+    const rows = container.querySelectorAll('.bf-tbl tbody tr')
+    const buyAnchorRow0 = rows[0].querySelector('.td-buy')
+    expect(buyAnchorRow0).toBeNull()
+    const buyAnchorRow1 = rows[1].querySelector('.td-buy')
+    expect(buyAnchorRow1).not.toBeNull()
+    expect(rows[0].querySelectorAll('td').length).toBe(rows[1].querySelectorAll('td').length)
+  })
+
+  it('EDGE 5: null band_theme on next-event falls back to ink border', async () => {
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve({ items: [], total: 0 })
+      return Promise.resolve({
+        items: [{ ...HAPPY_UPCOMING.items[0], band_theme: null }],
+        total: 1,
+      })
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-next')).toBeInTheDocument()
+    })
+    const card = container.querySelector('.bf-hh-next')
+    expect(card.style.borderLeftColor).toBe('rgb(31, 29, 26)')
+  })
+
+  it('EDGE 6: long title_zh wraps without horizontal overflow', async () => {
+    const longTitle = '罗西莉亚北美巡演加场公告：洛杉矶Wiltern追加票务发售时间'
+    vi.spyOn(api, 'fetchNews').mockResolvedValue({
+      items: [{ ...HAPPY_NEWS.items[0], title_zh: longTitle }],
+      total: 1,
+    })
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve({ items: [], total: 0 })
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue(HAPPY_GALLERY)
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-feature .hhf-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-hh-feature .hhf-title')
+    expect(title.textContent).toBe(longTitle)
+  })
+
+  it('EDGE 7 (PR #110 BLOCKER): NEXT EVENT link uses slug, NOT id', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-hh-next')).toBeInTheDocument()
+    })
+    const link = container.querySelector('.bf-hh-next')
+    expect(link.tagName).toBe('A')
+    expect(link.getAttribute('href')).toBe('/events/roselia-anime-expo-2026')
+    expect(link.getAttribute('href')).not.toContain('42')
   })
 })

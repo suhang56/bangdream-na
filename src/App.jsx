@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import Navbar from './components/Navbar/Navbar.jsx'
-import Footer from './components/Footer/Footer.jsx'
+import LayoutShell from './components/LayoutShell/LayoutShell.jsx'
 import Home from './pages/Home.jsx'
 import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
@@ -17,25 +16,22 @@ import './App.css'
 function ChromeAndRoutes() {
   const { pathname } = useLocation()
   const isAdmin = pathname.startsWith('/admin')
-  return (
-    <>
-      {!isAdmin && <Navbar />}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/news" element={<News />} />
-        <Route path="/news/:id" element={<NewsDetail />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:slug" element={<EventDetail />} />
-        <Route path="/gallery" element={<Gallery />} />
-        <Route path="/members" element={<Members />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/rules" element={<Rules />} />
-        <Route path="/admin/*" element={<Admin />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {!isAdmin && <Footer />}
-    </>
+  const routes = (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/news" element={<News />} />
+      <Route path="/news/:id" element={<NewsDetail />} />
+      <Route path="/events" element={<Events />} />
+      <Route path="/events/:slug" element={<EventDetail />} />
+      <Route path="/gallery" element={<Gallery />} />
+      <Route path="/members" element={<Members />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/rules" element={<Rules />} />
+      <Route path="/admin/*" element={<Admin />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   )
+  return isAdmin ? routes : <LayoutShell>{routes}</LayoutShell>
 }
 
 export default function App() {
