@@ -248,3 +248,177 @@ Use the yet-another-react-lightbox `Counter` plugin (`yet-another-react-lightbox
 - Do NOT add LayoutShell wrappers inside Gallery.jsx (shell wraps all public routes already)
 - Do NOT use Mobile/Desktop responsive wrapper components (deleted in D4)
 - Do NOT introduce new i18n keys; reuse existing: `nav.gallery`, `gallery.groupMeta`, `gallery.filter.allOption`, `gallery.filter.dropdownAria`, `gallery.filter.placeholder`, `gallery.filter.optionMeta`, `gallery.filter.active`, `gallery.filter.clear`, `gallery.filterAria`, `gallery.empty`, `gallery.emptyFilter`, `gallery.photoFallbackLabel`, `gallery.gridLabel`
+
+---
+
+## Architect integration check
+
+### App.jsx route — UNCHANGED
+
+`src/App.jsx` already has `/gallery` wired to `<Gallery />` (line 26). No route change needed.
+
+```jsx
+<Route path="/gallery" element={<Gallery />} />
+```
+
+### Files to DELETE (stale split)
+
+These files exist in the worktree and must be deleted as part of the D4 commit:
+
+```
+src/pages/Gallery.desktop.jsx
+src/pages/Gallery.desktop.css
+src/pages/Gallery.desktop.test.jsx
+src/pages/Gallery.mobile.jsx
+src/pages/Gallery.mobile.css
+src/pages/Gallery.mobile.test.jsx
+```
+
+The existing `src/pages/Gallery.test.jsx` is KEPT and extended (not deleted).
+
+### Files to MODIFY
+
+```
+src/pages/Gallery.jsx          — rewrite: collapse Mobile/Desktop split to single responsive layout
+src/pages/Gallery.test.jsx     — extend: add bf-page-hero, bf-album-grid, lightbox tests
+```
+
+### Files to CREATE
+
+```
+src/pages/Gallery.css          — new: all bf-page-hero, bf-album-grid, bf-album, bf-gallery-filter CSS
+```
+
+### Lightbox library import path (confirmed)
+
+YARL v3.32.0 is installed. Import paths:
+
+```js
+import YARLightbox from 'yet-another-react-lightbox'
+import Captions from 'yet-another-react-lightbox/plugins/captions'
+import Counter from 'yet-another-react-lightbox/plugins/counter'
+import 'yet-another-react-lightbox/styles.css'
+import 'yet-another-react-lightbox/plugins/captions.css'
+```
+
+Counter plugin CSS: `yet-another-react-lightbox/plugins/counter.css`
+
+Counter plugin is included in `dist/plugins/counter/` — confirmed present. Add it to Lightbox.jsx's plugins array or keep the existing Lightbox component and pass Counter via plugins prop.
+
+RECOMMENDATION: Do NOT modify Lightbox.jsx. Instead, pass `Counter` as an additional plugin prop from Gallery.jsx via the Lightbox component. But since Lightbox.jsx has a fixed plugins array `[Captions]`, either:
+
+Option A (preferred): add Counter to Lightbox.jsx's `plugins` array — single change, minimal scope.
+Option B: pass plugins as prop from Gallery.jsx.
+
+Go with Option A — minimal, self-contained.
+
+### MemoryRouter wrapper for tests
+
+Tests use `renderWithProviders` from `src/test/utils.jsx` which already wraps with `MemoryRouter` when `route` option is passed:
+
+```jsx
+export function renderWithProviders(ui, { route, ...renderOptions } = {}) {
+  const Wrapper = ({ children }) => {
+    const wrapped = <ThemeProvider>{children}</ThemeProvider>
+    if (route !== undefined) {
+      return <MemoryRouter initialEntries={[route]}>{wrapped}</MemoryRouter>
+    }
+    return wrapped
+  }
+  return render(ui, { wrapper: Wrapper, ...renderOptions })
+}
+```
+
+All Gallery tests must pass `route: '/gallery'` (or `route: '/gallery?album=...'`) to `renderWithProviders`.
+
+### Gallery.jsx architecture (rewrite spec)
+
+The rewritten `Gallery.jsx` is the ONLY public page file for gallery. It:
+1. Owns all state + data fetching (same as current)
+2. Renders a single responsive layout (no Mobile/Desktop fork)
+3. Structure:
+
+```jsx
+export default function Gallery() {
+  // ... state, fetch, grouping (same as current)
+  return (
+    <>
+      <div className="bf-page-hero">
+        <div className="bf-page-hero__inner bf-container">
+          <h1 className="bf-page-hero__title">{t('nav.gallery')}</h1>
+          <p className="bf-page-hero__subtitle">{t('gallery.groupMeta', ...)}</p>
+        </div>
+      </div>
+      <div className="bf-container">
+        {/* filter row */}
+        <div className="bf-gallery-filter" role="group" aria-label={t('gallery.filterAria')}>
+          <button className={...} onClick={...}>{t('gallery.filter.allOption')}</button>
+          <select ...>{groupOptions.map(...)}</select>
+        </div>
+        {/* active filter pill */}
+        {selectedOption && <div className="bf-active-filter">...</div>}
+        {/* album grid or empty states */}
+        {isEmpty ? (
+          <p className="bf-gallery-empty" role="status">{t('gallery.empty')}</p>
+        ) : groups.length === 0 ? (
+          <p className="bf-gallery-empty" role="status">{t('gallery.emptyFilter')}</p>
+        ) : (
+          <div className="bf-album-grid">
+            {groups.map(group => (
+              <section key={group.id} id={group.id} className="bf-album" aria-labelledby={...}>
+                <div className="bf-album__header">
+                  <h2 className="bf-album__title" id={...}>
+                    <button className="bf-album__title-btn" onClick={...}>{group.label}</button>
+                  </h2>
+                  <div className="bf-album__meta">{count} {suffix}{dateRange}</div>
+                </div>
+                <PhotoGrid items={group.items} onItemClick={...} ariaLabel={group.label} />
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
+      <Lightbox ... />
+    </>
+  )
+}
+```
+
+### i18n keys inventory (all existing, none new)
+
+| Key | Current usage | D4 usage |
+|---|---|---|
+| `nav.gallery` | PrimaryNav + mobile | bf-page-hero__title h1 |
+| `gallery.groupMeta` | desktop/mobile subtitle | bf-page-hero__subtitle |
+| `gallery.filterAria` | desktop/mobile filter group aria | bf-gallery-filter aria-label |
+| `gallery.filter.allOption` | "全部相册" button | bf-gallery-chip |
+| `gallery.filter.dropdownAria` | select aria | bf-gallery-select aria-label |
+| `gallery.filter.placeholder` | select first option | unchanged |
+| `gallery.filter.optionMeta` | "· N 张" | option label suffix |
+| `gallery.filter.active` | active-filter label | bf-active-filter label |
+| `gallery.filter.clear` | clear button aria | bf-active-filter__clear aria-label |
+| `gallery.empty` | empty state (0 items) | bf-gallery-empty |
+| `gallery.emptyFilter` | empty state (filter no match) | bf-gallery-empty |
+| `gallery.photoCountSuffix` | "张" suffix in group meta | bf-album__meta (reuse) |
+| `gallery.photoFallbackLabel` | thumbnail aria-label fallback | PhotoGrid (unchanged) |
+| `gallery.gridLabel` | ul aria-label fallback | PhotoGrid (unchanged) |
+
+### Vitest mock requirements
+
+Tests must mock:
+```js
+vi.mock('yet-another-react-lightbox/styles.css', () => ({}))
+vi.mock('yet-another-react-lightbox/plugins/captions.css', () => ({}))
+vi.mock('yet-another-react-lightbox/plugins/counter.css', () => ({}))
+vi.mock('yet-another-react-lightbox', () => ({
+  default: (props) => props.open ? <div data-testid="lightbox">open</div> : null,
+}))
+vi.mock('yet-another-react-lightbox/plugins/captions', () => ({
+  default: function Captions() { return null },
+}))
+vi.mock('yet-another-react-lightbox/plugins/counter', () => ({
+  default: function Counter() { return null },
+}))
+```
+
+The existing Gallery.test.jsx already has all these mocks except counter. Extend it, do not rewrite from scratch.
