@@ -26,13 +26,13 @@ describe('<PrimaryNav />', () => {
     setLanguage('zh')
   })
 
-  it('D8: renders 10 nav-row links (7 internal + 3 external)', () => {
+  it('D8: renders 9 nav-row links after D9 hides 成员 (6 internal + 3 external)', () => {
     const { container } = renderAt('/')
     const navRow = container.querySelector('.bf-nav .bf-container')
     const directLinks = [...navRow.children].filter(
       (el) => el.tagName === 'A',
     )
-    expect(directLinks.length).toBe(10)
+    expect(directLinks.length).toBe(9)
   })
 
   it('D8: nav-row first link is 首页 → /', () => {
@@ -109,15 +109,24 @@ describe('<PrimaryNav />', () => {
     ).toBeNull()
   })
 
-  it('DENSITY-FIX: all 10 NAV_ITEMS render unconditionally (no mobile hide in JSX)', () => {
+  it('DENSITY-FIX: visible NAV_ITEMS render unconditionally (no mobile hide in JSX)', () => {
     const { container } = renderAt('/')
     const anchors = container.querySelectorAll('.bf-nav a')
-    expect(anchors.length).toBe(10)
+    expect(anchors.length).toBe(9)
     const hrefs = [...anchors].map((a) => a.getAttribute('href'))
     expect(hrefs).toContain('/rules')
     expect(hrefs).toContain(TICKETS_DOC_URL)
     expect(hrefs).toContain(GUIDE_WIKI_URL)
     expect(hrefs).toContain(FORUM_URL)
+  })
+
+  it('D9-HOTFIX: 成员 tab is hidden from nav (entry stays in NAV_ITEMS for re-enable)', () => {
+    const { container } = renderAt('/')
+    const membersLink = container.querySelector('.bf-nav a[href="/members"]')
+    expect(membersLink).toBeNull()
+    // 成员 label also absent
+    const navContainer = container.querySelector('.bf-nav .bf-container')
+    expect(navContainer.textContent).not.toContain('成员')
   })
 
   it('marks home active when path = /', () => {

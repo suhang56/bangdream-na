@@ -13,7 +13,9 @@ const NAV_ITEMS = [
   { id: 'tickets', cn: '出票公告', external: true, to: TICKETS_DOC_URL },
   { id: 'guide',   cn: '现地攻略', external: true, to: GUIDE_WIKI_URL },
   { id: 'gallery', cn: '相册',     en: 'GALLERY', to: '/gallery' },
-  { id: 'members', cn: '成员',     en: 'MEMBERS', to: '/members' },
+  // D9-HOTFIX: hidden until member roster is curated; /members route still mounts in App.jsx
+  // and Home stat tile + Footer still link to it. Keep entry for future re-enable.
+  { id: 'members', cn: '成员',     en: 'MEMBERS', to: '/members', hidden: true },
   { id: 'about',   cn: '关于',     en: 'ABOUT',   to: '/about' },
   { id: 'rules',   cn: '群规',     en: 'RULES',   to: '/rules' },
   { id: 'forum',   cn: '论坛',     external: true, to: FORUM_URL },
@@ -33,10 +35,11 @@ function isActive(pathname, to) {
  */
 export default function PrimaryNav() {
   const { pathname } = useLocation()
+  const visibleItems = NAV_ITEMS.filter((item) => !item.hidden)
   return (
     <nav className="bf-nav" aria-label="主导航">
       <div className="bf-container">
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           if (item.external) {
             return (
               <a
