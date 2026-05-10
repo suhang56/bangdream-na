@@ -18,16 +18,24 @@ describe('<Masthead />', () => {
     setLanguage('zh')
   })
 
-  it('renders logo lockup with CN wordmark + tag + strip', () => {
+  it('H5: renders bf-logo-img with src ending in logo.png and correct alt', () => {
     const { container } = renderMast()
-    const logo = container.querySelector('.bf-logo')
-    expect(logo).toBeInTheDocument()
+    const img = container.querySelector('img.bf-logo-img')
+    expect(img).toBeInTheDocument()
+    expect(img.getAttribute('src')).toMatch(/logo\.png$/)
+    expect(img.getAttribute('alt')).toBe('北美炸梦同好会')
+  })
+
+  it('H5: .lg-bandori and .lg-fans text spans are absent', () => {
+    const { container } = renderMast()
+    expect(container.querySelector('.lg-bandori')).toBeNull()
+    expect(container.querySelector('.lg-fans')).toBeNull()
+  })
+
+  it('H5: .lg-tag and .lg-strip remain in DOM', () => {
+    const { container } = renderMast()
     expect(container.querySelector('.lg-tag')).toBeInTheDocument()
-    expect(container.querySelector('.lg-bandori')).toBeInTheDocument()
-    expect(container.querySelector('.lg-fans')).toBeInTheDocument()
     expect(container.querySelector('.lg-strip')).toBeInTheDocument()
-    expect(container.textContent).toContain('北美炸梦')
-    expect(container.textContent).toContain('同好会')
     expect(container.textContent).toContain('BanG Dream')
   })
 

@@ -17,10 +17,7 @@ export default function Masthead() {
             <span className="lg-tag" aria-hidden="true">
               F A N &nbsp;&nbsp; C O M M U N I T Y
             </span>
-            <span className="lg-1 lg-zh">
-              <span className="lg-bandori">北美炸梦</span>
-              <span className="lg-fans">同好会</span>
-            </span>
+            <img src="/logo.png" alt="北美炸梦同好会" className="bf-logo-img" />
             <span className="lg-strip">
               <span className="lg-strip-jp">
                 BanG Dream! 北米華人コミュニティ

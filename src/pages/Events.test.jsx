@@ -198,6 +198,53 @@ describe('<Events /> — PR #110 slug regression', () => {
   })
 })
 
+describe('<Events /> — H9 band column', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
+  })
+
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('H9: upcoming table has 5 th elements with 团体 as third header', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'test-1', title: 'Test Event', band_theme: 'roselia' })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Test Event')).toBeInTheDocument()
+    })
+    const upcomingTable = container.querySelector('.bf-tbl:not(.bf-tbl-muted)')
+    const ths = upcomingTable.querySelectorAll('thead th')
+    expect(ths.length).toBe(5)
+    expect(ths[1].textContent).toBe('团体')
+  })
+
+  it('H9: EventRow with bands=[] renders — without crash', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'no-band', title: 'No Band Event', band_theme: null })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('No Band Event')).toBeInTheDocument()
+    })
+    const bandCells = container.querySelectorAll('.td-band')
+    expect(bandCells.length).toBeGreaterThan(0)
+    const emptyCell = Array.from(bandCells).find((el) => el.textContent === '—')
+    expect(emptyCell).toBeInTheDocument()
+  })
+})
+
 describe('<Events /> — loading and error states', () => {
   beforeEach(() => {
     _resetForTests()

@@ -6,6 +6,7 @@ import ErrorState from '../components/ErrorState/ErrorState.jsx'
 import { fetchEvents } from '../lib/api.js'
 import { adaptEventList } from '../lib/apiAdapter.js'
 import { formatDate } from '../lib/dateFormat.js'
+import { bandById } from '../data/bands.js'
 import {
   getLanguage,
   subscribeLanguage,
@@ -20,10 +21,17 @@ function EventRow({ item }) {
   const slug = item.id
   const dateStr = formatDate(item.date) ?? item.date ?? ''
   const hasTicket = typeof item.ticketUrl === 'string' && item.ticketUrl.length > 0
+  const b = item.bands && item.bands.length > 0 ? bandById(item.bands[0]) : null
 
   return (
     <tr>
       <td className="td-d">{dateStr}</td>
+      <td>
+        {b
+          ? <span className="td-band" style={{ background: b.color, color: b.ink }}>{b.romaji}</span>
+          : <span className="td-band">—</span>
+        }
+      </td>
       <td className="td-title">
         <Link to={`/events/${slug}`}>{item.title}</Link>
         {item.location ? <small>{item.location}</small> : null}
@@ -111,6 +119,7 @@ export default function Events() {
               <thead>
                 <tr>
                   <th style={{ width: 120 }}>日期</th>
+                  <th style={{ width: 140 }}>团体</th>
                   <th>活动名称</th>
                   <th className="bf-hide-mobile" style={{ width: 200 }}>地点</th>
                   <th className="bf-hide-mobile" style={{ width: 80 }}>票务</th>
@@ -134,6 +143,7 @@ export default function Events() {
               <thead>
                 <tr>
                   <th style={{ width: 120 }}>日期</th>
+                  <th style={{ width: 140 }}>团体</th>
                   <th>活动名称</th>
                   <th className="bf-hide-mobile" style={{ width: 200 }}>地点</th>
                   <th className="bf-hide-mobile" style={{ width: 80 }}></th>

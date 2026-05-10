@@ -1,9 +1,8 @@
 /**
  * Pure adapters mapping API row shapes (snake_case from the Worker /
  * D1) to the legacy JSON shapes that the existing pure libs (news.js,
- * events.js, members.js) and presentational tracks (Members.mobile.jsx,
- * etc.) consume. Keeps R5b a single-place swap: shells fetch + adapt,
- * everything downstream stays untouched.
+ * events.js, members.js) consume. Keeps R5b a single-place swap: shells
+ * fetch + adapt, everything downstream stays untouched.
  *
  * All functions return new objects; inputs are never mutated.
  */

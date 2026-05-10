@@ -24,7 +24,6 @@ describe('<UtilityBar />', () => {
     expect(container.querySelector('.bf-pulse')).toBeInTheDocument()
     expect(container.textContent).toContain('在线')
     expect(container.textContent).toContain('非官方')
-    // LangToggle mounts a role="group" with aria-label = lang.label
     expect(container.querySelector('[role="group"]')).toBeInTheDocument()
   })
 
@@ -32,8 +31,22 @@ describe('<UtilityBar />', () => {
     const { container } = renderBar()
     const pulse = container.querySelector('.bf-pulse')
     expect(pulse).toBeInTheDocument()
-    // Color is set via CSS in tokens.css; in jsdom we assert the class exists.
-    // The visual contract is locked by tokens.css; here we just assert presence.
     expect(pulse.className).toBe('bf-pulse')
+  })
+
+  it('H7: .bf-uleft contains span with 更新于 JST timestamp on initial render', () => {
+    const { container } = renderBar()
+    const uleft = container.querySelector('.bf-uleft')
+    // Timestamp is computed on initial render (lazy useState)
+    expect(uleft.textContent).toContain('更新于')
+    expect(uleft.textContent).toMatch(/更新于 \d{4}\.\d{2}\.\d{2}/)
+    expect(uleft.textContent).toContain('JST')
+  })
+
+  it('H7: .bf-uleft contains member count span with bf-hide-mobile class containing 150+', () => {
+    const { container } = renderBar()
+    const hideMobile = container.querySelector('.bf-uleft .bf-hide-mobile')
+    expect(hideMobile).toBeInTheDocument()
+    expect(hideMobile.textContent).toContain('150+')
   })
 })

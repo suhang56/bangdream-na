@@ -34,7 +34,7 @@
   cursor: pointer;
   border: none;
   padding: 0;
-  background: var(--color-bg-card);
+  background: var(--bg-2);
   display: block;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .gallery-thumb__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
