@@ -177,7 +177,7 @@ describe('<App />', () => {
       </ThemeProvider>,
     )
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Members' }),
+      await screen.findByRole('heading', { level: 1, name: '成员' }),
     ).toBeInTheDocument()
   })
 
