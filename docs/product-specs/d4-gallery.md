@@ -153,3 +153,98 @@ Supports query params: `limit`, `offset`, `event_id`, `album` (Gallery.jsx uses 
 - Worker route changes (worker/src/routes/gallery.ts not modified)
 - New i18n translation keys (reuse existing `t()` keys already in uiLanguage.js)
 - BandSwitcher or band-color theming (no band_theme field; fixed ink gradient)
+
+---
+
+## Designer notes
+
+### Component reuse (confirmed)
+
+The following D1 components and CSS classes are reused AS-IS. No modifications to these files.
+
+| Component / class | Source | Usage in D4 |
+|---|---|---|
+| `PhotoGrid` | src/components/Gallery/PhotoGrid.jsx | Renders thumbnail grid inside each bf-album section |
+| `Lightbox` | src/components/Gallery/Lightbox.jsx | Fullscreen lightbox, opened from Gallery.jsx state |
+| `LoadingState` | src/components/LoadingState/ | Loading spinner while API fetch is in flight |
+| `ErrorState` | src/components/ErrorState/ | Error + retry UI on fetch failure |
+| `.bf-container` | tokens.css | Page content max-width wrapper (1380px, auto margins) |
+| `.bf-section` | tokens.css | Section padding (56px desktop, 36px mobile) |
+| `.bf-pill` | tokens.css | Mono-font label pill (reusable for filter active-filter label) |
+| `.bf-cta` | tokens.css | Primary CTA button style |
+| `.bf-divider` | tokens.css | 1px rule divider |
+
+### New classes to add (Gallery.css)
+
+All new classes are bf-prefixed. Existing `gallery-grid`, `gallery-thumb`, `gallery-thumb__btn`, `gallery-thumb__img` in PhotoGrid.css are NOT modified.
+
+```
+bf-page-hero            — full-width dark band (--ink bg, --paper text)
+bf-page-hero__inner     — bf-container-width centering wrapper inside hero
+bf-page-hero__title     — h1, --display font, 48px desktop / 32px mobile
+bf-page-hero__subtitle  — subtitle line, rgba(paper, 0.6) muted
+
+bf-album-grid           — CSS Grid 3-col -> 2-col -> 1-col responsive
+bf-album                — group card (paper bg, rule border, shadow-card)
+bf-album__header        — flex row: title + meta
+bf-album__title         — h2, 20px, weight 700
+bf-album__title-btn     — unstyled button inside h2 (filter-on-click)
+bf-album__meta          — photo count + date, ink-3 color, mono font 11px
+
+bf-gallery-filter       — filter row wrapper (flex, gap 8px, align center)
+bf-gallery-chip         — filter pill button (--accent bg when active)
+bf-gallery-select       — album dropdown select
+bf-active-filter        — active-filter inline pill (label + clear btn)
+bf-active-filter__clear — x clear button inside active-filter pill
+
+bf-gallery-empty        — empty state paragraph (centered, ink-3 color)
+```
+
+### Page-hero design
+
+Full-bleed dark band at the top of the gallery page:
+- Background: `var(--ink)` (paper palette: #1f1d1a)
+- Title: --display font stack, weight 800, clamp(28px, 5vw, 48px), color var(--paper)
+- Subtitle: 14px, color rgba(241,239,233,0.6) (hardcoded or inline style; do NOT add a new token)
+- Padding: 48px top/bottom desktop; 32px mobile
+- NO band image, NO gradient overlay — pure ink fill (SURPRISE-1 constraint; no band_theme)
+
+### Album grid card design
+
+Each bf-album card:
+- Background: `var(--paper)`, border: `1px solid var(--rule)`, box-shadow: `var(--shadow-card)`
+- bf-album__title-btn: plain text, cursor pointer, no underline; click activates group filter
+- Thumbnail grid inside uses existing gallery-grid / gallery-thumb classes from PhotoGrid
+- Photo count + date in bf-album__meta: mono font, 11px, `var(--ink-3)` color
+
+### Ink gradient for thumbnail backgrounds
+
+When an image has not loaded (loading flash), the thumbnail cell shows the ink gradient. Scoped rule in Gallery.css (do NOT modify PhotoGrid.css):
+```css
+.bf-album .gallery-thumb { background: linear-gradient(135deg, var(--ink-3), var(--ink-2)); }
+```
+
+### Filter affordance
+
+- "全部相册" pill: accent bg + accent-ink text when active; paper bg + rule border when inactive
+- Dropdown select: rule-2 border, paper bg, ink color, mono font 11px
+- Active-filter pill: accent-soft bg, rule border, padding 4px 10px; x button uses ink-3 color
+
+### Lightbox count badge
+
+Use the yet-another-react-lightbox `Counter` plugin (`yet-another-react-lightbox/plugins/counter`). If Counter plugin is unavailable in the installed version, rely on YARL's native slide description field for position context. Do NOT build a custom DOM overlay.
+
+### Responsive breakpoints
+
+```
+> 900px    bf-album-grid: 3 columns
+600-900px  bf-album-grid: 2 columns
+< 600px    bf-album-grid: 1 column
+```
+
+### What NOT to do
+
+- Do NOT modify PhotoGrid.jsx, PhotoGrid.css, or Lightbox.jsx
+- Do NOT add LayoutShell wrappers inside Gallery.jsx (shell wraps all public routes already)
+- Do NOT use Mobile/Desktop responsive wrapper components (deleted in D4)
+- Do NOT introduce new i18n keys; reuse existing: `nav.gallery`, `gallery.groupMeta`, `gallery.filter.allOption`, `gallery.filter.dropdownAria`, `gallery.filter.placeholder`, `gallery.filter.optionMeta`, `gallery.filter.active`, `gallery.filter.clear`, `gallery.filterAria`, `gallery.empty`, `gallery.emptyFilter`, `gallery.photoFallbackLabel`, `gallery.gridLabel`
