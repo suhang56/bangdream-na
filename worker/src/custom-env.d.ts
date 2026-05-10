@@ -10,6 +10,10 @@ export interface Env {
   CDN_ORIGIN: string;
   ADMIN_GITHUB_LOGINS: string;
   ALLOWED_ORIGINS: string;
+  // Resend (set via `wrangler secret put RESEND_API_KEY`)
+  RESEND_API_KEY: string;
+  EMAIL_FROM_DEFAULT?: string;
+  ADMIN_NOTIFICATION_EMAIL?: string;
 }
 
 export interface SessionUser {

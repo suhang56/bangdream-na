@@ -12,6 +12,9 @@ declare module "cloudflare:test" {
     CDN_ORIGIN: string;
     ADMIN_GITHUB_LOGINS: string;
     ALLOWED_ORIGINS: string;
+    RESEND_API_KEY: string;
+    EMAIL_FROM_DEFAULT?: string;
+    ADMIN_NOTIFICATION_EMAIL?: string;
     TEST_MIGRATIONS: D1Migration[];
   }
 }
