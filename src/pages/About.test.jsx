@@ -6,6 +6,12 @@ import About from './About.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
 import i18n from '../data/i18n.json'
+import {
+  CONTACT_EMAIL,
+  QQ_GROUP_URL,
+  DISCORD_INVITE_URL,
+  X_PROFILE_URL,
+} from '../data/socialLinks.js'
 
 const siteJson = {
   discordInvite: 'https://discord.gg/WfMBKaW8Br',
@@ -245,30 +251,26 @@ describe('<About />', () => {
     expect(founded.textContent).toBe('2024')
   })
 
-  it('no leftover Mission / FAQ / Join / Disclaimer sections (EN)', async () => {
+  it('no leftover Mission / FAQ / Disclaimer sections (EN) — Join restored', async () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
     await screen.findByText('バンドリ北米華人コミュニティ')
     expect(screen.queryByRole('heading', { level: 2, name: /^mission$/i })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: /^faq$/i })).toBeNull()
-    expect(screen.queryByRole('heading', { level: 2, name: /how to join/i })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: /^disclaimer$/i })).toBeNull()
     expect(container.querySelector('#mission')).toBeNull()
     expect(container.querySelector('#faq')).toBeNull()
-    expect(container.querySelector('#join')).toBeNull()
     expect(container.querySelector('#disclaimer')).toBeNull()
   })
 
-  it('no leftover Mission / FAQ / Join / Disclaimer sections (ZH)', async () => {
+  it('no leftover Mission / FAQ / Disclaimer sections (ZH) — Join restored', async () => {
     setLanguage('zh')
     const { container } = renderWithProviders(<About />, { route: '/about' })
     await screen.findByText('バンドリ北米華人コミュニティ')
     expect(screen.queryByRole('heading', { level: 2, name: /^使命$/ })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: /^常见问题$/ })).toBeNull()
-    expect(screen.queryByRole('heading', { level: 2, name: /^如何加入$/ })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: /^免责声明$/ })).toBeNull()
     expect(container.querySelector('#mission')).toBeNull()
     expect(container.querySelector('#faq')).toBeNull()
-    expect(container.querySelector('#join')).toBeNull()
     expect(container.querySelector('#disclaimer')).toBeNull()
   })
 
@@ -321,5 +323,81 @@ describe('<About />', () => {
     expect(container.querySelector('[lang="ja"]')).not.toBeNull()
     expect(container.querySelector('[lang="zh"]')).not.toBeNull()
     expect(container.querySelector('[lang="en"]')).not.toBeNull()
+  })
+
+  it('Join section rendered between Contact and Stats (DOM order)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const narrative = container.querySelector('#story')
+    const contact = container.querySelector('#contact')
+    const join = container.querySelector('[data-testid="about-join"]')
+    const stats = container.querySelector('.about-stats-block')
+    expect(narrative).not.toBeNull()
+    expect(contact).not.toBeNull()
+    expect(join).not.toBeNull()
+    expect(stats).not.toBeNull()
+    expect(join.id).toBe('join')
+    expect(
+      contact.compareDocumentPosition(join) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      join.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('Join anchors come from socialLinks SoT, count not hardcoded', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const join = container.querySelector('[data-testid="about-join"]')
+    const anchors = join.querySelectorAll('a.about-join-link')
+    // count derives from JOIN_LINKS, asserted via known channel set:
+    const hrefs = [...anchors].map((a) => a.getAttribute('href'))
+    expect(hrefs).toEqual([
+      QQ_GROUP_URL,
+      DISCORD_INVITE_URL,
+      X_PROFILE_URL,
+      `mailto:${CONTACT_EMAIL}`,
+    ])
+    expect(anchors[0].getAttribute('href')).toBe(QQ_GROUP_URL)
+    expect(anchors[1].getAttribute('href')).toBe(DISCORD_INVITE_URL)
+    expect(anchors[2].getAttribute('href')).toBe(X_PROFILE_URL)
+    expect(anchors[3].getAttribute('href').startsWith('mailto:')).toBe(true)
+    expect(anchors[3].getAttribute('href').endsWith(CONTACT_EMAIL)).toBe(true)
+  })
+
+  it('Join externals carry target=_blank + rel; mailto carries neither', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const join = container.querySelector('[data-testid="about-join"]')
+    const anchors = join.querySelectorAll('a.about-join-link')
+    for (let i = 0; i < 3; i++) {
+      expect(anchors[i].getAttribute('target')).toBe('_blank')
+      const rel = anchors[i].getAttribute('rel') || ''
+      expect(rel).toMatch(/noopener/)
+      expect(rel).toMatch(/noreferrer/)
+    }
+    expect(anchors[3].getAttribute('target')).toBeNull()
+    expect(anchors[3].getAttribute('rel')).toBeNull()
+  })
+
+  it('Join section: all 10 new i18n keys present + non-empty in both locales', () => {
+    const keys = [
+      'about.joinHeading',
+      'about.joinIntro',
+      'about.join.qqName',
+      'about.join.qqDesc',
+      'about.join.discordName',
+      'about.join.discordDesc',
+      'about.join.xName',
+      'about.join.xDesc',
+      'about.join.emailName',
+      'about.join.emailDesc',
+    ]
+    for (const key of keys) {
+      expect(typeof i18n.en[key], `en missing ${key}`).toBe('string')
+      expect(i18n.en[key].length, `en empty ${key}`).toBeGreaterThan(0)
+      expect(typeof i18n.zh[key], `zh missing ${key}`).toBe('string')
+      expect(i18n.zh[key].length, `zh empty ${key}`).toBeGreaterThan(0)
+    }
   })
 })
