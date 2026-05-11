@@ -261,4 +261,45 @@ describe('<About />', () => {
     expect(stats).not.toBeNull()
     expect(stats.children.length).toBe(4)
   })
+
+  it('renders Contact section between Mission and Stats (DOM order)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    const contact = container.querySelector('#contact')
+    const mission = container.querySelector('#mission')
+    const stats = container.querySelector('.about-stats-block')
+    expect(contact).not.toBeNull()
+    expect(mission).not.toBeNull()
+    expect(stats).not.toBeNull()
+    const order = mission.compareDocumentPosition(contact)
+    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const order2 = contact.compareDocumentPosition(stats)
+    expect(order2 & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('Contact section has localized mailto link with speller-form aria-label (en + zh)', async () => {
+    const { container, unmount } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    const enLink = container.querySelector(
+      '#contact a[href="mailto:contact@bangdream.org"]',
+    )
+    expect(enLink).not.toBeNull()
+    expect(enLink.getAttribute('aria-label')).toBe(
+      'Send email to contact at bangdream dot org',
+    )
+    expect(enLink.textContent).toContain('✉')
+    expect(enLink.textContent).toContain('contact@bangdream.org')
+    unmount()
+
+    setLanguage('zh')
+    const zhResult = renderWithProviders(<About />, { route: '/about' })
+    await zhResult.findByRole('heading', { level: 2, name: /使命/ })
+    const zhLink = zhResult.container.querySelector(
+      '#contact a[href="mailto:contact@bangdream.org"]',
+    )
+    expect(zhLink).not.toBeNull()
+    expect(zhLink.getAttribute('aria-label')).toBe(
+      '发送邮件至 contact at bangdream dot org',
+    )
+  })
 })

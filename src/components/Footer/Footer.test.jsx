@@ -86,4 +86,38 @@ describe('<Footer />', () => {
     expect(membersLink).toBeInTheDocument()
     expect(membersLink.textContent).toContain('成员')
   })
+
+  it('community list ends with a single mailto:contact@bangdream.org link', () => {
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 0 })
+    const { container } = renderFoot()
+    const mailLinks = container.querySelectorAll(
+      '.bf-foot a[href="mailto:contact@bangdream.org"]',
+    )
+    expect(mailLinks.length).toBe(1)
+    const li = mailLinks[0].closest('li')
+    const ul = li.parentElement
+    expect(ul.lastElementChild).toBe(li)
+  })
+
+  it('mailto link carries CN speller-form aria-label (Footer is CN-only chrome)', () => {
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 0 })
+    const { container } = renderFoot()
+    const mail = container.querySelector(
+      '.bf-foot a[href="mailto:contact@bangdream.org"]',
+    )
+    expect(mail).not.toBeNull()
+    expect(mail.getAttribute('aria-label')).toBe(
+      '发送邮件至 contact at bangdream dot org',
+    )
+  })
+
+  it('mailto link textContent includes both ✉ glyph and the email literal', () => {
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 0 })
+    const { container } = renderFoot()
+    const mail = container.querySelector(
+      '.bf-foot a[href="mailto:contact@bangdream.org"]',
+    )
+    expect(mail.textContent).toContain('✉')
+    expect(mail.textContent).toContain('contact@bangdream.org')
+  })
 })
