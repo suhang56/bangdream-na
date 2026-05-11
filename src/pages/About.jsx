@@ -6,12 +6,8 @@ import {
 } from '../lib/uiLanguage.js'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
-import { fetchAbout, fetchSite, fetchSocial } from '../lib/api.js'
-import {
-  adaptAboutSections,
-  adaptSiteSettings,
-  adaptSocialList,
-} from '../lib/apiAdapter.js'
+import { fetchSite, fetchMembers, fetchEvents } from '../lib/api.js'
+import { adaptSiteSettings } from '../lib/apiAdapter.js'
 import { CONTACT_EMAIL } from '../data/socialLinks.js'
 import './About.css'
 
@@ -22,14 +18,7 @@ const EMPTY_SITE = {
   communityNameJp: '',
 }
 
-const EMPTY_ABOUT = { mission: '', faq: [], coc: '', joinInstructions: '' }
-
-const STATS = [
-  { num: '50+', lbl: '同好' },
-  { num: '9', lbl: '分会' },
-  { num: '30+', lbl: '活动' },
-  { num: '2024', lbl: '创立' },
-]
+const BODY_KEYS = ['about.body1', 'about.body2', 'about.body3', 'about.body4', 'about.body5']
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -38,27 +27,22 @@ function getSnapshot() {
   return getLanguage()
 }
 
-function paragraphs(body) {
-  if (typeof body !== 'string' || body.length === 0) return []
-  return body.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
-}
-
 export default function About() {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const [about, setAbout] = useState(EMPTY_ABOUT)
   const [site, setSite] = useState(EMPTY_SITE)
-  const [socialData, setSocialData] = useState([])
   const [status, setStatus] = useState('loading')
   const [reloadKey, setReloadKey] = useState(0)
+  const [members, setMembers] = useState(null)
+  const [membersStatus, setMembersStatus] = useState('loading')
+  const [events, setEvents] = useState(null)
+  const [eventsStatus, setEventsStatus] = useState('loading')
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([fetchAbout(), fetchSite(), fetchSocial()])
-      .then(([aboutRes, siteRes, socialRes]) => {
+    fetchSite()
+      .then((siteRes) => {
         if (cancelled) return
-        setAbout(adaptAboutSections(aboutRes))
         setSite(adaptSiteSettings(siteRes))
-        setSocialData(adaptSocialList(socialRes))
         setStatus('ready')
       })
       .catch(() => {
@@ -70,6 +54,44 @@ export default function About() {
     }
   }, [reloadKey])
 
+  useEffect(() => {
+    let cancelled = false
+    fetchMembers()
+      .then((r) => {
+        if (cancelled) return
+        const total = typeof r?.total === 'number'
+          ? r.total
+          : Array.isArray(r?.items) ? r.items.length : null
+        setMembers(total)
+        setMembersStatus(typeof total === 'number' ? 'ready' : 'error')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setMembers(null)
+        setMembersStatus('error')
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchEvents({ scope: 'all' })
+      .then((r) => {
+        if (cancelled) return
+        const total = typeof r?.total === 'number'
+          ? r.total
+          : Array.isArray(r?.items) ? r.items.length : null
+        setEvents(total)
+        setEventsStatus(typeof total === 'number' ? 'ready' : 'error')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setEvents(null)
+        setEventsStatus('error')
+      })
+    return () => { cancelled = true }
+  }, [])
+
   function retry() {
     setStatus('loading')
     setReloadKey((k) => k + 1)
@@ -78,7 +100,6 @@ export default function About() {
   if (status === 'loading') return <LoadingState className="about-loading" />
   if (status === 'error') return <ErrorState className="about-error" onRetry={retry} />
 
-  const faq = Array.isArray(about.faq) ? about.faq : []
   const hasJp =
     typeof site.communityNameJp === 'string' && site.communityNameJp.length > 0
   const hasZh =
@@ -86,12 +107,15 @@ export default function About() {
   const hasEn =
     typeof site.communityName === 'string' && site.communityName.length > 0
 
-  const qqSocial = Array.isArray(socialData)
-    ? socialData.find((e) => e && e.platform === 'qq')
-    : null
-  const showQqCta =
-    qqSocial && qqSocial.enabled === true &&
-    typeof qqSocial.url === 'string' && qqSocial.url.length > 0
+  function renderStatValue(value, statusName) {
+    if (statusName === 'loading') {
+      return <span className="num num-skeleton" aria-hidden="true">···</span>
+    }
+    if (statusName === 'error' || typeof value !== 'number') {
+      return <span className="num num-fallback">—</span>
+    }
+    return <span className="num">{value}</span>
+  }
 
   return (
     <main className="about-page">
@@ -127,12 +151,17 @@ export default function About() {
       </header>
 
       <div className="about-body bf-container">
-        <section id="mission" className="bf-about-block about-section">
-          <span className="bf-helper-tag">// {t('about.missionHeading')}</span>
-          <h2>{t('about.missionHeading')}</h2>
-          {paragraphs(about.mission).map((p, i) => (
-            <p key={i}>{p}</p>
+        <section
+          id="story"
+          className="bf-about-block about-section about-narrative"
+          data-testid="about-narrative"
+        >
+          <span className="bf-helper-tag">{t('about.helperTag')}</span>
+          <p className="about-lead">{t('about.lead')}</p>
+          {BODY_KEYS.map((key) => (
+            <p key={key}>{t(key)}</p>
           ))}
+          <p className="about-closing">{t('about.closing')}</p>
         </section>
 
         <section id="contact" className="bf-about-block about-section about-contact">
@@ -155,58 +184,24 @@ export default function About() {
         <section className="bf-about-block about-stats-block">
           <span className="bf-helper-tag">// 数字</span>
           <div className="bf-about-stats">
-            {STATS.map((s, i) => (
-              <div key={i}>
-                <span className="num">{s.num}</span>
-                <span className="lbl">{s.lbl}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="join" className="bf-about-block about-section">
-          <span className="bf-helper-tag">// {t('about.joinHeading')}</span>
-          <h2>{t('about.joinHeading')}</h2>
-          {paragraphs(about.joinInstructions).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {showQqCta ? (
-            <a
-              className="about-join-cta"
-              href={qqSocial.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('btn.joinQQ')}
-            </a>
-          ) : null}
-        </section>
-
-        <section id="faq" className="bf-about-block about-section">
-          <span className="bf-helper-tag">// {t('about.faqHeading')}</span>
-          <h2>{t('about.faqHeading')}</h2>
-          {faq.length === 0 ? (
-            <p className="about-empty">{t('empty.noFaq')}</p>
-          ) : (
-            <div className="about-faq-list">
-              {faq.map((item, i) => (
-                <details key={i} className="about-faq-item">
-                  <summary>{item.q}</summary>
-                  <div className="about-faq-answer">
-                    {paragraphs(item.a).map((p, j) => (
-                      <p key={j}>{p}</p>
-                    ))}
-                  </div>
-                </details>
-              ))}
+            <div data-testid="stat-members">
+              {renderStatValue(members, membersStatus)}
+              <span className="lbl">同好</span>
             </div>
-          )}
-        </section>
-
-        <section id="disclaimer" className="bf-about-block about-section about-disclaimer">
-          <span className="bf-helper-tag">// {t('about.disclaimerHeading')}</span>
-          <h2>{t('about.disclaimerHeading')}</h2>
-          <p>{t('about.disclaimerBody')}</p>
+            <div data-testid="stat-chapters">
+              {/* TODO: wire when /api/chapters lands */}
+              <span className="num">9</span>
+              <span className="lbl">分会</span>
+            </div>
+            <div data-testid="stat-events">
+              {renderStatValue(events, eventsStatus)}
+              <span className="lbl">活动</span>
+            </div>
+            <div data-testid="stat-founded">
+              <span className="num">2024</span>
+              <span className="lbl">创立</span>
+            </div>
+          </div>
         </section>
       </div>
     </main>

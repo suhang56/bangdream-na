@@ -113,6 +113,43 @@
   color: var(--ink);
 }
 
+/* Narrative section */
+.about-narrative {
+  padding: 28px 28px 26px;
+}
+
+.about-narrative p {
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--ink-2);
+  margin: 0 0 14px;
+  max-width: 66ch;
+}
+
+.about-narrative p:last-child {
+  margin-bottom: 0;
+}
+
+.about-narrative .about-lead {
+  font-size: 16.5px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.7;
+  margin-top: 6px;
+  margin-bottom: 18px;
+  letter-spacing: -0.005em;
+}
+
+.about-narrative .about-closing {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-weight: 500;
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
 /* Stats grid */
 .bf-about-stats {
   display: grid;
@@ -145,6 +182,22 @@
   letter-spacing: 0.1em;
   color: var(--ink-3);
   text-transform: uppercase;
+}
+
+.bf-about-stats .num-skeleton {
+  color: var(--ink-3);
+  opacity: 0.5;
+  animation: about-stat-pulse 1.4s ease-in-out infinite;
+}
+
+.bf-about-stats .num-fallback {
+  color: var(--ink-3);
+  opacity: 0.7;
+}
+
+@keyframes about-stat-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
 }
 
 /* FAQ */
