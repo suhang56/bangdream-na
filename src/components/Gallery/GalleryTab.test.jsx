@@ -16,14 +16,22 @@ vi.mock('../../lib/api.js', () => {
     createGalleryItem: vi.fn(),
     deleteGalleryItem: vi.fn(),
     uploadImage: vi.fn(),
+    getSubmissionStats: vi.fn(),
+    listPendingSubmissions: vi.fn(),
+    approveSubmission: vi.fn(),
+    rejectSubmission: vi.fn(),
   }
 })
 
 import {
   adminListEvents,
   adminListGallery,
+  approveSubmission,
   createGalleryItem,
   deleteGalleryItem,
+  getSubmissionStats,
+  listPendingSubmissions,
+  rejectSubmission,
   uploadImage,
 } from '../../lib/api.js'
 import GalleryTab from './GalleryTab.jsx'
@@ -44,6 +52,10 @@ beforeEach(() => {
     url: 'https://cdn/x.jpg',
     key: 'gallery/x.jpg',
   })
+  getSubmissionStats.mockResolvedValue({ pending: 0, approved_24h: 0, rejected_24h: 0 })
+  listPendingSubmissions.mockResolvedValue({ items: [], next_cursor: null })
+  approveSubmission.mockResolvedValue({ submission_id: 1, gallery_item_id: 1 })
+  rejectSubmission.mockResolvedValue({ submission_id: 1, status: 'rejected' })
 })
 
 afterEach(() => {
@@ -204,5 +216,46 @@ describe('<GalleryTab />', () => {
     expect(revokedArgs).toEqual(
       expect.arrayContaining(['blob:mock-1', 'blob:mock-2', 'blob:mock-3']),
     )
+  })
+})
+
+describe('<GalleryTab /> sub-tabs', () => {
+  it('renders three sub-tabs (published / pending / trusted)', async () => {
+    render(<GalleryTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('subtab-published')).toBeTruthy()
+      expect(screen.getByTestId('subtab-pending')).toBeTruthy()
+      expect(screen.getByTestId('subtab-trusted')).toBeTruthy()
+    })
+  })
+
+  it('trusted sub-tab is disabled', async () => {
+    render(<GalleryTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('subtab-trusted').disabled).toBe(true)
+    })
+  })
+
+  it('shows pending count badge when count > 0', async () => {
+    getSubmissionStats.mockResolvedValue({ pending: 3, approved_24h: 0, rejected_24h: 0 })
+    render(<GalleryTab />)
+    const badge = await screen.findByTestId('subtab-pending-badge')
+    expect(badge.textContent).toBe('3')
+  })
+
+  it('hides pending count badge when count = 0', async () => {
+    getSubmissionStats.mockResolvedValue({ pending: 0, approved_24h: 0, rejected_24h: 0 })
+    render(<GalleryTab />)
+    await waitFor(() => {
+      expect(screen.getByTestId('subtab-pending')).toBeTruthy()
+    })
+    expect(screen.queryByTestId('subtab-pending-badge')).toBeNull()
+  })
+
+  it('switching to pending sub-tab renders PendingQueue (loading then empty)', async () => {
+    listPendingSubmissions.mockResolvedValue({ items: [], next_cursor: null })
+    render(<GalleryTab />)
+    fireEvent.click(await screen.findByTestId('subtab-pending'))
+    await screen.findByTestId('pending-queue')
   })
 })

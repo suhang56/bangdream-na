@@ -162,5 +162,52 @@ export const galleryItems = sqliteTable("gallery_items", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+export const gallerySubmissions = sqliteTable("gallery_submissions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  r2Key: text("r2_key").notNull(),
+  nickname: text("nickname").notNull(),
+  caption: text("caption"),
+  eventId: integer("event_id").references(() => events.id, {
+    onDelete: "set null",
+  }),
+  status: text("status", { enum: ["pending", "approved", "rejected"] })
+    .notNull()
+    .default("pending"),
+  submittedAt: integer("submitted_at").notNull(),
+  ipHash: text("ip_hash").notNull(),
+  uaHash: text("ua_hash").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  sizeBytes: integer("size_bytes").notNull(),
+  contentType: text("content_type").notNull(),
+  reviewedBy: integer("reviewed_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reviewedAt: integer("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  galleryItemId: integer("gallery_item_id").references(() => galleryItems.id, {
+    onDelete: "set null",
+  }),
+});
+
+export const emailAggregations = sqliteTable("email_aggregations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  trigger: text("trigger").notNull(),
+  scheduledAt: integer("scheduled_at").notNull(),
+  payload: text("payload").notNull(),
+  status: text("status", {
+    enum: ["pending", "sent", "failed", "superseded"],
+  })
+    .notNull()
+    .default("pending"),
+  createdAt: integer("created_at").notNull(),
+  sentAt: integer("sent_at"),
+  error: text("error"),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type GallerySubmission = typeof gallerySubmissions.$inferSelect;
+export type NewGallerySubmission = typeof gallerySubmissions.$inferInsert;
+export type EmailAggregation = typeof emailAggregations.$inferSelect;
+export type NewEmailAggregation = typeof emailAggregations.$inferInsert;

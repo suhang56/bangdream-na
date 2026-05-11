@@ -4,6 +4,7 @@ import Home from './pages/Home.jsx'
 import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
 import Gallery from './pages/Gallery.jsx'
+import GallerySubmit from './pages/GallerySubmit.jsx'
 import Members from './pages/Members.jsx'
 import News from './pages/News.jsx'
 import NewsDetail from './pages/NewsDetail.jsx'
@@ -25,6 +26,7 @@ function ChromeAndRoutes() {
       <Route path="/events" element={<Events />} />
       <Route path="/events/:slug" element={<EventDetail />} />
       <Route path="/gallery" element={<Gallery />} />
+      <Route path="/gallery/submit" element={<GallerySubmit />} />
       <Route path="/members" element={<Members />} />
       <Route path="/about" element={<About />} />
       <Route path="/rules" element={<Rules />} />

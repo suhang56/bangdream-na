@@ -12,9 +12,11 @@ import {
   buildAdminSocialLinksRoutes,
 } from "./routes/admin";
 import { buildAdminEmailRoutes } from "./routes/admin-email";
+import { buildAdminGallerySubmissionsRoutes } from "./routes/admin-gallery-submissions";
 import { buildAdminSettingsRoutes } from "./routes/admin-settings";
 import { buildCommentRoutes } from "./routes/comments";
 import { buildPublicGalleryRoutes } from "./routes/gallery";
+import { buildGallerySubmitRoutes } from "./routes/gallery-submit";
 import { buildHealthzRoutes } from "./routes/healthz";
 import { buildMeRoutes } from "./routes/me";
 import {
@@ -28,6 +30,7 @@ import {
   buildPublicSocialRoutes,
 } from "./routes/public";
 import { buildUploadRoutes } from "./routes/upload";
+import { flushDueAggregations } from "./lib/email-aggregator";
 import { corsMiddleware } from "./utils/cors";
 
 export function createApp() {
@@ -47,6 +50,7 @@ export function createApp() {
   app.route("/api/about", buildPublicAboutRoutes());
   app.route("/api/site", buildPublicSiteRoutes());
   app.route("/api/gallery", buildPublicGalleryRoutes());
+  app.route("/api/gallery/submit", buildGallerySubmitRoutes());
   app.route("/api/comments", buildCommentRoutes());
   app.route("/api/upload", buildUploadRoutes());
   app.route("/api/admin/news", buildAdminNewsRoutes());
@@ -57,6 +61,7 @@ export function createApp() {
   app.route("/api/admin/social-links", buildAdminSocialLinksRoutes());
   app.route("/api/admin/about-sections", buildAdminAboutSectionsRoutes());
   app.route("/api/admin/gallery", buildAdminGalleryRoutes());
+  app.route("/api/admin/gallery/submissions", buildAdminGallerySubmissionsRoutes());
   app.route("/api/admin/settings", buildAdminSettingsRoutes());
   app.route("/api/admin/email", buildAdminEmailRoutes());
 
@@ -76,4 +81,35 @@ export function createApp() {
 
 const app = createApp();
 
-export default app;
+interface ScheduledEvent {
+  cron: string;
+  scheduledTime: number;
+}
+
+interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+export default {
+  fetch: app.fetch,
+  async scheduled(
+    event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const result = await flushDueAggregations(env);
+          console.log("cron.email_aggregator", {
+            op: "cron.email_aggregator",
+            cron: event.cron,
+            ...result,
+          });
+        } catch (err) {
+          console.error("cron.email_aggregator_error", err);
+        }
+      })(),
+    );
+  },
+};

@@ -332,6 +332,25 @@ function HomeGallery({ items }) {
   )
 }
 
+function HomeSubmitCta() {
+  return (
+    <section className="bf-section bf-section--paper bf-home-submit-cta">
+      <div className="bf-container">
+        <Link to="/gallery/submit" className="bf-home-submit-cta__link" aria-label="进入投稿表单">
+          <span className="bf-home-submit-cta__eyebrow">{t('home.submitCta.eyebrow')}</span>
+          <div className="bf-home-submit-cta__body">
+            <div className="bf-home-submit-cta__text">
+              <h3 className="bf-home-submit-cta__headline">{t('home.submitCta.headline')}</h3>
+              <p className="bf-home-submit-cta__sub">{t('home.submitCta.sub')}</p>
+            </div>
+            <span className="bf-cta bf-home-submit-cta__btn">{t('home.submitCta.button')}</span>
+          </div>
+        </Link>
+      </div>
+    </section>
+  )
+}
+
 function HomeJoin() {
   return (
     <section className="bf-section bf-section--dark">
@@ -458,6 +477,7 @@ export default function Home() {
       <HomeNews news={news} />
       <HomeEvents events={upcoming} />
       <HomeGallery items={gallery} />
+      <HomeSubmitCta />
       <HomeJoin />
     </>
   )

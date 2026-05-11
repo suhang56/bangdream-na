@@ -9,6 +9,7 @@ R2_BUCKET_NAME = "bangdream-na-images"
 CDN_ORIGIN = "https://cdn.bangdream.org"
 ADMIN_GITHUB_LOGINS = "suhang56"
 ALLOWED_ORIGINS = "https://bangdream.org,http://localhost:5173,http://localhost:4173"
+ADMIN_NOTIFICATION_EMAIL = "ops@bangdream.org"
 
 [[r2_buckets]]
 binding = "IMAGES"
@@ -24,6 +25,28 @@ migrations_dir = "migrations"
 pattern = "api.bangdream.org"
 custom_domain = true
 
+# Workers Rate Limiting (GA Sept 2025). Native binding — atomic counters, no
+# D1 rows-read burn. Two windows for the public anonymous submit endpoint:
+# 3 req/hour and 10 req/day per IP. namespace_id is a worker-local integer
+# identifier (not a Cloudflare resource ID).
+[[unsafe.bindings]]
+name = "RATE_LIMIT_HOUR"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 3, period = 3600 }
+
+[[unsafe.bindings]]
+name = "RATE_LIMIT_DAY"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 10, period = 86400 }
+
+# Email digest aggregator: cron flushes pending email_aggregations rows every
+# 15min. UX promise is "first immediate + subsequent batched within 30min" —
+# 15min granularity is enough headroom.
+[triggers]
+crons = ["*/15 * * * *"]
+
 # Secrets set via `wrangler secret put GITHUB_CLIENT_SECRET` and `wrangler secret put JWT_SECRET`
 # RESEND_API_KEY set via: cd worker && npx wrangler secret put RESEND_API_KEY
-# Optional: EMAIL_FROM_DEFAULT and ADMIN_NOTIFICATION_EMAIL can be added under [vars] for prod overrides.
+# ADMIN_NOTIFICATION_EMAIL can be overridden per-environment via wrangler secret put.

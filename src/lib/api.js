@@ -665,4 +665,80 @@ export async function testAdminWebhook({ url } = {}) {
   return res.json()
 }
 
+// ── Gallery submissions (anonymous public + admin moderation) ────────────────
+
+/**
+ * POST /api/gallery/submit — anonymous photo submission.
+ * Sends multipart/form-data with file + nickname + caption? + event_id? + terms.
+ * credentials: 'omit' so no session cookie travels (truly anonymous).
+ * Throws ApiError on non-2xx; specific error codes are surfaced via err.code.
+ */
+export async function submitGalleryPhoto({ file, nickname, caption, eventId }) {
+  const form = new FormData()
+  form.append('file', file, file.name || 'photo')
+  form.append('nickname', nickname)
+  if (caption) form.append('caption', caption)
+  if (eventId != null && eventId !== '') form.append('event_id', String(eventId))
+  form.append('terms', 'true')
+  const res = await fetch(buildUrl('/api/gallery/submit'), {
+    method: 'POST',
+    body: form,
+    credentials: 'omit',
+  })
+  await throwForBadStatus(res, 'POST /api/gallery/submit')
+  return res.json()
+}
+
+/** GET /api/admin/gallery/submissions — admin moderation queue listing. */
+export async function listPendingSubmissions({ cursor, limit, status } = {}) {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (cursor) params.set('cursor', cursor)
+  if (limit != null) params.set('limit', String(limit))
+  const query = params.toString()
+  const path = `/api/admin/gallery/submissions${query ? `?${query}` : ''}`
+  const res = await fetch(buildUrl(path), { credentials: 'include' })
+  await throwForBadStatus(res, `GET ${path}`)
+  return res.json()
+}
+
+/** POST /api/admin/gallery/submissions/:id/approve — admin approve action. */
+export async function approveSubmission(id, sortOrder) {
+  const path = `/api/admin/gallery/submissions/${encodeURIComponent(id)}/approve`
+  const init = {
+    method: 'POST',
+    credentials: 'include',
+    headers: {},
+  }
+  if (typeof sortOrder === 'number') {
+    init.headers['Content-Type'] = 'application/json'
+    init.body = JSON.stringify({ sort_order: sortOrder })
+  }
+  const res = await fetch(buildUrl(path), init)
+  await throwForBadStatus(res, `POST ${path}`)
+  return res.json()
+}
+
+/** POST /api/admin/gallery/submissions/:id/reject — admin reject action. */
+export async function rejectSubmission(id, reason) {
+  const path = `/api/admin/gallery/submissions/${encodeURIComponent(id)}/reject`
+  const res = await fetch(buildUrl(path), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  await throwForBadStatus(res, `POST ${path}`)
+  return res.json()
+}
+
+/** GET /api/admin/gallery/submissions/stats — pending count for admin badge. */
+export async function getSubmissionStats() {
+  const res = await fetch(buildUrl('/api/admin/gallery/submissions/stats'), {
+    credentials: 'include',
+  })
+  await throwForBadStatus(res, 'GET /api/admin/gallery/submissions/stats')
+  return res.json()
+}
+
 export const __internals = { buildUrl, readApiBase, FALLBACK_API_BASE, PUBLIC_READ_TTL_MS, cacheKey }

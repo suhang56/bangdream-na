@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
   ApiError,
   adminListEvents,
   adminListGallery,
   createGalleryItem,
   deleteGalleryItem,
+  getSubmissionStats,
   uploadImage,
 } from '../../lib/api.js'
 import { adaptGalleryRow } from '../../lib/apiAdapter.js'
@@ -13,7 +14,27 @@ import {
   subscribeLanguage,
   t,
 } from '../../lib/uiLanguage.js'
+import PendingQueue from './PendingQueue.jsx'
 import './GalleryTab.css'
+
+const SUB_TABS = ['published', 'pending', 'trusted']
+const STATS_POLL_MS = 30_000
+
+function readTabFromUrl() {
+  if (typeof window === 'undefined' || !window.location) return 'published'
+  const params = new URLSearchParams(window.location.search)
+  const raw = params.get('tab')
+  if (raw && SUB_TABS.includes(raw)) return raw
+  return 'published'
+}
+
+function writeTabToUrl(tab) {
+  if (typeof window === 'undefined' || !window.history) return
+  const params = new URLSearchParams(window.location.search)
+  params.set('tab', tab)
+  const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`
+  window.history.replaceState(null, '', next)
+}
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
@@ -71,6 +92,38 @@ function makePendingFromFile(file) {
  */
 export default function GalleryTab({ onAuthExpired, onForbidden }) {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+
+  const [activeTab, setActiveTab] = useState(() => readTabFromUrl())
+  const [pendingCount, setPendingCount] = useState(0)
+
+  const refreshStats = useCallback(async () => {
+    try {
+      const stats = await getSubmissionStats()
+      if (stats && typeof stats.pending === 'number') {
+        setPendingCount((prev) => (prev === stats.pending ? prev : stats.pending))
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        return // surface via main tab listing on next interaction
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshStats()
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      refreshStats()
+    }, STATS_POLL_MS)
+    return () => clearInterval(interval)
+  }, [refreshStats])
+
+  function selectTab(next) {
+    if (next === 'trusted') return
+    setActiveTab(next)
+    writeTabToUrl(next)
+  }
 
   const [existingItems, setExistingItems] = useState([])
   const [eventOptions, setEventOptions] = useState([])
@@ -276,6 +329,52 @@ export default function GalleryTab({ onAuthExpired, onForbidden }) {
 
   return (
     <section className="gallery-admin" aria-label={t('admin.gallery.tabTitle') || '相册'}>
+      <div className="gallery-admin__subtabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'published'}
+          className={`gallery-admin__subtab${activeTab === 'published' ? ' gallery-admin__subtab--active' : ''}`}
+          onClick={() => selectTab('published')}
+          data-testid="subtab-published"
+        >
+          {t('admin.gallery.subtab.published')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'pending'}
+          className={`gallery-admin__subtab${activeTab === 'pending' ? ' gallery-admin__subtab--active' : ''}`}
+          onClick={() => selectTab('pending')}
+          data-testid="subtab-pending"
+        >
+          {t('admin.gallery.subtab.pending')}
+          {pendingCount > 0 ? (
+            <span className="gallery-admin__badge" data-testid="subtab-pending-badge">
+              {pendingCount}
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          className="gallery-admin__subtab gallery-admin__subtab--disabled"
+          disabled
+          data-testid="subtab-trusted"
+        >
+          {t('admin.gallery.subtab.trusted')}
+        </button>
+      </div>
+
+      {activeTab === 'pending' ? (
+        <PendingQueue
+          onAuthExpired={onAuthExpired}
+          onForbidden={onForbidden}
+          onStatsChanged={refreshStats}
+        />
+      ) : (
+      <>
       <div className="gallery-upload-zone" role="region" aria-label="批量上传">
         <div
           className={`gallery-dropzone${dragOver ? ' gallery-dropzone--drag-over' : ''}`}
@@ -484,6 +583,8 @@ export default function GalleryTab({ onAuthExpired, onForbidden }) {
           ))}
         </ul>
       </div>
+      </>
+      )}
     </section>
   )
 }

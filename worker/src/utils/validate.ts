@@ -316,6 +316,50 @@ export const settingsListQuery = z.object({
     .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9.])?$/i),
 });
 
+// ── Gallery submissions (anonymous public + admin moderation) ────────────────
+
+// Nickname allows ANY non-control-character including emoji/CJK. Surrogate pairs
+// count as length 2 in JS (UTF-16), so the 32-char ceiling actually allows
+// 16 emoji or 32 ASCII — matches the design intent.
+const gallerySubmissionNicknameSchema = z
+  .string()
+  .min(1)
+  .max(32)
+  .refine((v) => v.trim().length > 0, { message: "nickname empty after trim" })
+  // eslint-disable-next-line no-control-regex
+  .refine((v) => !/[\x00-\x1f\x7f]/.test(v), {
+    message: "nickname contains control characters",
+  });
+
+const gallerySubmissionCaptionSchema = z
+  .string()
+  .max(200)
+  .optional()
+  .nullable();
+
+export const gallerySubmissionListQuery = z.object({
+  status: z.enum(["pending", "approved", "rejected"]).default("pending"),
+  cursor: z.string().min(1).max(50).optional(),
+  limit: intFromQuery(20).pipe(z.number().int().min(1).max(50)),
+});
+
+export const gallerySubmissionApprove = z.object({
+  sort_order: z.number().int().min(0).max(10000).optional(),
+});
+
+export const gallerySubmissionReject = z.object({
+  reason: z.string().min(1).max(200),
+});
+
+export const gallerySubmissionIdParam = z.object({
+  id: positiveId,
+});
+
+export const gallerySubmissionSchemas = {
+  nickname: gallerySubmissionNicknameSchema,
+  caption: gallerySubmissionCaptionSchema,
+};
+
 export const webhookTestBody = z.object({
   // Optional: caller may submit an explicit URL to test instead of using
   // the persisted setting. Empty/missing → fall back to settings table.
