@@ -670,7 +670,13 @@
   .bf-home-submit-cta__body {
     flex-direction: column;
     align-items: stretch;
+    justify-content: flex-start;
+    gap: 18px;
+    min-height: auto;
     text-align: center;
+  }
+  .bf-home-submit-cta__text {
+    flex: 0 0 auto;
   }
   .bf-home-submit-cta__btn {
     width: 100%;
