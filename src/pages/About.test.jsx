@@ -5,38 +5,26 @@ import { renderWithProviders } from '../test/utils.jsx'
 import About from './About.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
+import i18n from '../data/i18n.json'
+
 const siteJson = {
   discordInvite: 'https://discord.gg/WfMBKaW8Br',
   communityName: 'BanG Dream North America Chinese Community',
   communityNameZh: '北美炸梦同好会',
   communityNameJp: 'バンドリ北米華人コミュニティ',
 }
-const aboutJson = {
-  mission: '北美炸梦同好会 / バンドリ北米華人コミュニティ — 北美华人 BanG Dream! 粉丝社群。',
-  faq: [
-    { q: '怎么加入？', a: '点击下方「加入 QQ 群」按钮直接进群即可。' },
-    { q: '需要会中文或日语吗？', a: '中文为主，英文 / 日文也都欢迎。' },
-  ],
-  coc: '① 禁止恶意攻击作品相关声优、角色、团体。',
-  joinInstructions: '加入我们就直接加 QQ 群即可。',
-}
-const socialJson = [
-  { platform: 'discord', label: 'Discord', url: 'https://discord.gg/WfMBKaW8Br', enabled: true },
-  { platform: 'qq', label: 'QQ群', url: 'https://qm.qq.com/q/Dir9OC5TYA', enabled: true },
-  { platform: 'forum', label: 'Forum', url: 'https://forum.bangdream.org', enabled: true },
-]
 
 vi.mock('../lib/api.js', async () => {
   const actual = await vi.importActual('../lib/api.js')
   return {
     ...actual,
-    fetchAbout: vi.fn(),
     fetchSite: vi.fn(),
-    fetchSocial: vi.fn(),
+    fetchMembers: vi.fn(),
+    fetchEvents: vi.fn(),
   }
 })
 
-import { fetchAbout, fetchSite, fetchSocial } from '../lib/api.js'
+import { fetchSite, fetchMembers, fetchEvents } from '../lib/api.js'
 
 function siteRows() {
   const items = []
@@ -47,37 +35,15 @@ function siteRows() {
   return { items }
 }
 
-function aboutRows() {
-  return {
-    items: [
-      { id: 1, slug: 'mission', title_zh: '使命', body_md: aboutJson.mission, sort_order: 0 },
-      {
-        id: 2,
-        slug: 'joinInstructions',
-        title_zh: '加入',
-        body_md: aboutJson.joinInstructions,
-        sort_order: 10,
-      },
-      { id: 3, slug: 'coc', title_zh: '群规', body_md: aboutJson.coc, sort_order: 20 },
-      { id: 4, slug: 'faq', title_zh: 'FAQ', body_md: JSON.stringify(aboutJson.faq), sort_order: 30 },
-    ],
-  }
-}
-
-function socialRows() {
-  const items = socialJson
-    .filter((s) => s.enabled)
-    .map((s, i) => ({
-      id: i + 1,
-      platform: s.platform,
-      label_zh: s.label,
-      url: s.url,
-      icon: null,
-      sort_order: i,
-      active: 1,
-    }))
-  return { items, total: items.length }
-}
+const NARRATIVE_BODY_KEYS = [
+  'about.lead',
+  'about.body1',
+  'about.body2',
+  'about.body3',
+  'about.body4',
+  'about.body5',
+  'about.closing',
+]
 
 describe('<About />', () => {
   beforeEach(() => {
@@ -85,16 +51,17 @@ describe('<About />', () => {
     window.localStorage.clear()
     setLanguage('en')
     cache.clear()
-    vi.mocked(fetchAbout).mockReset()
     vi.mocked(fetchSite).mockReset()
-    vi.mocked(fetchSocial).mockReset()
-    vi.mocked(fetchAbout).mockResolvedValue(aboutRows())
+    vi.mocked(fetchMembers).mockReset()
+    vi.mocked(fetchEvents).mockReset()
     vi.mocked(fetchSite).mockResolvedValue(siteRows())
-    vi.mocked(fetchSocial).mockResolvedValue(socialRows())
+    vi.mocked(fetchMembers).mockResolvedValue({ items: [], total: 42 })
+    vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 17 })
   })
 
   afterEach(() => {
     _resetForTests()
+    cache.clear()
   })
 
   it('renders tri-lingual hero (JP + ZH H1 + EN)', async () => {
@@ -113,173 +80,62 @@ describe('<About />', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders Mission/Join sections (history removed)', async () => {
-    renderWithProviders(<About />, { route: '/about' })
-    expect(await screen.findByRole('heading', { level: 2, name: /mission/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: /how to join/i })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { level: 2, name: /history/i })).toBeNull()
-  })
-
-  it('renders FAQ accordion', async () => {
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    expect(await screen.findByRole('heading', { level: 2, name: /faq/i })).toBeInTheDocument()
-    await waitFor(() => {
-      expect(container.querySelectorAll('details').length).toBeGreaterThanOrEqual(2)
-    })
-  })
-
-  it('does not render COC section (moved to /rules tab)', async () => {
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
-    expect(container.querySelector('#coc')).toBeNull()
-  })
-
-  it('disclaimer always visible', async () => {
-    renderWithProviders(<About />, { route: '/about' })
-    expect(
-      await screen.findByRole('heading', { level: 2, name: /disclaimer/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/not affiliated with bushiroad/i)).toBeInTheDocument()
-  })
-
-  it('section anchors have ids', async () => {
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
-    expect(container.querySelector('#mission')).not.toBeNull()
-    expect(container.querySelector('#faq')).not.toBeNull()
-    expect(container.querySelector('#disclaimer')).not.toBeNull()
-    expect(container.querySelector('#join')).not.toBeNull()
-    expect(container.querySelector('#history')).toBeNull()
-    expect(container.querySelector('#coc')).toBeNull()
-  })
-
-  it('JP/ZH/EN spans carry lang attributes', async () => {
+  it('renders narrative section + contact + stats in DOM order', async () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
     await screen.findByText('バンドリ北米華人コミュニティ')
-    expect(container.querySelector('[lang="ja"]')).not.toBeNull()
-    expect(container.querySelector('[lang="zh"]')).not.toBeNull()
-    expect(container.querySelector('[lang="en"]')).not.toBeNull()
-  })
-
-  it('shows LoadingState while about fetch is pending', () => {
-    let resolveAbout
-    vi.mocked(fetchAbout).mockImplementation(
-      () => new Promise((r) => { resolveAbout = r }),
-    )
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    expect(container.querySelector('.loading-state')).not.toBeNull()
-    resolveAbout(aboutRows())
-  })
-
-  it('shows ErrorState with retry on about fetch reject', async () => {
-    vi.mocked(fetchAbout).mockRejectedValueOnce(new Error('5xx'))
-    renderWithProviders(<About />, { route: '/about' })
-    expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i)
-    const retry = screen.getByRole('button', { name: /retry/i })
-    vi.mocked(fetchAbout).mockResolvedValueOnce(aboutRows())
-    await userEvent.click(retry)
-    expect(
-      await screen.findByRole('heading', { level: 2, name: /mission/i }),
-    ).toBeInTheDocument()
-  })
-
-  // Edge tests (D6)
-  it('long FAQ answer (>300 chars) renders fully without truncation', async () => {
-    const longAnswer = '这是一个非常长的答案。'.repeat(40)
-    vi.mocked(fetchAbout).mockResolvedValue({
-      items: [
-        ...aboutRows().items.filter((i) => i.slug !== 'faq'),
-        {
-          id: 99,
-          slug: 'faq',
-          title_zh: 'FAQ',
-          body_md: JSON.stringify([{ q: '长问题？', a: longAnswer }]),
-          sort_order: 30,
-        },
-      ],
-    })
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /faq/i })
-    await waitFor(() => {
-      const details = container.querySelector('details')
-      expect(details).not.toBeNull()
-    })
-    const answer = container.querySelector('.about-faq-answer')
-    expect(answer).not.toBeNull()
-    expect(answer.textContent.length).toBeGreaterThan(100)
-  })
-
-  it('empty FAQ list renders noFaq empty state', async () => {
-    vi.mocked(fetchAbout).mockResolvedValue({
-      items: [
-        ...aboutRows().items.filter((i) => i.slug !== 'faq'),
-        { id: 99, slug: 'faq', title_zh: 'FAQ', body_md: '[]', sort_order: 30 },
-      ],
-    })
-    renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /faq/i })
-    expect(screen.getByText(/FAQ coming soon/i)).toBeInTheDocument()
-  })
-
-  it('missing mission renders Mission heading with no crash', async () => {
-    vi.mocked(fetchAbout).mockResolvedValue({
-      items: aboutRows().items.filter((i) => i.slug !== 'mission'),
-    })
-    renderWithProviders(<About />, { route: '/about' })
-    expect(
-      await screen.findByRole('heading', { level: 2, name: /mission/i }),
-    ).toBeInTheDocument()
-  })
-
-  it('missing joinInstructions renders Join section with no crash', async () => {
-    vi.mocked(fetchAbout).mockResolvedValue({
-      items: aboutRows().items.filter((i) => i.slug !== 'joinInstructions'),
-    })
-    renderWithProviders(<About />, { route: '/about' })
-    expect(
-      await screen.findByRole('heading', { level: 2, name: /how to join/i }),
-    ).toBeInTheDocument()
-  })
-
-  it('QQ CTA hidden when social entry disabled', async () => {
-    vi.mocked(fetchSocial).mockResolvedValue({
-      items: [
-        { id: 1, platform: 'discord', label_zh: 'Discord', url: 'https://discord.gg/test', icon: null, sort_order: 0, active: 1 },
-        { id: 2, platform: 'qq', label_zh: 'QQ', url: 'https://qm.qq.com/q/test', icon: null, sort_order: 1, active: 0 },
-      ],
-      total: 2,
-    })
-    renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
-    expect(screen.queryByRole('link', { name: /join qq/i })).toBeNull()
-  })
-
-  it('stats grid renders 4 cells in bf-about-stats block', async () => {
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
-    const stats = container.querySelector('.bf-about-stats')
-    expect(stats).not.toBeNull()
-    expect(stats.children.length).toBe(4)
-  })
-
-  it('renders Contact section between Mission and Stats (DOM order)', async () => {
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    const narrative = container.querySelector('#story')
     const contact = container.querySelector('#contact')
-    const mission = container.querySelector('#mission')
     const stats = container.querySelector('.about-stats-block')
+    expect(narrative).not.toBeNull()
     expect(contact).not.toBeNull()
-    expect(mission).not.toBeNull()
     expect(stats).not.toBeNull()
-    const order = mission.compareDocumentPosition(contact)
-    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const order2 = contact.compareDocumentPosition(stats)
-    expect(order2 & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const o1 = narrative.compareDocumentPosition(contact)
+    expect(o1 & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const o2 = contact.compareDocumentPosition(stats)
+    expect(o2 & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('Contact section has localized mailto link with speller-form aria-label (en + zh)', async () => {
+  it('narrative renders 7 paragraphs each > 30 chars (EN)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const narrative = container.querySelector('[data-testid="about-narrative"]')
+    expect(narrative).not.toBeNull()
+    const paragraphs = narrative.querySelectorAll('p')
+    expect(paragraphs.length).toBe(7)
+    paragraphs.forEach((p) => {
+      // missing-key fallback returns the key literal (e.g. "about.lead", len 10);
+      // require > 30 chars to trip on any missing translation
+      expect(p.textContent.length).toBeGreaterThan(30)
+    })
+  })
+
+  it('EN lang renders EN narrative copy with band names + brand words preserved', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const narrative = container.querySelector('[data-testid="about-narrative"]')
+    expect(narrative.textContent).toContain('BD!NA')
+    expect(narrative.textContent).toContain('Kirakira Dokidoki')
+    expect(narrative.textContent).toContain('MyGO!!!!!')
+    expect(narrative.textContent).toContain("Poppin'Party")
+    expect(narrative.textContent).toContain('RAISE A SUILEN')
+  })
+
+  it('ZH lang renders ZH narrative copy verbatim with brand words preserved', async () => {
+    setLanguage('zh')
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const narrative = container.querySelector('[data-testid="about-narrative"]')
+    expect(narrative.textContent).toContain('北美邦多利同好会')
+    expect(narrative.textContent).toContain('Kirakira Dokidoki')
+    expect(narrative.textContent).toContain('MyGO!!!!!')
+    expect(narrative.textContent).toContain('欢迎来到北美邦')
+    const paragraphs = narrative.querySelectorAll('p')
+    expect(paragraphs.length).toBe(7)
+  })
+
+  it('Contact section has localized mailto link + aria-label (en + zh)', async () => {
     const { container, unmount } = renderWithProviders(<About />, { route: '/about' })
-    await screen.findByRole('heading', { level: 2, name: /mission/i })
+    await screen.findByText('バンドリ北米華人コミュニティ')
     const enLink = container.querySelector(
       '#contact a[href="mailto:contact@bangdream.org"]',
     )
@@ -293,7 +149,7 @@ describe('<About />', () => {
 
     setLanguage('zh')
     const zhResult = renderWithProviders(<About />, { route: '/about' })
-    await zhResult.findByRole('heading', { level: 2, name: /使命/ })
+    await zhResult.findByText('バンドリ北米華人コミュニティ')
     const zhLink = zhResult.container.querySelector(
       '#contact a[href="mailto:contact@bangdream.org"]',
     )
@@ -301,5 +157,169 @@ describe('<About />', () => {
     expect(zhLink.getAttribute('aria-label')).toBe(
       '发送邮件至 contact at bangdream dot org',
     )
+  })
+
+  it('Stats block renders 4 cards', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const stats = container.querySelector('.bf-about-stats')
+    expect(stats).not.toBeNull()
+    expect(stats.children.length).toBe(4)
+  })
+
+  it('Stats wires live members count from fetchMembers().total', async () => {
+    vi.mocked(fetchMembers).mockResolvedValue({ items: [], total: 87 })
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await waitFor(() => {
+      const cell = container.querySelector('[data-testid="stat-members"] .num')
+      expect(cell).not.toBeNull()
+      expect(cell.textContent).toBe('87')
+    })
+    // raw int, no "+" suffix
+    expect(
+      container.querySelector('[data-testid="stat-members"]').textContent,
+    ).not.toContain('+')
+  })
+
+  it('Stats wires live event count from fetchEvents({scope:all}).total', async () => {
+    vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 33 })
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await waitFor(() => {
+      const cell = container.querySelector('[data-testid="stat-events"] .num')
+      expect(cell).not.toBeNull()
+      expect(cell.textContent).toBe('33')
+    })
+    expect(vi.mocked(fetchEvents)).toHaveBeenCalledWith({ scope: 'all' })
+    expect(
+      container.querySelector('[data-testid="stat-events"]').textContent,
+    ).not.toContain('+')
+  })
+
+  it('Stats members shows loading skeleton until fetch resolves', async () => {
+    let resolveMembers
+    vi.mocked(fetchMembers).mockImplementation(
+      () => new Promise((r) => { resolveMembers = r }),
+    )
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const skeleton = container.querySelector(
+      '[data-testid="stat-members"] .num-skeleton',
+    )
+    expect(skeleton).not.toBeNull()
+    resolveMembers({ items: [], total: 11 })
+    await waitFor(() => {
+      const cell = container.querySelector('[data-testid="stat-members"] .num')
+      expect(cell.textContent).toBe('11')
+    })
+  })
+
+  it('Stats events shows fallback dash on fetch error', async () => {
+    vi.mocked(fetchEvents).mockRejectedValue(new Error('5xx'))
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await waitFor(() => {
+      const fallback = container.querySelector(
+        '[data-testid="stat-events"] .num-fallback',
+      )
+      expect(fallback).not.toBeNull()
+      expect(fallback.textContent).toBe('—')
+    })
+  })
+
+  it('Chapters stat stays hardcoded 9 (no API yet)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const chaptersNum = container.querySelector(
+      '[data-testid="stat-chapters"] .num',
+    )
+    expect(chaptersNum).not.toBeNull()
+    expect(chaptersNum.textContent).toBe('9')
+  })
+
+  it('Founded stat stays hardcoded 2024', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const founded = container.querySelector(
+      '[data-testid="stat-founded"] .num',
+    )
+    expect(founded).not.toBeNull()
+    expect(founded.textContent).toBe('2024')
+  })
+
+  it('no leftover Mission / FAQ / Join / Disclaimer sections (EN)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    expect(screen.queryByRole('heading', { level: 2, name: /^mission$/i })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /^faq$/i })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /how to join/i })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /^disclaimer$/i })).toBeNull()
+    expect(container.querySelector('#mission')).toBeNull()
+    expect(container.querySelector('#faq')).toBeNull()
+    expect(container.querySelector('#join')).toBeNull()
+    expect(container.querySelector('#disclaimer')).toBeNull()
+  })
+
+  it('no leftover Mission / FAQ / Join / Disclaimer sections (ZH)', async () => {
+    setLanguage('zh')
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    expect(screen.queryByRole('heading', { level: 2, name: /^使命$/ })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /^常见问题$/ })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /^如何加入$/ })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: /^免责声明$/ })).toBeNull()
+    expect(container.querySelector('#mission')).toBeNull()
+    expect(container.querySelector('#faq')).toBeNull()
+    expect(container.querySelector('#join')).toBeNull()
+    expect(container.querySelector('#disclaimer')).toBeNull()
+  })
+
+  it('i18n key completeness: all narrative keys exist in en + zh', () => {
+    const keys = ['about.helperTag', ...NARRATIVE_BODY_KEYS]
+    for (const key of keys) {
+      expect(typeof i18n.en[key], `en missing ${key}`).toBe('string')
+      expect(i18n.en[key].length, `en empty ${key}`).toBeGreaterThan(0)
+      expect(typeof i18n.zh[key], `zh missing ${key}`).toBe('string')
+      expect(i18n.zh[key].length, `zh empty ${key}`).toBeGreaterThan(0)
+    }
+  })
+
+  it('no smart quotes in narrative i18n strings (edge guard)', () => {
+    const smartQuoteRe = /[‘’“”]/
+    const keys = ['about.helperTag', ...NARRATIVE_BODY_KEYS]
+    for (const key of keys) {
+      expect(smartQuoteRe.test(i18n.en[key]), `en ${key} has smart quote`).toBe(
+        false,
+      )
+      expect(smartQuoteRe.test(i18n.zh[key]), `zh ${key} has smart quote`).toBe(
+        false,
+      )
+    }
+  })
+
+  it('shows LoadingState while site fetch is pending', () => {
+    let resolveSite
+    vi.mocked(fetchSite).mockImplementation(
+      () => new Promise((r) => { resolveSite = r }),
+    )
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    expect(container.querySelector('.loading-state')).not.toBeNull()
+    resolveSite(siteRows())
+  })
+
+  it('shows ErrorState with retry on site fetch reject', async () => {
+    vi.mocked(fetchSite).mockRejectedValueOnce(new Error('5xx'))
+    renderWithProviders(<About />, { route: '/about' })
+    expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i)
+    const retry = screen.getByRole('button', { name: /retry/i })
+    vi.mocked(fetchSite).mockResolvedValueOnce(siteRows())
+    await userEvent.click(retry)
+    await screen.findByText('バンドリ北米華人コミュニティ')
+  })
+
+  it('JP/ZH/EN spans carry lang attributes', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    expect(container.querySelector('[lang="ja"]')).not.toBeNull()
+    expect(container.querySelector('[lang="zh"]')).not.toBeNull()
+    expect(container.querySelector('[lang="en"]')).not.toBeNull()
   })
 })
