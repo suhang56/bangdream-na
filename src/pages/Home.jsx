@@ -320,7 +320,7 @@ function HomeGallery({ items }) {
                     {formatYmd(a.taken_at ?? a.created_at)}
                   </span>
                   <h4 className="al-title">
-                    {a.caption ?? a.event_title_zh ?? 'Photo'}
+                    {a.caption || a.event_title_zh || a.album || t('home.gallery.photoFallback')}
                   </h4>
                 </div>
               </Link>
