@@ -673,12 +673,23 @@ export async function testAdminWebhook({ url } = {}) {
  * credentials: 'omit' so no session cookie travels (truly anonymous).
  * Throws ApiError on non-2xx; specific error codes are surfaced via err.code.
  */
-export async function submitGalleryPhoto({ file, nickname, caption, eventId }) {
+export async function submitGalleryPhoto({
+  file,
+  nickname,
+  caption,
+  eventId,
+  eventLabel,
+  takenOn,
+}) {
   const form = new FormData()
   form.append('file', file, file.name || 'photo')
   form.append('nickname', nickname)
   if (caption) form.append('caption', caption)
   if (eventId != null && eventId !== '') form.append('event_id', String(eventId))
+  if (eventLabel != null && eventLabel !== '')
+    form.append('event_label', String(eventLabel))
+  if (takenOn != null && takenOn !== '')
+    form.append('taken_on', String(takenOn))
   form.append('terms', 'true')
   const res = await fetch(buildUrl('/api/gallery/submit'), {
     method: 'POST',

@@ -82,6 +82,7 @@ describe("Integration: submit → approve → public listing", () => {
     );
     form.append("nickname", "alice");
     form.append("caption", "live show vibe");
+    form.append("event_label", "test meetup");
     form.append("terms", "true");
 
     const submitRes = await createApp().request(
@@ -137,6 +138,7 @@ describe("Integration: submit → approve → public listing", () => {
       }),
     );
     form.append("nickname", "bob");
+    form.append("event_label", "test meetup");
     form.append("terms", "true");
 
     const submitRes = await createApp().request(

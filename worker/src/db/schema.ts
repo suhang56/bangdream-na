@@ -156,6 +156,11 @@ export const galleryItems = sqliteTable("gallery_items", {
   eventId: integer("event_id").references(() => events.id, {
     onDelete: "set null",
   }),
+  // submissionId back-pointer to gallery_submissions; FK declared in SQL only
+  // (0009 migration) to avoid Drizzle circular-ref between galleryItems and
+  // gallerySubmissions (gallerySubmissions.galleryItemId references galleryItems).
+  // Matches the comments.parentId pattern at line 82.
+  submissionId: integer("submission_id"),
   album: text("album"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: integer("created_at").notNull(),
@@ -170,6 +175,14 @@ export const gallerySubmissions = sqliteTable("gallery_submissions", {
   eventId: integer("event_id").references(() => events.id, {
     onDelete: "set null",
   }),
+  // Free-form fallback when the user's photo is from a meetup / private event
+  // not in the events table. Mutex with eventId at the submit layer (zod
+  // refine + handler XOR), but DB allows both-null for legacy pre-0009 rows.
+  eventLabel: text("event_label"),
+  // ISO YYYY-MM-DD string. HTML5 date input round-trips this format natively;
+  // deviates from submittedAt epoch convention intentionally -- no TZ math at
+  // the calendar-date boundary.
+  takenOn: text("taken_on"),
   status: text("status", { enum: ["pending", "approved", "rejected"] })
     .notNull()
     .default("pending"),

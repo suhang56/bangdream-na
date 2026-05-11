@@ -49,6 +49,8 @@ interface JoinedSubmissionRow {
   event_id: number | null;
   event_slug: string | null;
   event_title_zh: string | null;
+  event_label: string | null;
+  taken_on: string | null;
   status: "pending" | "approved" | "rejected";
   submitted_at: number;
   ip_hash: string;
@@ -61,21 +63,32 @@ interface JoinedSubmissionRow {
   gallery_item_id: number | null;
 }
 
+type EventField =
+  | { id: number; slug: string | null; title_zh: string | null }
+  | { label: string; verified: false }
+  | null;
+
 function toItem(row: JoinedSubmissionRow, cdnOrigin: string) {
+  let eventField: EventField;
+  if (row.event_id != null) {
+    eventField = {
+      id: row.event_id,
+      slug: row.event_slug ?? null,
+      title_zh: row.event_title_zh ?? null,
+    };
+  } else if (row.event_label != null) {
+    eventField = { label: row.event_label, verified: false };
+  } else {
+    eventField = null;
+  }
   return {
     id: row.id,
     thumbnail_url: `${cdnOrigin}/${row.r2_key}`,
     r2_key: row.r2_key,
     nickname: row.nickname,
     caption: row.caption,
-    event:
-      row.event_id != null
-        ? {
-            id: row.event_id,
-            slug: row.event_slug ?? null,
-            title_zh: row.event_title_zh ?? null,
-          }
-        : null,
+    event: eventField,
+    taken_on: row.taken_on,
     status: row.status,
     submitted_at: row.submitted_at,
     ip_hash: row.ip_hash,
@@ -132,6 +145,8 @@ export function buildAdminGallerySubmissionsRoutes() {
         event_id: gallerySubmissions.eventId,
         event_slug: events.slug,
         event_title_zh: events.titleZh,
+        event_label: gallerySubmissions.eventLabel,
+        taken_on: gallerySubmissions.takenOn,
         status: gallerySubmissions.status,
         submitted_at: gallerySubmissions.submittedAt,
         ip_hash: gallerySubmissions.ipHash,
@@ -271,6 +286,9 @@ export function buildAdminGallerySubmissionsRoutes() {
           // Without event_id, derive an album bucket so the CHECK constraint
           // (event_id IS NOT NULL OR album IS NOT NULL) is satisfied.
           album: row.eventId ? null : "submissions",
+          // 0009: back-pointer so future surfaces can JOIN to fetch the
+          // free-form event_label (kept on gallery_submissions, not copied).
+          submissionId: submissionId,
           sortOrder: body.sort_order ?? 0,
           createdAt: now,
           updatedAt: now,
@@ -278,6 +296,11 @@ export function buildAdminGallerySubmissionsRoutes() {
         .returning({ id: galleryItems.id })
         .get();
       galleryItemId = inserted.id;
+      // TODO(R10+): admin manual bind UI -- modal lists events, picks one,
+      //   UPDATE gallery_submissions SET event_id=?, event_label=NULL WHERE id=?;
+      //   then UPDATE gallery_items SET event_id=?, album=NULL WHERE submission_id=?.
+      //   This PR ships the schema seam (submission_id FK + event_label column);
+      //   the editor UI follows in a separate slice.
       await db
         .update(gallerySubmissions)
         .set({

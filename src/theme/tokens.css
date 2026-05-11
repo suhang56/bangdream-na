@@ -14,6 +14,7 @@
   --accent: #1f1d1a;
   --accent-soft: rgba(31, 29, 26, 0.08);
   --accent-ink: #ffffff;
+  --warn: #c08000;
   --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.04);
   --display: "Futura BQ", "Futura PT", "Futura", "Avenir Next", "Noto Sans SC",
     ui-sans-serif, system-ui, sans-serif;
@@ -35,6 +36,7 @@
   --rule: #2c2b27;
   --rule-2: #3a3833;
   --accent-soft: rgba(255, 255, 255, 0.06);
+  --warn: #d99a3d;
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 

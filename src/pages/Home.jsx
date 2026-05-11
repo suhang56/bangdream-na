@@ -341,7 +341,6 @@ function HomeSubmitCta() {
           <div className="bf-home-submit-cta__body">
             <div className="bf-home-submit-cta__text">
               <h3 className="bf-home-submit-cta__headline">{t('home.submitCta.headline')}</h3>
-              <p className="bf-home-submit-cta__sub">{t('home.submitCta.sub')}</p>
             </div>
             <span className="bf-cta bf-home-submit-cta__btn">{t('home.submitCta.button')}</span>
           </div>

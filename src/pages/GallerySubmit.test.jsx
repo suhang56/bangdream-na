@@ -35,6 +35,21 @@ function jpegFile(name = 'photo.jpg', size = 1000) {
   return new File([bytes], name, { type: 'image/jpeg' })
 }
 
+// Helper: fill all required form fields for happy-path flow. Picks the
+// `__custom__` activity option then types a free-form label, matching
+// the new required-activity contract.
+function fillRequired(testing) {
+  const { getByTestId } = testing
+  fireEvent.change(getByTestId('gs-file-input'), {
+    target: { files: [pngFile()] },
+  })
+  fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
+  fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+  // The custom input appears synchronously after the select change.
+  fireEvent.change(getByTestId('gs-event-custom'), { target: { value: 'test event' } })
+  fireEvent.click(getByTestId('gs-terms'))
+}
+
 beforeEach(() => {
   _resetForTests()
   setLanguage('zh')
@@ -67,6 +82,49 @@ describe('GallerySubmit — form rendering', () => {
     const { getByTestId } = renderPage()
     const btn = getByTestId('gs-submit')
     expect(btn.disabled).toBe(true)
+  })
+
+  it('renders activity select with placeholder + __custom__ option last', () => {
+    const { getByTestId } = renderPage()
+    const select = getByTestId('gs-event')
+    const options = Array.from(select.querySelectorAll('option'))
+    // empty placeholder + custom sentinel (when no events available)
+    expect(options.length).toBe(2)
+    expect(options[0].value).toBe('')
+    expect(options[options.length - 1].value).toBe('__custom__')
+  })
+
+  it('renders takenOn date input', () => {
+    const { getByTestId } = renderPage()
+    const input = getByTestId('gs-taken-on')
+    expect(input).toBeTruthy()
+    expect(input.getAttribute('type')).toBe('date')
+  })
+
+  it('field order in DOM: dropzone -> nickname -> activity -> date -> notes -> terms -> submit', () => {
+    const { getByTestId } = renderPage()
+    const ids = [
+      'gs-dropzone',
+      'gs-nickname',
+      'gs-event',
+      'gs-taken-on',
+      'gs-caption',
+      'gs-terms',
+      'gs-submit',
+    ]
+    const elements = ids.map((id) => getByTestId(id))
+    for (let i = 0; i < elements.length - 1; i += 1) {
+      const a = elements[i]
+      const b = elements[i + 1]
+      // a should appear before b in document order.
+      expect(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+  })
+
+  it('renders Notes label (说明), not the old Caption label', () => {
+    const { container } = renderPage()
+    expect(container.textContent).toContain('说明')
+    expect(container.textContent).not.toContain('图片说明')
   })
 })
 
@@ -110,19 +168,170 @@ describe('GallerySubmit — client-side validation', () => {
       target: { files: [pngFile()] },
     })
     fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    fireEvent.change(getByTestId('gs-event-custom'), { target: { value: 'evt' } })
     expect(getByTestId('gs-submit').disabled).toBe(true)
   })
 
-  it('enables submit when all required fields valid + terms checked', async () => {
+  it('keeps submit disabled when activity unset (required)', async () => {
     const { getByTestId } = renderPage()
     fireEvent.change(getByTestId('gs-file-input'), {
       target: { files: [pngFile()] },
     })
     fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
     fireEvent.click(getByTestId('gs-terms'))
+    expect(getByTestId('gs-submit').disabled).toBe(true)
+  })
+
+  it('keeps submit disabled when __custom__ picked but free-form empty', async () => {
+    const { getByTestId } = renderPage()
+    fireEvent.change(getByTestId('gs-file-input'), {
+      target: { files: [pngFile()] },
+    })
+    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    fireEvent.click(getByTestId('gs-terms'))
+    expect(getByTestId('gs-submit').disabled).toBe(true)
+  })
+
+  it('enables submit when all required fields (incl. activity) valid + terms checked', async () => {
+    const testing = renderPage()
+    fillRequired(testing)
+    await waitFor(() => {
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
+    })
+  })
+})
+
+describe('GallerySubmit — combobox state machine', () => {
+  it('picking __custom__ reveals the free-form text input', async () => {
+    const { getByTestId, queryByTestId } = renderPage()
+    expect(queryByTestId('gs-event-custom')).toBeNull()
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    await waitFor(() => {
+      expect(getByTestId('gs-event-custom')).toBeTruthy()
+    })
+  })
+
+  it('switching from __custom__ to event row hides custom input and clears value', async () => {
+    vi.spyOn(api, 'fetchEvents').mockResolvedValue({
+      items: [{ id: 11, slug: 'a-show', title_zh: 'TEST 演出', title_en: 'TEST' }],
+      total: 1,
+    })
+    const { getByTestId, queryByTestId } = renderPage()
+    await waitFor(() => {
+      expect(getByTestId('gs-event').querySelectorAll('option').length).toBe(3)
+    })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    fireEvent.change(getByTestId('gs-event-custom'), {
+      target: { value: 'temporary text' },
+    })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '11' } })
+    expect(queryByTestId('gs-event-custom')).toBeNull()
+    // Switch back to custom: input is empty (no preservation).
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    await waitFor(() => {
+      expect(getByTestId('gs-event-custom').value).toBe('')
+    })
+  })
+
+  it('submits event_label when __custom__ picked + free-form text typed', async () => {
+    const submitSpy = vi
+      .spyOn(api, 'submitGalleryPhoto')
+      .mockResolvedValue({ id: 1, status: 'pending', submitted_at: 1 })
+    const testing = renderPage()
+    fillRequired(testing)
+    await waitFor(() => {
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
+    })
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    await waitFor(() => {
+      expect(submitSpy).toHaveBeenCalledTimes(1)
+    })
+    const arg = submitSpy.mock.calls[0][0]
+    expect(arg.eventLabel).toBe('test event')
+    expect(arg.eventId).toBeUndefined()
+  })
+
+  it('submits event_id when an event row is picked', async () => {
+    vi.spyOn(api, 'fetchEvents').mockResolvedValue({
+      items: [{ id: 42, slug: 'a-show', title_zh: 'TEST 演出', title_en: 'TEST' }],
+      total: 1,
+    })
+    const submitSpy = vi
+      .spyOn(api, 'submitGalleryPhoto')
+      .mockResolvedValue({ id: 2, status: 'pending', submitted_at: 1 })
+    const { getByTestId } = renderPage()
+    await waitFor(() => {
+      expect(getByTestId('gs-event').querySelectorAll('option').length).toBe(3)
+    })
+    fireEvent.change(getByTestId('gs-file-input'), {
+      target: { files: [pngFile()] },
+    })
+    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '42' } })
+    fireEvent.click(getByTestId('gs-terms'))
     await waitFor(() => {
       expect(getByTestId('gs-submit').disabled).toBe(false)
     })
+    fireEvent.click(getByTestId('gs-submit'))
+    await waitFor(() => {
+      expect(submitSpy).toHaveBeenCalledTimes(1)
+    })
+    const arg = submitSpy.mock.calls[0][0]
+    expect(arg.eventId).toBe('42')
+    expect(arg.eventLabel).toBeUndefined()
+  })
+
+  it('whitespace-only free-form keeps submit disabled', async () => {
+    const { getByTestId } = renderPage()
+    fireEvent.change(getByTestId('gs-file-input'), {
+      target: { files: [pngFile()] },
+    })
+    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
+    fireEvent.change(getByTestId('gs-event'), { target: { value: '__custom__' } })
+    fireEvent.change(getByTestId('gs-event-custom'), {
+      target: { value: '      ' },
+    })
+    fireEvent.click(getByTestId('gs-terms'))
+    expect(getByTestId('gs-submit').disabled).toBe(true)
+  })
+})
+
+describe('GallerySubmit — date input', () => {
+  it('submits takenOn=YYYY-MM-DD when date input filled', async () => {
+    const submitSpy = vi
+      .spyOn(api, 'submitGalleryPhoto')
+      .mockResolvedValue({ id: 3, status: 'pending', submitted_at: 1 })
+    const testing = renderPage()
+    fillRequired(testing)
+    fireEvent.change(testing.getByTestId('gs-taken-on'), {
+      target: { value: '2024-03-15' },
+    })
+    await waitFor(() => {
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
+    })
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    await waitFor(() => {
+      expect(submitSpy).toHaveBeenCalledTimes(1)
+    })
+    expect(submitSpy.mock.calls[0][0].takenOn).toBe('2024-03-15')
+  })
+
+  it('takenOn omitted when blank', async () => {
+    const submitSpy = vi
+      .spyOn(api, 'submitGalleryPhoto')
+      .mockResolvedValue({ id: 4, status: 'pending', submitted_at: 1 })
+    const testing = renderPage()
+    fillRequired(testing)
+    await waitFor(() => {
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
+    })
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    await waitFor(() => {
+      expect(submitSpy).toHaveBeenCalledTimes(1)
+    })
+    expect(submitSpy.mock.calls[0][0].takenOn).toBeUndefined()
   })
 })
 
@@ -131,17 +340,13 @@ describe('GallerySubmit — submission flow', () => {
     const submitSpy = vi
       .spyOn(api, 'submitGalleryPhoto')
       .mockResolvedValue({ id: 7, status: 'pending', submitted_at: 12345 })
-    const { getByTestId, findByText } = renderPage()
-    fireEvent.change(getByTestId('gs-file-input'), {
-      target: { files: [pngFile()] },
-    })
-    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
-    fireEvent.click(getByTestId('gs-terms'))
+    const testing = renderPage()
+    fillRequired(testing)
     await waitFor(() => {
-      expect(getByTestId('gs-submit').disabled).toBe(false)
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
     })
-    fireEvent.click(getByTestId('gs-submit'))
-    expect(await findByText('再投一张')).toBeTruthy()
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    expect(await testing.findByText('再投一张')).toBeTruthy()
     expect(submitSpy).toHaveBeenCalledTimes(1)
     const arg = submitSpy.mock.calls[0][0]
     expect(arg.nickname).toBe('alice')
@@ -151,17 +356,13 @@ describe('GallerySubmit — submission flow', () => {
     vi.spyOn(api, 'submitGalleryPhoto').mockRejectedValue(
       new ApiError('rate', { status: 429, code: 'rate_limited' }),
     )
-    const { getByTestId, findByText } = renderPage()
-    fireEvent.change(getByTestId('gs-file-input'), {
-      target: { files: [pngFile()] },
-    })
-    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
-    fireEvent.click(getByTestId('gs-terms'))
+    const testing = renderPage()
+    fillRequired(testing)
     await waitFor(() => {
-      expect(getByTestId('gs-submit').disabled).toBe(false)
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
     })
-    fireEvent.click(getByTestId('gs-submit'))
-    expect(await findByText(/提交过于频繁/)).toBeTruthy()
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    expect(await testing.findByText(/提交过于频繁/)).toBeTruthy()
   })
 
   it('shows server-side 415 format mismatch when PDF passed magic-byte check', async () => {
@@ -171,32 +372,24 @@ describe('GallerySubmit — submission flow', () => {
         code: 'unsupported_media_type',
       }),
     )
-    const { getByTestId, findByText } = renderPage()
-    fireEvent.change(getByTestId('gs-file-input'), {
-      target: { files: [pngFile()] },
-    })
-    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
-    fireEvent.click(getByTestId('gs-terms'))
+    const testing = renderPage()
+    fillRequired(testing)
     await waitFor(() => {
-      expect(getByTestId('gs-submit').disabled).toBe(false)
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
     })
-    fireEvent.click(getByTestId('gs-submit'))
-    expect(await findByText(/文件格式不符/)).toBeTruthy()
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    expect(await testing.findByText(/文件格式不符/)).toBeTruthy()
   })
 
   it('renders network error when fetch fails', async () => {
     vi.spyOn(api, 'submitGalleryPhoto').mockRejectedValue(new Error('offline'))
-    const { getByTestId, findByText } = renderPage()
-    fireEvent.change(getByTestId('gs-file-input'), {
-      target: { files: [pngFile()] },
-    })
-    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
-    fireEvent.click(getByTestId('gs-terms'))
+    const testing = renderPage()
+    fillRequired(testing)
     await waitFor(() => {
-      expect(getByTestId('gs-submit').disabled).toBe(false)
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
     })
-    fireEvent.click(getByTestId('gs-submit'))
-    expect(await findByText(/网络异常/)).toBeTruthy()
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    expect(await testing.findByText(/网络异常/)).toBeTruthy()
   })
 
   it('reset button on success returns to empty form', async () => {
@@ -205,27 +398,23 @@ describe('GallerySubmit — submission flow', () => {
       status: 'pending',
       submitted_at: 1,
     })
-    const { getByTestId, findByText, getByText } = renderPage()
-    fireEvent.change(getByTestId('gs-file-input'), {
-      target: { files: [pngFile()] },
-    })
-    fireEvent.change(getByTestId('gs-nickname'), { target: { value: 'alice' } })
-    fireEvent.click(getByTestId('gs-terms'))
+    const testing = renderPage()
+    fillRequired(testing)
     await waitFor(() => {
-      expect(getByTestId('gs-submit').disabled).toBe(false)
+      expect(testing.getByTestId('gs-submit').disabled).toBe(false)
     })
-    fireEvent.click(getByTestId('gs-submit'))
-    await findByText('再投一张')
-    fireEvent.click(getByText('再投一张'))
+    fireEvent.click(testing.getByTestId('gs-submit'))
+    await testing.findByText('再投一张')
+    fireEvent.click(testing.getByText('再投一张'))
     await waitFor(() => {
-      expect(getByTestId('gs-nickname').value).toBe('')
+      expect(testing.getByTestId('gs-nickname').value).toBe('')
     })
-    expect(getByTestId('gs-terms').checked).toBe(false)
+    expect(testing.getByTestId('gs-terms').checked).toBe(false)
   })
 })
 
 describe('GallerySubmit — event dropdown', () => {
-  it('populates event options from /api/events upcoming', async () => {
+  it('populates event options from /api/events upcoming (+ placeholder + __custom__ sentinel)', async () => {
     vi.spyOn(api, 'fetchEvents').mockResolvedValue({
       items: [
         { id: 11, slug: 'a-show', title_zh: 'TEST 演出', title_en: 'TEST' },
@@ -237,7 +426,9 @@ describe('GallerySubmit — event dropdown', () => {
     await waitFor(() => {
       const select = getByTestId('gs-event')
       const options = Array.from(select.querySelectorAll('option'))
-      expect(options.length).toBe(3) // 不关联活动 + 2
+      // placeholder + 2 events + __custom__ sentinel = 4
+      expect(options.length).toBe(4)
+      expect(options[options.length - 1].value).toBe('__custom__')
     })
   })
 })

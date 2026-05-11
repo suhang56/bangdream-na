@@ -110,6 +110,8 @@ function makeForm(parts: {
   nickname?: string;
   caption?: string;
   event_id?: string;
+  event_label?: string;
+  taken_on?: string;
   terms?: string;
 }): FormData {
   const form = new FormData();
@@ -124,9 +126,17 @@ function makeForm(parts: {
   if (parts.nickname !== undefined) form.append("nickname", parts.nickname);
   if (parts.caption !== undefined) form.append("caption", parts.caption);
   if (parts.event_id !== undefined) form.append("event_id", parts.event_id);
+  if (parts.event_label !== undefined)
+    form.append("event_label", parts.event_label);
+  if (parts.taken_on !== undefined) form.append("taken_on", parts.taken_on);
   if (parts.terms !== undefined) form.append("terms", parts.terms);
   return form;
 }
+
+// Convenience helper: most happy-path tests don't care about activity shape,
+// they just need a valid activity to clear the new required-mutex gate. Use a
+// free-form label by default so we don't have to seed an event_id.
+const DEFAULT_ACTIVITY = "test event";
 
 async function seedEvent(slug = "afterglow-tour-tokyo"): Promise<number> {
   const db = getDb(env);
@@ -262,6 +272,7 @@ describe("POST /api/gallery/submit — validation", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
       nickname: "🎸".repeat(16), // 16 surrogate pairs = 32 UTF-16 units
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -311,6 +322,7 @@ describe("POST /api/gallery/submit — magic byte sniff", () => {
     const form = makeForm({
       file: { content: pdf, type: "image/jpeg", name: "fake.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -327,6 +339,7 @@ describe("POST /api/gallery/submit — magic byte sniff", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(500, 500), type: "image/png", name: "fake.png" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -343,6 +356,7 @@ describe("POST /api/gallery/submit — dimension validation", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(100, 500), type: "image/jpeg", name: "tiny.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -359,6 +373,7 @@ describe("POST /api/gallery/submit — dimension validation", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(6000, 500), type: "image/jpeg", name: "wide.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -375,6 +390,7 @@ describe("POST /api/gallery/submit — dimension validation", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(200, 200), type: "image/jpeg", name: "ok.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -434,6 +450,7 @@ describe("POST /api/gallery/submit — happy path", () => {
     const form = makeForm({
       file: { content: buildMinimalPng(640, 480), type: "image/png", name: "p.png" },
       nickname: "bob",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -456,6 +473,7 @@ describe("POST /api/gallery/submit — happy path", () => {
     const form = makeForm({
       file: { content: buildMinimalWebp(640, 480), type: "image/webp", name: "p.webp" },
       nickname: "carol",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -477,6 +495,7 @@ describe("POST /api/gallery/submit — happy path", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(500, 500, true), type: "image/jpeg", name: "exif.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -505,6 +524,7 @@ describe("POST /api/gallery/submit — happy path", () => {
     const form = makeForm({
       file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
       nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     await createApp().request(
@@ -574,6 +594,7 @@ describe("POST /api/gallery/submit — XSS in caption preserved as data", () => 
       file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
       nickname: "alice",
       caption: "<script>alert(1)</script>",
+      event_label: DEFAULT_ACTIVITY,
       terms: "true",
     });
     const res = await createApp().request(
@@ -589,5 +610,324 @@ describe("POST /api/gallery/submit — XSS in caption preserved as data", () => 
       .where(eq(gallerySubmissions.id, body.id))
       .get();
     expect(dbRow!.caption).toBe("<script>alert(1)</script>");
+  });
+});
+
+// ── 0009: event_label + taken_on (R-revamp) ─────────────────────────────────
+
+describe("POST /api/gallery/submit — activity mutex (event_id XOR event_label)", () => {
+  it("400 bad_request {field: 'activity'} when neither event_id nor event_label provided", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; detail?: { field: string; detail?: string } };
+    expect(body.error).toBe("bad_request");
+    expect(body.detail).toEqual({ field: "activity" });
+  });
+
+  it("400 bad_request {field: 'activity', detail: 'mutex'} when BOTH event_id and event_label provided", async () => {
+    const eventId = await seedEvent("mutex-event");
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_id: String(eventId),
+      event_label: "free form",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; detail?: { field: string; detail?: string } };
+    expect(body.error).toBe("bad_request");
+    expect(body.detail).toEqual({ field: "activity", detail: "mutex" });
+  });
+
+  it("event_id only: persists with eventId set, eventLabel NULL", async () => {
+    const eventId = await seedEvent("id-only");
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_id: String(eventId),
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.eventId).toBe(eventId);
+    expect(dbRow!.eventLabel).toBeNull();
+  });
+});
+
+describe("POST /api/gallery/submit — event_label validation", () => {
+  it("event_label only: persists with eventLabel set, eventId NULL", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "私下聚会",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.eventLabel).toBe("私下聚会");
+    expect(dbRow!.eventId).toBeNull();
+  });
+
+  it("event_label trimmed before insert (leading/trailing whitespace stripped)", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "   私下聚会   ",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.eventLabel).toBe("私下聚会");
+  });
+
+  it("event_label whitespace-only returns 400 bad_request", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "      ",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; detail?: { field: string } };
+    expect(body.error).toBe("bad_request");
+    expect(body.detail?.field).toBe("event_label");
+  });
+
+  it("event_label 80 chars exactly accepted (201)", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "a".repeat(80),
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+  });
+
+  it("event_label 81 chars rejected (400)", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "a".repeat(81),
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("event_label with control char rejected (400)", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "bad label",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("event_label with emoji + CJK accepted (201)", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: "🎸现场",
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.eventLabel).toBe("🎸现场");
+  });
+});
+
+describe("POST /api/gallery/submit — taken_on validation", () => {
+  function formWith(takenOn: string): FormData {
+    return makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
+      taken_on: takenOn,
+      terms: "true",
+    });
+  }
+
+  it("taken_on=2024-03-15 valid → stored", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2024-03-15"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.takenOn).toBe("2024-03-15");
+  });
+
+  it("taken_on omitted → NULL stored", async () => {
+    const form = makeForm({
+      file: { content: buildMinimalJpeg(500, 500), type: "image/jpeg", name: "x.jpg" },
+      nickname: "alice",
+      event_label: DEFAULT_ACTIVITY,
+      terms: "true",
+    });
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: form, headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.takenOn).toBeNull();
+  });
+
+  it("taken_on empty string → treated as omitted, NULL stored (201)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith(""), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number };
+    const dbRow = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, body.id))
+      .get();
+    expect(dbRow!.takenOn).toBeNull();
+  });
+
+  it("taken_on=2024-3-15 (no zero-pad) rejected (400)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2024-3-15"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("taken_on=2024-02-29 (leap year) accepted (201)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2024-02-29"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(201);
+  });
+
+  it("taken_on=2023-02-29 (non-leap year) rejected as invalid calendar date (400)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2023-02-29"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("taken_on=2025-02-30 rejected as invalid calendar date (400)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2025-02-30"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("taken_on=2099-01-01 rejected as future (400)", async () => {
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith("2099-01-01"), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("taken_on=today+2d rejected as future (400)", async () => {
+    const d = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const res = await createApp().request(
+      "https://x/api/gallery/submit",
+      { method: "POST", body: formWith(iso), headers: { "CF-Connecting-IP": "203.0.113.1" } },
+      { ...env, ...rlEnv() },
+    );
+    expect(res.status).toBe(400);
   });
 });
