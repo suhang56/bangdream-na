@@ -597,3 +597,82 @@
 .bf-link:hover .lk-arrow {
   color: #fff;
 }
+
+/* Home submit CTA strip — between HomeGallery and HomeJoin */
+.bf-home-submit-cta {
+  padding-top: 36px;
+  padding-bottom: 36px;
+}
+
+.bf-home-submit-cta__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.bf-home-submit-cta__link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(31, 29, 26, 0.18);
+}
+
+.bf-home-submit-cta__eyebrow {
+  display: inline-block;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--bg, #f7f5ef);
+  border: 1px solid var(--rule, #d9d2c2);
+  padding: 4px 10px;
+  margin-bottom: 14px;
+}
+
+.bf-home-submit-cta__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.bf-home-submit-cta__text {
+  flex: 1 1 320px;
+}
+
+.bf-home-submit-cta__headline {
+  font-size: 24px;
+  margin: 0 0 4px;
+  color: var(--ink, #1f1d1a);
+}
+
+.bf-home-submit-cta__sub {
+  font-size: 13.5px;
+  margin: 0;
+  color: var(--ink-3, #7a7468);
+}
+
+.bf-home-submit-cta__btn {
+  min-height: 48px;
+  min-width: 180px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 700px) {
+  .bf-home-submit-cta__headline {
+    font-size: 20px;
+  }
+  .bf-home-submit-cta__body {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .bf-home-submit-cta__btn {
+    width: 100%;
+  }
+}

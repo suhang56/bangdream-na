@@ -13,6 +13,14 @@ export default defineWorkersConfig({
           compatibilityFlags: ["nodejs_compat"],
           d1Databases: ["DB"],
           r2Buckets: ["IMAGES"],
+          // Override prod 3600/86400 windows with miniflare-compatible 60s
+          // windows for local tests. Production wrangler.toml drives the
+          // actual deployed values; this is only the in-memory test stub.
+          // (miniflare ratelimit-binding emulation only accepts period 10|60.)
+          ratelimits: {
+            RATE_LIMIT_HOUR: { simple: { limit: 3, period: 60 } },
+            RATE_LIMIT_DAY: { simple: { limit: 10, period: 60 } },
+          },
           bindings: {
             GITHUB_CLIENT_ID: "test-client-id",
             GITHUB_CLIENT_SECRET: "test-client-secret",
