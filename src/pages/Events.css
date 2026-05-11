@@ -56,6 +56,29 @@
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
+.bf-events-row__thumb-cell {
+  width: 96px;
+  padding: 8px;
+  vertical-align: middle;
+}
+.bf-events-row__thumb {
+  width: 80px;
+  height: 80px;
+  background: var(--bg-2);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.bf-events-row__placeholder {
+  font-size: 1.5rem;
+  color: var(--ink-3);
+  opacity: 0.5;
+  user-select: none;
+  line-height: 1;
+}
 @media (max-width: 700px) {
   .bf-page-hd {
     padding: 28px 0 20px;
@@ -71,5 +94,18 @@
   }
   .bf-events-gap {
     height: 24px;
+  }
+  .bf-events-row__thumb-cell {
+    display: block;
+    width: 100%;
+    padding: 0;
+  }
+  .bf-events-row__thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+  .bf-events-row__placeholder {
+    font-size: 2.5rem;
   }
 }
