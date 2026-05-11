@@ -6,7 +6,7 @@ import {
 } from '../lib/uiLanguage.js'
 import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
-import { fetchSite, fetchMembers, fetchEvents } from '../lib/api.js'
+import { fetchSite, fetchMembers } from '../lib/api.js'
 import { adaptSiteSettings } from '../lib/apiAdapter.js'
 import { CONTACT_EMAIL, QQ_GROUP_URL } from '../data/socialLinks.js'
 import './About.css'
@@ -34,8 +34,6 @@ export default function About() {
   const [reloadKey, setReloadKey] = useState(0)
   const [members, setMembers] = useState(null)
   const [membersStatus, setMembersStatus] = useState('loading')
-  const [events, setEvents] = useState(null)
-  const [eventsStatus, setEventsStatus] = useState('loading')
 
   useEffect(() => {
     let cancelled = false
@@ -69,25 +67,6 @@ export default function About() {
         if (cancelled) return
         setMembers(null)
         setMembersStatus('error')
-      })
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchEvents({ scope: 'all' })
-      .then((r) => {
-        if (cancelled) return
-        const total = typeof r?.total === 'number'
-          ? r.total
-          : Array.isArray(r?.items) ? r.items.length : null
-        setEvents(total)
-        setEventsStatus(typeof total === 'number' ? 'ready' : 'error')
-      })
-      .catch(() => {
-        if (cancelled) return
-        setEvents(null)
-        setEventsStatus('error')
       })
     return () => { cancelled = true }
   }, [])
@@ -213,7 +192,8 @@ export default function About() {
               <span className="lbl">分会</span>
             </div>
             <div data-testid="stat-events">
-              {renderStatValue(events, eventsStatus)}
+              {/* TODO: wire when worker /api/events supports scope=all */}
+              <span className="num">50+</span>
               <span className="lbl">活动</span>
             </div>
             <div data-testid="stat-founded">

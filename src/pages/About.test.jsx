@@ -21,11 +21,10 @@ vi.mock('../lib/api.js', async () => {
     ...actual,
     fetchSite: vi.fn(),
     fetchMembers: vi.fn(),
-    fetchEvents: vi.fn(),
   }
 })
 
-import { fetchSite, fetchMembers, fetchEvents } from '../lib/api.js'
+import { fetchSite, fetchMembers } from '../lib/api.js'
 
 function siteRows() {
   const items = []
@@ -54,10 +53,8 @@ describe('<About />', () => {
     cache.clear()
     vi.mocked(fetchSite).mockReset()
     vi.mocked(fetchMembers).mockReset()
-    vi.mocked(fetchEvents).mockReset()
     vi.mocked(fetchSite).mockResolvedValue(siteRows())
     vi.mocked(fetchMembers).mockResolvedValue({ items: [], total: 42 })
-    vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 17 })
   })
 
   afterEach(() => {
@@ -182,18 +179,12 @@ describe('<About />', () => {
     ).not.toContain('+')
   })
 
-  it('Stats wires live event count from fetchEvents({scope:all}).total', async () => {
-    vi.mocked(fetchEvents).mockResolvedValue({ items: [], total: 33 })
+  it('Stats events cell renders literal "50+" (hardcoded pending /api/events scope=all)', async () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
-    await waitFor(() => {
-      const cell = container.querySelector('[data-testid="stat-events"] .num')
-      expect(cell).not.toBeNull()
-      expect(cell.textContent).toBe('33')
-    })
-    expect(vi.mocked(fetchEvents)).toHaveBeenCalledWith({ scope: 'all' })
-    expect(
-      container.querySelector('[data-testid="stat-events"]').textContent,
-    ).not.toContain('+')
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    const cell = container.querySelector('[data-testid="stat-events"] .num')
+    expect(cell).not.toBeNull()
+    expect(cell.textContent).toBe('50+')
   })
 
   it('Stats members shows loading skeleton until fetch resolves', async () => {
@@ -211,18 +202,6 @@ describe('<About />', () => {
     await waitFor(() => {
       const cell = container.querySelector('[data-testid="stat-members"] .num')
       expect(cell.textContent).toBe('11')
-    })
-  })
-
-  it('Stats events shows fallback dash on fetch error', async () => {
-    vi.mocked(fetchEvents).mockRejectedValue(new Error('5xx'))
-    const { container } = renderWithProviders(<About />, { route: '/about' })
-    await waitFor(() => {
-      const fallback = container.querySelector(
-        '[data-testid="stat-events"] .num-fallback',
-      )
-      expect(fallback).not.toBeNull()
-      expect(fallback.textContent).toBe('—')
     })
   })
 
