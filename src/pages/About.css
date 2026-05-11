@@ -308,9 +308,78 @@
   margin-right: 2px;
 }
 
+/* Join section — light-themed sibling of Home's bf-link pattern */
+.about-join-intro {
+  margin: 6px 0 14px !important;
+}
+
+.about-join-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.about-join-link {
+  position: relative;
+  display: block;
+  padding: 14px 18px;
+  min-height: 56px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--tone, var(--accent));
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 120ms ease, border-left-width 120ms ease;
+}
+
+.about-join-link:hover {
+  background: var(--paper);
+  border-left-width: 4px;
+}
+
+.about-join-link:focus-visible {
+  outline: 2px solid #f31864;
+  outline-offset: 2px;
+}
+
+.about-join-link .ajl-name {
+  display: block;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.about-join-link .ajl-desc {
+  display: block;
+  padding-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.about-join-link .ajl-arrow {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-3);
+  font-variant-emoji: text;
+}
+
+.about-join-link:hover .ajl-arrow {
+  color: var(--accent);
+}
+
 @media (max-width: 700px) {
   .bf-about-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .about-join-list {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -80,6 +80,16 @@
   .bf-foot-grid {
     gap: 22px;
   }
+  .bf-foot ul {
+    gap: 8px;
+  }
+  .bf-foot ul li a,
+  .bf-foot-contact-item a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding-block: 6px;
+  }
   .bf-foot-bottom {
     gap: 8px;
     font-size: 9.5px;

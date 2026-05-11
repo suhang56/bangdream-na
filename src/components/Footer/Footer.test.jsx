@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, waitFor, findByLabelText } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import Footer from './Footer.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
 import * as api from '../../lib/api.js'
 import { cache } from '../../lib/cache.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 function renderFoot() {
   return render(
@@ -119,5 +124,37 @@ describe('<Footer />', () => {
     )
     expect(mail.textContent).toContain('✉')
     expect(mail.textContent).toContain('contact@bangdream.org')
+  })
+
+  it('LOW-D1: en locale renders English aria-label after switch (no reload)', async () => {
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue({ items: [], total: 0 })
+    const { container } = renderFoot()
+    setLanguage('en')
+    const mail = await findByLabelText(
+      container,
+      'Send email to contact at bangdream dot org',
+    )
+    expect(mail.getAttribute('href')).toBe('mailto:contact@bangdream.org')
+  })
+
+  it('LOW-D1: Footer.jsx no longer carries the CONTACT_ARIA_ZH literal', () => {
+    const src = readFileSync(resolve(__dirname, 'Footer.jsx'), 'utf8')
+    expect(src).not.toContain('CONTACT_ARIA_ZH')
+  })
+
+  it('LOW-D2: Footer.css mobile @700 block contains min-height: 44px rule', () => {
+    const css = readFileSync(resolve(__dirname, 'Footer.css'), 'utf8')
+    expect(
+      /@media[^{]*\(max-width:\s*700px\)[^]*?min-height:\s*44px/.test(css),
+    ).toBe(true)
+  })
+
+  it('LOW-D2: Footer.css mobile block bumps ul gap to 8px', () => {
+    const css = readFileSync(resolve(__dirname, 'Footer.css'), 'utf8')
+    expect(
+      /@media[^{]*\(max-width:\s*700px\)[^]*?\.bf-foot ul[^}]*gap:\s*8px/.test(
+        css,
+      ),
+    ).toBe(true)
   })
 })

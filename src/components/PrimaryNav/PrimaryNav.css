@@ -68,7 +68,7 @@
   background: var(--accent);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .bf-nav .bf-container {
     overflow-x: auto;
     scrollbar-width: none;

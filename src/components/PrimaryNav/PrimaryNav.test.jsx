@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import PrimaryNav from './PrimaryNav.jsx'
 import { _resetForTests, setLanguage } from '../../lib/uiLanguage.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 import {
   QQ_GROUP_URL,
   DISCORD_INVITE_URL,
@@ -151,5 +156,29 @@ describe('<PrimaryNav />', () => {
     window.dispatchEvent(new Event('resize'))
     const navContainer = container.querySelector('.bf-nav .bf-container')
     expect(navContainer).toBeInTheDocument()
+  })
+
+  it('LOW-D3: PrimaryNav.css mobile breakpoint is at 900px (one match, zero 700px)', () => {
+    const css = readFileSync(resolve(__dirname, 'PrimaryNav.css'), 'utf8')
+    const at900 = css.match(/@media\s*\(max-width:\s*900px\)/g) || []
+    const at700 = css.match(/@media\s*\(max-width:\s*700px\)/g) || []
+    expect(at900.length).toBe(1)
+    expect(at700.length).toBe(0)
+  })
+
+  it('LOW-D3: mobile-scroll body preserved inside 900px block (overflow-x + scroll-snap)', () => {
+    const css = readFileSync(resolve(__dirname, 'PrimaryNav.css'), 'utf8')
+    expect(
+      /@media\s*\(max-width:\s*900px\)[^]*?overflow-x:\s*auto/.test(css),
+    ).toBe(true)
+    expect(
+      /@media\s*\(max-width:\s*900px\)[^]*?scroll-snap-type/.test(css),
+    ).toBe(true)
+  })
+
+  it('LOW-D3: PrimaryNav still renders the .bf-container scroll target', () => {
+    const { container } = renderAt('/')
+    const navContainer = container.querySelector('.bf-nav .bf-container')
+    expect(navContainer).not.toBeNull()
   })
 })

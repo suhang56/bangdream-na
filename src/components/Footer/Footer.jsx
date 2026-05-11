@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchMembers } from '../../lib/api.js'
+import {
+  getLanguage,
+  subscribeLanguage,
+  t,
+} from '../../lib/uiLanguage.js'
 import {
   QQ_GROUP_URL,
   DISCORD_INVITE_URL,
@@ -10,8 +15,6 @@ import {
   CONTACT_EMAIL,
 } from '../../data/socialLinks.js'
 import './Footer.css'
-
-const CONTACT_ARIA_ZH = '发送邮件至 contact at bangdream dot org'
 
 const COMMUNITY_LINKS = [
   { to: '/about', label: '关于', external: false },
@@ -23,7 +26,6 @@ const COMMUNITY_LINKS = [
     to: `mailto:${CONTACT_EMAIL}`,
     label: `✉ ${CONTACT_EMAIL}`,
     external: true,
-    ariaLabel: CONTACT_ARIA_ZH,
     isMail: true,
   },
 ]
@@ -48,11 +50,20 @@ const EXTERNAL_LINKS = [
   { to: FORUM_URL, label: `论坛 ${hostnameOf(FORUM_URL)} ↗` },
 ]
 
+function subscribe(cb) {
+  return subscribeLanguage(cb)
+}
+function getSnapshot() {
+  return getLanguage()
+}
+
 /**
  * Site footer — dark ink background, 4-column grid collapsing to 2-col @ 800px.
- * Hardcoded CN strings per Designer §4 site-chrome carve-out.
+ * Hardcoded CN strings per Designer §4 site-chrome carve-out; mailto aria-label
+ * is i18n'd via t() so screen-readers track the active UI language.
  */
 export default function Footer() {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const year = new Date().getFullYear()
   const buildDate = `build ${year}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`
   const [members, setMembers] = useState(null)
@@ -91,7 +102,7 @@ export default function Footer() {
               {COMMUNITY_LINKS.map((link) =>
                 link.isMail ? (
                   <li key={link.label} className="bf-foot-contact-item">
-                    <a href={link.to} aria-label={link.ariaLabel}>
+                    <a href={link.to} aria-label={t('contact.ariaLabel')}>
                       {link.label}
                     </a>
                   </li>
