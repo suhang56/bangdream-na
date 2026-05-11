@@ -320,7 +320,8 @@ describe("POST /api/admin/gallery/submissions/:id/approve", () => {
       .get();
     expect(galleryRow).toBeTruthy();
     expect(galleryRow!.imageUrl).toContain(body.new_r2_key);
-    expect(galleryRow!.album).toBe("submissions");
+    // Seed has neither event_id nor event_label -> fallback to "其他"
+    expect(galleryRow!.album).toBe("其他");
   });
 
   it("returns 404 when submission id does not exist", async () => {
@@ -572,7 +573,7 @@ describe("GET /api/admin/gallery/submissions — event_label/taken_on payload (0
 });
 
 describe("POST /api/admin/gallery/submissions/:id/approve — submissionId back-pointer (0009)", () => {
-  it("approving an event_label row inserts gallery_items with event_id=NULL, album=submissions, submission_id set", async () => {
+  it("approving an event_label row inserts gallery_items with event_id=NULL, album=<label>, submission_id set", async () => {
     const sid = await seedSubmission({ eventLabel: "私下聚会" });
     const { cookie } = await adminCookie();
     const res = await createApp().request(
@@ -588,7 +589,7 @@ describe("POST /api/admin/gallery/submissions/:id/approve — submissionId back-
       .where(eq(galleryItems.id, body.gallery_item_id))
       .get();
     expect(item!.eventId).toBeNull();
-    expect(item!.album).toBe("submissions");
+    expect(item!.album).toBe("私下聚会");
     expect(item!.submissionId).toBe(sid);
   });
 
@@ -627,5 +628,82 @@ describe("POST /api/admin/gallery/submissions/:id/approve — submissionId back-
       .get();
     expect(after!.eventLabel).toBe("audit label");
     expect(after!.status).toBe("approved");
+  });
+
+  it("approve with neither event_id nor event_label -> album = '其他' fallback", async () => {
+    const sid = await seedSubmission({});
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBeNull();
+    expect(item!.album).toBe("其他");
+  });
+
+  it("approve trims event_label whitespace before writing album", async () => {
+    const sid = await seedSubmission({ eventLabel: "  Live House Tokyo  " });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBeNull();
+    expect(item!.album).toBe("Live House Tokyo");
+  });
+
+  it("approve with whitespace-only event_label falls through to '其他' fallback", async () => {
+    const sid = await seedSubmission({ eventLabel: "    " });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBeNull();
+    expect(item!.album).toBe("其他");
+  });
+
+  it("approve with both event_id AND event_label set -> event_id wins, album NULL", async () => {
+    const eventId = await seedEventRow("both-set");
+    const sid = await seedSubmission({ eventId, eventLabel: "ignored label" });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBe(eventId);
+    expect(item!.album).toBeNull();
   });
 });
