@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatDate } from '../../lib/dateFormat.js'
+import { bandById } from '../../data/bands.js'
 import './NewsCard.css'
 
 const CATEGORY_LABELS = {
@@ -30,6 +31,11 @@ export default function NewsCard({ news, variant = 'default' }) {
     ? rawCategory
     : 'announcement'
   const categoryLabel = CATEGORY_LABELS[categoryKey] ?? 'Announcement'
+  const isAnnouncement = categoryKey === 'announcement'
+  const band = bandById(news?.band_theme)
+  const chipStyle = isAnnouncement
+    ? { background: '#cd2c34', color: '#ffffff' }
+    : { background: band.color, color: band.ink }
   const ariaLabel = date
     ? `${news?.title ?? ''}, ${date}`
     : news?.title ?? ''
@@ -51,10 +57,11 @@ export default function NewsCard({ news, variant = 'default' }) {
       <div className="news-card__body">
         <div className="news-card__meta">
           <span
-            className={`news-card__category news-card__category--${categoryKey}`}
+            className="news-card__category nc-tag"
             data-category={categoryKey}
+            style={chipStyle}
           >
-            {categoryLabel}
+            {categoryLabel.toUpperCase()}
           </span>
           {date ? (
             <time className="news-card__date" dateTime={news.date}>

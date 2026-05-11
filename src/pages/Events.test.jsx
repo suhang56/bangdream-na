@@ -211,7 +211,7 @@ describe('<Events /> — H9 band column', () => {
     vi.restoreAllMocks()
   })
 
-  it('H9: upcoming table has 5 th elements with 团体 as third header', async () => {
+  it('upcoming table has 6 th elements (thumb + 日期 + 团体 + 名称 + 地点 + 票务)', async () => {
     mockFetchEventsWith({
       upcoming: [eventApiRow({ slug: 'test-1', title: 'Test Event', band_theme: 'roselia' })],
       past: [],
@@ -223,8 +223,10 @@ describe('<Events /> — H9 band column', () => {
     })
     const upcomingTable = container.querySelector('.bf-tbl:not(.bf-tbl-muted)')
     const ths = upcomingTable.querySelectorAll('thead th')
-    expect(ths.length).toBe(5)
-    expect(ths[1].textContent).toBe('团体')
+    expect(ths.length).toBe(6)
+    expect(ths[0].classList.contains('td-thumb')).toBe(true)
+    expect(ths[1].textContent).toBe('日期')
+    expect(ths[2].textContent).toBe('团体')
   })
 
   it('H9: EventRow with bands=[] renders — without crash', async () => {
@@ -362,5 +364,151 @@ describe('<Events /> — loading and error states', () => {
     const { default: Events } = await import('./Events.jsx')
     renderWithProviders(<Events />, { route: '/events' })
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
+})
+
+describe('<Events /> — NEWS-EVENTS-ARCH §3 row hero image', () => {
+  beforeEach(() => {
+    _resetForTests()
+    window.localStorage.clear()
+    setLanguage('zh')
+    cache.clear()
+    vi.mocked(fetchEvents).mockReset()
+  })
+
+  afterEach(() => {
+    cache.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('upcoming row with hero_image_url → thumb has backgroundImage', async () => {
+    mockFetchEventsWith({
+      upcoming: [
+        eventApiRow({
+          slug: 'thumb-yes',
+          title: 'Thumb Event',
+          image: 'https://example.com/poster.jpg',
+        }),
+      ],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Thumb Event')).toBeInTheDocument()
+    })
+    const thumb = container.querySelector('.bf-events-row__thumb')
+    expect(thumb).not.toBeNull()
+    expect(thumb.style.backgroundImage).toContain('poster.jpg')
+    expect(container.querySelector('.bf-events-row__placeholder')).toBeNull()
+  })
+
+  it('row with hero_image_url=null → placeholder ◈ glyph rendered, no backgroundImage (edge)', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'no-img', title: 'No Image Event', image: null })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('No Image Event')).toBeInTheDocument()
+    })
+    const placeholder = container.querySelector('.bf-events-row__placeholder')
+    expect(placeholder).not.toBeNull()
+    expect(placeholder.textContent).toBe('◈')
+    const thumb = container.querySelector('.bf-events-row__thumb')
+    expect(thumb.style.backgroundImage).toBe('')
+  })
+
+  it('row with hero_image_url="" (empty string) → placeholder, NOT empty backgroundImage (edge)', async () => {
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'empty-img', title: 'Empty Image Event', image: '' })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Empty Image Event')).toBeInTheDocument()
+    })
+    const placeholder = container.querySelector('.bf-events-row__placeholder')
+    expect(placeholder).not.toBeNull()
+    const thumb = container.querySelector('.bf-events-row__thumb')
+    expect(thumb.style.backgroundImage).toBe('')
+  })
+
+  it('past table also renders thumb cell', async () => {
+    mockFetchEventsWith({
+      upcoming: [],
+      past: [
+        eventApiRow({
+          slug: 'past-thumb',
+          title: 'Past Thumb',
+          image: 'https://example.com/p.jpg',
+        }),
+      ],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Past Thumb')).toBeInTheDocument()
+    })
+    const mutedTable = container.querySelector('.bf-tbl.bf-tbl-muted')
+    const thumb = mutedTable.querySelector('.bf-events-row__thumb')
+    expect(thumb).not.toBeNull()
+    expect(thumb.style.backgroundImage).toContain('p.jpg')
+  })
+
+  it('past table thead has 6 th cells including td-thumb first', async () => {
+    mockFetchEventsWith({
+      upcoming: [],
+      past: [eventApiRow({ slug: 'past-th-count', title: 'Past TH Count' })],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    const { container } = renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText('Past TH Count')).toBeInTheDocument()
+    })
+    const mutedTable = container.querySelector('.bf-tbl.bf-tbl-muted')
+    const ths = mutedTable.querySelectorAll('thead th')
+    expect(ths.length).toBe(6)
+    expect(ths[0].classList.contains('td-thumb')).toBe(true)
+  })
+
+  it('row with mixed-script title 中英混排 renders without throw (edge)', async () => {
+    const title = "5.3 Poppin'Party Live in 旧金山"
+    mockFetchEventsWith({
+      upcoming: [eventApiRow({ slug: 'mix-script', title })],
+      past: [],
+    })
+    const { default: Events } = await import('./Events.jsx')
+    renderWithProviders(<Events />, { route: '/events' })
+    await waitFor(() => {
+      expect(screen.getByText(title)).toBeInTheDocument()
+    })
+  })
+})
+
+describe('NEWS-EVENTS-ARCH §4 — legacy --color-* token sweep (edge)', () => {
+  it('NewsCard.css contains no legacy --color-accent or --color-text', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join, dirname } = await import('node:path')
+    const { fileURLToPath } = await import('node:url')
+    const here = dirname(fileURLToPath(import.meta.url))
+    const css = readFileSync(
+      join(here, '..', 'components', 'NewsCard', 'NewsCard.css'),
+      'utf8',
+    )
+    expect(css).not.toMatch(/--color-accent/)
+    expect(css).not.toMatch(/--color-text/)
+  })
+
+  it('NotFound.css contains no legacy --color-* tokens', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join, dirname } = await import('node:path')
+    const { fileURLToPath } = await import('node:url')
+    const here = dirname(fileURLToPath(import.meta.url))
+    const css = readFileSync(join(here, 'NotFound.css'), 'utf8')
+    expect(css).not.toMatch(/--color-accent/)
+    expect(css).not.toMatch(/--color-text/)
   })
 })

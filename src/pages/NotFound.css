@@ -11,11 +11,14 @@
   text-align: center;
 }
 
+/* TODO(follow-up): --accent lacks a dark-mode override in tokens.css — the
+   code numeral and home button below render dark-on-dark in [data-theme="dark"].
+   Tracked out-of-scope per NEWS-EVENTS-DESIGN.md §4 dark-pair note. */
 .not-found__code {
   font-size: 5rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
-  color: var(--color-accent, #d6336c);
+  color: var(--accent);
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -24,12 +27,12 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 0.75rem;
-  color: var(--color-text, #1a1a1a);
+  color: var(--ink);
 }
 
 .not-found__body {
   margin: 0 0 1.5rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--ink-3);
   line-height: 1.5;
 }
 
@@ -37,7 +40,7 @@
   display: inline-block;
   padding: 0.625rem 1.5rem;
   border-radius: 0.5rem;
-  background: var(--color-accent, #d6336c);
+  background: var(--accent);
   color: #fff;
   text-decoration: none;
   font-weight: 500;
@@ -46,5 +49,5 @@
 
 .not-found__home:hover,
 .not-found__home:focus {
-  background: var(--color-accent-hover, #b02555);
+  background: var(--ink-2);
 }

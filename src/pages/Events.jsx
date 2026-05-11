@@ -22,9 +22,21 @@ function EventRow({ item }) {
   const dateStr = formatDate(item.date) ?? item.date ?? ''
   const hasTicket = typeof item.ticketUrl === 'string' && item.ticketUrl.length > 0
   const b = item.bands && item.bands.length > 0 ? bandById(item.bands[0]) : null
+  const hasImage = typeof item.image === 'string' && item.image.length > 0
 
   return (
     <tr className="bf-tr-link">
+      <td className="bf-events-row__thumb-cell">
+        <div
+          className="bf-events-row__thumb"
+          aria-hidden="true"
+          style={hasImage ? { backgroundImage: `url(${item.image})` } : undefined}
+        >
+          {!hasImage ? (
+            <span className="bf-events-row__placeholder" aria-hidden="true">◈</span>
+          ) : null}
+        </div>
+      </td>
       <td className="td-d">{dateStr}</td>
       <td>
         {b
@@ -120,6 +132,7 @@ export default function Events() {
             <table className="bf-tbl">
               <thead>
                 <tr>
+                  <th className="td-thumb" style={{ width: 96 }}></th>
                   <th style={{ width: 120 }}>日期</th>
                   <th style={{ width: 140 }}>团体</th>
                   <th>活动名称</th>
@@ -144,6 +157,7 @@ export default function Events() {
             <table className="bf-tbl bf-tbl-muted">
               <thead>
                 <tr>
+                  <th className="td-thumb" style={{ width: 96 }}></th>
                   <th style={{ width: 120 }}>日期</th>
                   <th style={{ width: 140 }}>团体</th>
                   <th>活动名称</th>
