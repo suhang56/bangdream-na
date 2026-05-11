@@ -8,48 +8,8 @@ import LoadingState from '../components/LoadingState/LoadingState.jsx'
 import ErrorState from '../components/ErrorState/ErrorState.jsx'
 import { fetchSite, fetchMembers, fetchEvents } from '../lib/api.js'
 import { adaptSiteSettings } from '../lib/apiAdapter.js'
-import {
-  CONTACT_EMAIL,
-  QQ_GROUP_URL,
-  DISCORD_INVITE_URL,
-  X_PROFILE_URL,
-} from '../data/socialLinks.js'
+import { CONTACT_EMAIL, QQ_GROUP_URL } from '../data/socialLinks.js'
 import './About.css'
-
-const JOIN_LINKS = [
-  {
-    id: 'qq',
-    href: QQ_GROUP_URL,
-    tone: '#12B7F5',
-    external: true,
-    nameKey: 'about.join.qqName',
-    descKey: 'about.join.qqDesc',
-  },
-  {
-    id: 'discord',
-    href: DISCORD_INVITE_URL,
-    tone: '#5865F2',
-    external: true,
-    nameKey: 'about.join.discordName',
-    descKey: 'about.join.discordDesc',
-  },
-  {
-    id: 'x',
-    href: X_PROFILE_URL,
-    tone: '#000000',
-    external: true,
-    nameKey: 'about.join.xName',
-    descKey: 'about.join.xDesc',
-  },
-  {
-    id: 'email',
-    href: `mailto:${CONTACT_EMAIL}`,
-    tone: '#f31864',
-    external: false,
-    nameKey: 'about.join.emailName',
-    descKey: 'about.join.emailDesc',
-  },
-]
 
 const EMPTY_SITE = {
   discordInvite: '',
@@ -226,30 +186,18 @@ export default function About() {
           className="bf-about-block about-section about-join"
           data-testid="about-join"
         >
-          <span className="bf-helper-tag">// {t('about.joinHeading')}</span>
+          <span className="bf-helper-tag">// {t('about.joinHelperTag')}</span>
           <h2>{t('about.joinHeading')}</h2>
-          <p className="about-join-intro">{t('about.joinIntro')}</p>
-          <div className="about-join-list">
-            {JOIN_LINKS.map((link) => {
-              const isExternal = link.external
-              const arrow = link.id === 'email' ? '✉' : '↗'
-              return (
-                <a
-                  key={link.id}
-                  className="about-join-link"
-                  href={link.href}
-                  style={{ '--tone': link.tone }}
-                  {...(isExternal
-                    ? { target: '_blank', rel: 'noopener noreferrer' }
-                    : {})}
-                >
-                  <span className="ajl-name">{t(link.nameKey)}</span>
-                  <span className="ajl-desc">{t(link.descKey)}</span>
-                  <span className="ajl-arrow" aria-hidden="true">{arrow}</span>
-                </a>
-              )
-            })}
-          </div>
+          <p>{t('about.joinBody1')}</p>
+          <p>{t('about.joinBody2')}</p>
+          <a
+            className="about-join-cta"
+            href={QQ_GROUP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('btn.joinQQ')}
+          </a>
         </section>
 
         <section className="bf-about-block about-stats-block">
