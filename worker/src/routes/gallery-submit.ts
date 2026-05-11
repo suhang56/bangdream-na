@@ -65,6 +65,8 @@ export function buildGallerySubmitRoutes() {
     const nicknameRaw = form.get("nickname");
     const captionRaw = form.get("caption");
     const eventIdRaw = form.get("event_id");
+    const eventLabelRaw = form.get("event_label");
+    const takenOnRaw = form.get("taken_on");
     const termsRaw = form.get("terms");
 
     if (!fileEntry || typeof fileEntry === "string") {
@@ -115,8 +117,28 @@ export function buildGallerySubmitRoutes() {
       caption = capParsed.data ?? null;
     }
 
+    // XOR mutex between event_id and event_label -- exactly one required now
+    // that the activity field is mandatory. HC4: server side enforces alongside
+    // client; defense in depth.
+    const hasEventId =
+      typeof eventIdRaw === "string" && eventIdRaw.length > 0;
+    const hasEventLabel =
+      typeof eventLabelRaw === "string" && eventLabelRaw.length > 0;
+
+    if (hasEventId && hasEventLabel) {
+      return publicError(c, 400, "bad_request", {
+        field: "activity",
+        detail: "mutex",
+      });
+    }
+    if (!hasEventId && !hasEventLabel) {
+      return publicError(c, 400, "bad_request", { field: "activity" });
+    }
+
     let eventId: number | null = null;
-    if (typeof eventIdRaw === "string" && eventIdRaw.length > 0) {
+    let eventLabel: string | null = null;
+
+    if (hasEventId) {
       const parsed = Number(eventIdRaw);
       if (!Number.isInteger(parsed) || parsed <= 0) {
         return publicError(c, 400, "bad_request", { field: "event_id" });
@@ -131,6 +153,27 @@ export function buildGallerySubmitRoutes() {
         return publicError(c, 400, "event_not_found", { event_id: parsed });
       }
       eventId = parsed;
+    } else {
+      const parsed = gallerySubmissionSchemas.eventLabel.safeParse(eventLabelRaw);
+      if (!parsed.success) {
+        return publicError(c, 400, "bad_request", {
+          field: "event_label",
+          issues: parsed.error.flatten(),
+        });
+      }
+      eventLabel = parsed.data;
+    }
+
+    let takenOn: string | null = null;
+    if (typeof takenOnRaw === "string" && takenOnRaw.length > 0) {
+      const parsed = gallerySubmissionSchemas.takenOn.safeParse(takenOnRaw);
+      if (!parsed.success) {
+        return publicError(c, 400, "bad_request", {
+          field: "taken_on",
+          issues: parsed.error.flatten(),
+        });
+      }
+      takenOn = parsed.data;
     }
 
     let rawBody: ArrayBuffer;
@@ -212,6 +255,8 @@ export function buildGallerySubmitRoutes() {
           nickname,
           caption,
           eventId,
+          eventLabel,
+          takenOn,
           status: "pending",
           submittedAt,
           ipHash,
@@ -267,7 +312,9 @@ export function buildGallerySubmitRoutes() {
             submission_id: insertedId,
             nickname,
             caption,
-            event_slug: eventSlugRow?.slug ?? null,
+            // For label-only submissions, fall back to the free-form label so
+            // the digest reader knows what event the photo is from.
+            event_slug: eventSlugRow?.slug ?? eventLabel ?? null,
             thumbnail_url: `${c.env.CDN_ORIGIN}/${r2Key}`,
             submitted_iso: new Date(submittedAt * 1000).toISOString(),
           },

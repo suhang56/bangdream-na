@@ -15,13 +15,30 @@ import './GallerySubmit.css'
 const MAX_BYTES = 8 * 1024 * 1024
 const NICKNAME_MAX = 32
 const CAPTION_MAX = 200
+const EVENT_LABEL_MAX = 80
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
+// HC3: combobox sentinel is the literal string '__custom__' -- never null,
+// undefined, or empty string. '' = no-selection placeholder.
+const CUSTOM_SENTINEL = '__custom__'
 
 function subscribe(cb) {
   return subscribeLanguage(cb)
 }
 function getSnapshot() {
   return getLanguage()
+}
+
+function truncateTitle(s, n) {
+  if (typeof s !== 'string') return ''
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s
+}
+
+function todayPlusOneISO() {
+  const d = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function inferErrorMessage(err) {
@@ -49,7 +66,11 @@ export default function GallerySubmit() {
   const [nickname, setNickname] = useState('')
   const [caption, setCaption] = useState('')
   const [events, setEvents] = useState([])
-  const [eventId, setEventId] = useState('')
+  // eventValue: '' | stringified id | '__custom__'
+  const [eventValue, setEventValue] = useState('')
+  const [eventLabel, setEventLabel] = useState('')
+  const [eventError, setEventError] = useState(null)
+  const [takenOn, setTakenOn] = useState('')
   const [terms, setTerms] = useState(false)
   const [fileError, setFileError] = useState(null)
   const [nickError, setNickError] = useState(null)
@@ -166,11 +187,22 @@ export default function GallerySubmit() {
     setCaptionError(v.length > CAPTION_MAX ? t('gallerySubmit.error.captionLong') : null)
   }
 
+  function onEventChange(e) {
+    const v = e.target.value
+    setEventValue(v)
+    // Clear free-form on switch-away so we don't ship stale text.
+    if (v !== CUSTOM_SENTINEL) setEventLabel('')
+    setEventError(null)
+  }
+
   function resetForm() {
     removeFile()
     setNickname('')
     setCaption('')
-    setEventId('')
+    setEventValue('')
+    setEventLabel('')
+    setEventError(null)
+    setTakenOn('')
     setTerms(false)
     setFileError(null)
     setNickError(null)
@@ -180,6 +212,11 @@ export default function GallerySubmit() {
   }
 
   const nickTrimmed = nickname.trim()
+  const eventLabelTrimmed = eventLabel.trim()
+  const eventValid =
+    (eventValue !== '' && eventValue !== CUSTOM_SENTINEL) ||
+    (eventValue === CUSTOM_SENTINEL && eventLabelTrimmed.length > 0)
+
   const formValid =
     !!file &&
     !fileError &&
@@ -188,6 +225,7 @@ export default function GallerySubmit() {
     !nickError &&
     caption.length <= CAPTION_MAX &&
     !captionError &&
+    eventValid &&
     terms
 
   async function onSubmit(e) {
@@ -201,6 +239,15 @@ export default function GallerySubmit() {
       setNickError(t('gallerySubmit.error.nicknameEmpty'))
       return
     }
+    // HC4: client-side mutex/required enforcement mirrors server side.
+    if (!eventValid) {
+      setEventError(
+        eventValue === CUSTOM_SENTINEL
+          ? t('gallerySubmit.field.eventCustomEmpty')
+          : t('gallerySubmit.field.eventRequired'),
+      )
+      return
+    }
     if (!terms) {
       setGlobalError(t('gallerySubmit.error.termsRequired'))
       return
@@ -212,7 +259,10 @@ export default function GallerySubmit() {
         file,
         nickname: nickTrimmed,
         caption: caption.trim() || undefined,
-        eventId: eventId || undefined,
+        eventId: eventValue === CUSTOM_SENTINEL ? undefined : (eventValue || undefined),
+        eventLabel:
+          eventValue === CUSTOM_SENTINEL ? eventLabelTrimmed : undefined,
+        takenOn: takenOn || undefined,
       })
       setSuccess(true)
     } catch (err) {
@@ -331,7 +381,10 @@ export default function GallerySubmit() {
           ) : null}
 
           <label className="gs-field">
-            <span className="gs-field__label">{t('gallerySubmit.field.nickname')}</span>
+            <span className="gs-field__label">
+              {t('gallerySubmit.field.nickname')}{' '}
+              <span className="gs-field__required" aria-hidden="true">*</span>
+            </span>
             <input
               type="text"
               className="gs-input"
@@ -341,10 +394,72 @@ export default function GallerySubmit() {
               placeholder={t('gallerySubmit.field.nicknamePlaceholder')}
               data-testid="gs-nickname"
               required
+              aria-required="true"
             />
             {nickError ? (
               <span className="gs-field-error" role="alert">⚠ {nickError}</span>
             ) : null}
+          </label>
+
+          <label className="gs-field">
+            <span className="gs-field__label">
+              {t('gallerySubmit.field.event')}{' '}
+              <span className="gs-field__required" aria-hidden="true">*</span>
+            </span>
+            <select
+              className="gs-input gs-select"
+              value={eventValue}
+              onChange={onEventChange}
+              aria-required="true"
+              data-testid="gs-event"
+            >
+              <option value="">{t('gallerySubmit.field.eventNone')}</option>
+              {events.map((ev) => (
+                <option
+                  key={ev.id}
+                  value={String(ev.id)}
+                  title={ev.title_zh || ev.title_en || ev.slug}
+                >
+                  {truncateTitle(ev.title_zh || ev.title_en || ev.slug, 40)}
+                </option>
+              ))}
+              <option value={CUSTOM_SENTINEL}>
+                {t('gallerySubmit.field.eventCustom')}
+              </option>
+            </select>
+            {eventValue === CUSTOM_SENTINEL ? (
+              <input
+                type="text"
+                className="gs-input gs-input--custom-event"
+                value={eventLabel}
+                onChange={(e) => {
+                  setEventLabel(e.target.value)
+                  setEventError(null)
+                }}
+                maxLength={EVENT_LABEL_MAX + 5}
+                placeholder={t('gallerySubmit.field.eventCustomPlaceholder')}
+                aria-label={t('gallerySubmit.field.eventCustomPlaceholder')}
+                data-testid="gs-event-custom"
+              />
+            ) : null}
+            {eventError ? (
+              <span className="gs-field-error" role="alert">⚠ {eventError}</span>
+            ) : null}
+          </label>
+
+          <label className="gs-field">
+            <span className="gs-field__label">{t('gallerySubmit.field.takenOn')}</span>
+            <input
+              type="date"
+              className="gs-input"
+              value={takenOn}
+              onChange={(e) => setTakenOn(e.target.value)}
+              max={todayPlusOneISO()}
+              data-testid="gs-taken-on"
+            />
+            <span className="gs-field__helper">
+              {t('gallerySubmit.field.takenOnPlaceholder')}
+            </span>
           </label>
 
           <label className="gs-field">
@@ -366,23 +481,6 @@ export default function GallerySubmit() {
             {captionError ? (
               <span className="gs-field-error" role="alert">⚠ {captionError}</span>
             ) : null}
-          </label>
-
-          <label className="gs-field">
-            <span className="gs-field__label">{t('gallerySubmit.field.event')}</span>
-            <select
-              className="gs-input gs-select"
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              data-testid="gs-event"
-            >
-              <option value="">{t('gallerySubmit.field.eventNone')}</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.title_zh || ev.title_en || ev.slug}
-                </option>
-              ))}
-            </select>
           </label>
 
           <label className="gs-terms">

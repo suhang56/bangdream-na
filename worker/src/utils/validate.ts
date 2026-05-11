@@ -355,9 +355,73 @@ export const gallerySubmissionIdParam = z.object({
   id: positiveId,
 });
 
+// ── Gallery submissions form-body schemas (0009+) ────────────────────────────
+
+const gallerySubmissionEventIdSchema = z
+  .string()
+  .regex(/^\d+$/, { message: "event_id must be positive integer" });
+
+// Free-form activity label: same character-class rules as nickname (allow
+// CJK / emoji, reject control chars), shorter ceiling (80 vs 32) because
+// it's a single label not a chat handle. Whitespace-only rejected.
+const gallerySubmissionEventLabelSchema = z
+  .string()
+  .min(1)
+  .max(80)
+  // eslint-disable-next-line no-control-regex
+  .refine((v) => !/[\x00-\x1f\x7f]/.test(v), {
+    message: "event_label contains control characters",
+  })
+  .transform((v) => v.trim())
+  .refine((v) => v.length > 0, { message: "event_label empty after trim" })
+  .refine((v) => v.length <= 80, {
+    message: "event_label exceeds 80 chars after trim",
+  });
+
+// HTML5 date input emits YYYY-MM-DD. We accept ONLY that shape -- no time
+// component, no T separator, no tz. Server enforces calendar validity
+// (no 2025-02-30) and a today+1d future cap (allow timezone slack but
+// reject obvious garbage like 2099).
+const gallerySubmissionTakenOnSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "taken_on must be YYYY-MM-DD" })
+  .refine(
+    (s) => {
+      // Calendar validity: re-stringify after Date parse and compare.
+      // Rejects 2025-02-30, 2023-02-29, 2024-13-01, etc.
+      const parts = s.split("-").map(Number);
+      const y = parts[0]!;
+      const m = parts[1]!;
+      const d = parts[2]!;
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      return (
+        dt.getUTCFullYear() === y &&
+        dt.getUTCMonth() === m - 1 &&
+        dt.getUTCDate() === d
+      );
+    },
+    { message: "taken_on is not a real calendar date" },
+  )
+  .refine(
+    (s) => {
+      // Future cap: today (UTC) + 1 day slack. Rejects 2099-01-01 etc.
+      const parts = s.split("-").map(Number);
+      const y = parts[0]!;
+      const m = parts[1]!;
+      const d = parts[2]!;
+      const dt = Date.UTC(y, m - 1, d);
+      const capMs = Date.now() + 24 * 60 * 60 * 1000;
+      return dt <= capMs;
+    },
+    { message: "taken_on is in the future" },
+  );
+
 export const gallerySubmissionSchemas = {
   nickname: gallerySubmissionNicknameSchema,
   caption: gallerySubmissionCaptionSchema,
+  eventId: gallerySubmissionEventIdSchema,
+  eventLabel: gallerySubmissionEventLabelSchema,
+  takenOn: gallerySubmissionTakenOnSchema,
 };
 
 export const webhookTestBody = z.object({

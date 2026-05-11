@@ -172,6 +172,23 @@
   margin-top: 4px;
 }
 
+.gs-field__required {
+  color: #cd2c34;
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+.gs-field__helper {
+  font-size: 11px;
+  color: var(--ink-3, #7a7468);
+  margin-top: -2px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.gs-input--custom-event {
+  margin-top: 8px;
+}
+
 .gs-terms {
   display: flex;
   align-items: flex-start;

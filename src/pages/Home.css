@@ -600,8 +600,8 @@
 
 /* Home submit CTA strip — between HomeGallery and HomeJoin */
 .bf-home-submit-cta {
-  padding-top: 36px;
-  padding-bottom: 36px;
+  padding-top: 28px;
+  padding-bottom: 30px;
 }
 
 .bf-home-submit-cta__link {
@@ -642,14 +642,8 @@
 
 .bf-home-submit-cta__headline {
   font-size: 24px;
-  margin: 0 0 4px;
-  color: var(--ink, #1f1d1a);
-}
-
-.bf-home-submit-cta__sub {
-  font-size: 13.5px;
   margin: 0;
-  color: var(--ink-3, #7a7468);
+  color: var(--ink, #1f1d1a);
 }
 
 .bf-home-submit-cta__btn {

@@ -635,4 +635,28 @@ describe('<Home />', () => {
       expect(a.style.display).not.toBe('block')
     })
   })
+
+  // GALLERY-FORM-REVAMP: home.submitCta.sub key + <p> removed (HC8)
+  it('REVAMP: submit CTA strip renders only headline (sub-line removed)', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-home-submit-cta')).toBeInTheDocument()
+    })
+    // No bf-home-submit-cta__sub element should exist.
+    expect(container.querySelector('.bf-home-submit-cta__sub')).toBeNull()
+    // Headline still present.
+    const headline = container.querySelector('.bf-home-submit-cta__headline')
+    expect(headline).toBeInTheDocument()
+    expect(headline.textContent).toContain('有没添加的活动照片')
+  })
+
+  it('REVAMP: submit CTA button text reads 点击投稿 →', async () => {
+    mockHappy()
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-home-submit-cta__btn')).toBeInTheDocument()
+    })
+    expect(container.querySelector('.bf-home-submit-cta__btn').textContent).toBe('点击投稿 →')
+  })
 })

@@ -49,6 +49,9 @@ async function seedSubmission(opts: {
   withFile?: boolean;
   r2KeySuffix?: string;
   submittedAtOffset?: number;
+  eventId?: number | null;
+  eventLabel?: string | null;
+  takenOn?: string | null;
 }): Promise<number> {
   const now = Math.floor(Date.now() / 1000);
   const suffix = opts.r2KeySuffix ?? `${now}-${Math.random()}`.replace(".", "");
@@ -64,7 +67,9 @@ async function seedSubmission(opts: {
       r2Key,
       nickname: "alice",
       caption: "a caption",
-      eventId: null,
+      eventId: opts.eventId ?? null,
+      eventLabel: opts.eventLabel ?? null,
+      takenOn: opts.takenOn ?? null,
       status: opts.status ?? "pending",
       submittedAt: now + (opts.submittedAtOffset ?? 0),
       ipHash: "ab".repeat(16),
@@ -75,6 +80,24 @@ async function seedSubmission(opts: {
       contentType: "image/jpeg",
     })
     .returning({ id: gallerySubmissions.id })
+    .get();
+  return row.id;
+}
+
+async function seedEventRow(slug: string): Promise<number> {
+  const db = getDb(env);
+  const now = Math.floor(Date.now() / 1000);
+  const row = await db
+    .insert(events)
+    .values({
+      slug,
+      titleZh: "TEST 演出",
+      titleEn: "TEST Tour",
+      startAt: now + 86400,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning({ id: events.id })
     .get();
   return row.id;
 }
@@ -459,5 +482,150 @@ describe("POST /api/admin/gallery/submissions/:id/reject", () => {
       env,
     );
     expect(res.status).toBe(409);
+  });
+});
+
+// ── 0009: event_label + taken_on in admin payload + submission_id back-pointer ─
+
+describe("GET /api/admin/gallery/submissions — event_label/taken_on payload (0009)", () => {
+  it("returns event = {label, verified: false} for event_label rows", async () => {
+    await seedSubmission({ eventLabel: "私下聚会", takenOn: "2024-03-15" });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/gallery/submissions",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: { event: { label?: string; verified?: boolean } | null; taken_on: string | null }[];
+    };
+    expect(body.items[0].event).toEqual({ label: "私下聚会", verified: false });
+    expect(body.items[0].taken_on).toBe("2024-03-15");
+  });
+
+  it("returns event = {id, slug, title_zh} for event_id rows", async () => {
+    const eventId = await seedEventRow("e-id-only");
+    await seedSubmission({ eventId });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/gallery/submissions",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    const body = (await res.json()) as {
+      items: {
+        event: { id?: number; slug?: string; title_zh?: string } | null;
+      }[];
+    };
+    expect(body.items[0].event).toEqual({
+      id: eventId,
+      slug: "e-id-only",
+      title_zh: "TEST 演出",
+    });
+  });
+
+  it("returns event = null for legacy rows with neither event_id nor event_label", async () => {
+    await seedSubmission({});
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/gallery/submissions",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    const body = (await res.json()) as { items: { event: unknown }[] };
+    expect(body.items[0].event).toBeNull();
+  });
+
+  it("returns taken_on = null when not set", async () => {
+    await seedSubmission({ eventLabel: "no-date" });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/gallery/submissions",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    const body = (await res.json()) as { items: { taken_on: string | null }[] };
+    expect(body.items[0].taken_on).toBeNull();
+  });
+
+  it("renders a mixed list (event_id row, event_label row, neither legacy)", async () => {
+    const eventId = await seedEventRow("mixed-evt");
+    await seedSubmission({ eventId, submittedAtOffset: -10 });
+    await seedSubmission({ eventLabel: "🎸现场", submittedAtOffset: -20 });
+    await seedSubmission({ submittedAtOffset: -30 });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      "https://x/api/admin/gallery/submissions",
+      { method: "GET", headers: { Cookie: cookie } },
+      env,
+    );
+    const body = (await res.json()) as {
+      items: Array<{ event: unknown }>;
+    };
+    expect(body.items).toHaveLength(3);
+    // Default order is DESC by submitted_at: first the eventId (-10), then label (-20), then null (-30).
+    expect(body.items[0].event).toMatchObject({ id: eventId });
+    expect(body.items[1].event).toMatchObject({ label: "🎸现场", verified: false });
+    expect(body.items[2].event).toBeNull();
+  });
+});
+
+describe("POST /api/admin/gallery/submissions/:id/approve — submissionId back-pointer (0009)", () => {
+  it("approving an event_label row inserts gallery_items with event_id=NULL, album=submissions, submission_id set", async () => {
+    const sid = await seedSubmission({ eventLabel: "私下聚会" });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBeNull();
+    expect(item!.album).toBe("submissions");
+    expect(item!.submissionId).toBe(sid);
+  });
+
+  it("approving an event_id row inserts gallery_items with submission_id back-pointer set", async () => {
+    const eventId = await seedEventRow("approve-evt");
+    const sid = await seedSubmission({ eventId });
+    const { cookie } = await adminCookie();
+    const res = await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { gallery_item_id: number };
+    const item = await getDb(env)
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.id, body.gallery_item_id))
+      .get();
+    expect(item!.eventId).toBe(eventId);
+    expect(item!.submissionId).toBe(sid);
+  });
+
+  it("approving preserves the event_label on gallery_submissions (audit trail)", async () => {
+    const sid = await seedSubmission({ eventLabel: "audit label" });
+    const { cookie } = await adminCookie();
+    await createApp().request(
+      `https://x/api/admin/gallery/submissions/${sid}/approve`,
+      { method: "POST", headers: { Cookie: cookie } },
+      env,
+    );
+    const after = await getDb(env)
+      .select()
+      .from(gallerySubmissions)
+      .where(eq(gallerySubmissions.id, sid))
+      .get();
+    expect(after!.eventLabel).toBe("audit label");
+    expect(after!.status).toBe("approved");
   });
 });

@@ -58,6 +58,29 @@
   color: var(--ink-4, #c8c1b3);
 }
 
+.pending-row__event-warn {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--warn, #c08000);
+  font-size: 12px;
+  line-height: 1;
+  cursor: help;
+}
+
+.pending-row__taken-on {
+  font-size: 12px;
+  color: var(--ink-3, #7a7468);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.02em;
+}
+
+.pending-row__taken-on-label {
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-4, #c8c1b3);
+}
+
 .pending-row__error {
   color: #cd2c34;
   font-size: 12px;
