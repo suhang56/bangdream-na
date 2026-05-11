@@ -659,4 +659,86 @@ describe('<Home />', () => {
     })
     expect(container.querySelector('.bf-home-submit-cta__btn').textContent).toBe('点击投稿 →')
   })
+
+  // ── ALBUM-FALLBACK: HomeGallery .al-title fallback chain ──────────────────
+  // caption || event_title_zh || album || t('home.gallery.photoFallback')
+  function mockGalleryItem(overrides) {
+    const item = {
+      id: 1,
+      taken_at: 1746460800,
+      created_at: 1746460800,
+      image_url: null,
+      caption: null,
+      event_title_zh: null,
+      album: null,
+      ...overrides,
+    }
+    vi.spyOn(api, 'fetchNews').mockResolvedValue(HAPPY_NEWS)
+    vi.spyOn(api, 'fetchEvents').mockImplementation((opts) => {
+      if (opts && opts.scope === 'past') return Promise.resolve(HAPPY_PAST)
+      return Promise.resolve(HAPPY_UPCOMING)
+    })
+    vi.spyOn(api, 'fetchGallery').mockResolvedValue({ items: [item], total: 1 })
+    vi.spyOn(api, 'fetchMembers').mockResolvedValue(HAPPY_MEMBERS)
+  }
+
+  it('ALBUM-FALLBACK 1: gallery item with caption only renders caption in .al-title', async () => {
+    mockGalleryItem({ caption: 'My Caption' })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('My Caption')
+  })
+
+  it('ALBUM-FALLBACK 2: gallery item with event_title_zh only renders event title', async () => {
+    mockGalleryItem({ event_title_zh: 'Event Title' })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('Event Title')
+  })
+
+  it('ALBUM-FALLBACK 3: gallery item with album only renders album text (bug fix)', async () => {
+    mockGalleryItem({ album: '4.26 鸡zepp 大阪难波' })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('4.26 鸡zepp 大阪难波')
+  })
+
+  it('ALBUM-FALLBACK 4: caption wins over event_title_zh and album', async () => {
+    mockGalleryItem({ caption: 'C', event_title_zh: 'E', album: 'A' })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('C')
+  })
+
+  it('ALBUM-FALLBACK 5: empty-string caption falls through to album (|| not ??)', async () => {
+    mockGalleryItem({ caption: '', event_title_zh: null, album: 'A' })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('A')
+  })
+
+  it('ALBUM-FALLBACK 6: all null/empty renders zh i18n fallback 照片', async () => {
+    mockGalleryItem({ caption: null, event_title_zh: null, album: null })
+    const { container } = renderHome()
+    await waitFor(() => {
+      expect(container.querySelector('.bf-album .al-title')).toBeInTheDocument()
+    })
+    const title = container.querySelector('.bf-album .al-title')
+    expect(title.textContent).toBe('照片')
+  })
 })
