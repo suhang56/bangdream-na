@@ -12,6 +12,7 @@ import {
   adaptSiteSettings,
   adaptSocialList,
 } from '../lib/apiAdapter.js'
+import { CONTACT_EMAIL } from '../data/socialLinks.js'
 import './About.css'
 
 const EMPTY_SITE = {
@@ -132,6 +133,23 @@ export default function About() {
           {paragraphs(about.mission).map((p, i) => (
             <p key={i}>{p}</p>
           ))}
+        </section>
+
+        <section id="contact" className="bf-about-block about-section about-contact">
+          <span className="bf-helper-tag">// {t('contact.label')}</span>
+          <h2>{t('contact.label')}</h2>
+          <p>{t('contact.aboutBody')}</p>
+          <p className="about-contact-line">
+            <a
+              className="about-contact-link"
+              href={`mailto:${CONTACT_EMAIL}`}
+              aria-label={t('contact.ariaLabel')}
+            >
+              <span className="about-contact-glyph" aria-hidden="true">✉</span>
+              {' '}
+              {CONTACT_EMAIL}
+            </a>
+          </p>
         </section>
 
         <section className="bf-about-block about-stats-block">

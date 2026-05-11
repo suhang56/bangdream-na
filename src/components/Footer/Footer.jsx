@@ -7,8 +7,11 @@ import {
   X_PROFILE_URL,
   XHS_URL,
   FORUM_URL,
+  CONTACT_EMAIL,
 } from '../../data/socialLinks.js'
 import './Footer.css'
+
+const CONTACT_ARIA_ZH = '发送邮件至 contact at bangdream dot org'
 
 const COMMUNITY_LINKS = [
   { to: '/about', label: '关于', external: false },
@@ -16,6 +19,13 @@ const COMMUNITY_LINKS = [
   { to: '/rules', label: '群规', external: false },
   { to: QQ_GROUP_URL, label: 'QQ 群', external: true },
   { to: DISCORD_INVITE_URL, label: 'Discord', external: true },
+  {
+    to: `mailto:${CONTACT_EMAIL}`,
+    label: `✉ ${CONTACT_EMAIL}`,
+    external: true,
+    ariaLabel: CONTACT_ARIA_ZH,
+    isMail: true,
+  },
 ]
 
 const RESOURCE_LINKS = [
@@ -79,7 +89,13 @@ export default function Footer() {
             <h4>社群</h4>
             <ul>
               {COMMUNITY_LINKS.map((link) =>
-                link.external ? (
+                link.isMail ? (
+                  <li key={link.label} className="bf-foot-contact-item">
+                    <a href={link.to} aria-label={link.ariaLabel}>
+                      {link.label}
+                    </a>
+                  </li>
+                ) : link.external ? (
                   <li key={link.label}>
                     <a
                       href={link.to}

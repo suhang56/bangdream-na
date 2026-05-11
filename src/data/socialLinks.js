@@ -7,6 +7,8 @@
  * still hardcodes the same literal — Reviewer will grep.
  */
 
+export const CONTACT_EMAIL = 'contact@bangdream.org'
+
 export const QQ_GROUP_URL = 'https://qm.qq.com/q/Dir9OC5TYA'
 export const DISCORD_INVITE_URL = 'https://discord.gg/WfMBKaW8Br'
 export const X_PROFILE_URL = 'https://x.com/BandoriNACC'
