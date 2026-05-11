@@ -6,12 +6,7 @@ import About from './About.jsx'
 import { _resetForTests, setLanguage } from '../lib/uiLanguage.js'
 import { cache } from '../lib/cache.js'
 import i18n from '../data/i18n.json'
-import {
-  CONTACT_EMAIL,
-  QQ_GROUP_URL,
-  DISCORD_INVITE_URL,
-  X_PROFILE_URL,
-} from '../data/socialLinks.js'
+import { QQ_GROUP_URL } from '../data/socialLinks.js'
 
 const siteJson = {
   discordInvite: 'https://discord.gg/WfMBKaW8Br',
@@ -345,44 +340,70 @@ describe('<About />', () => {
     ).toBeTruthy()
   })
 
-  it('Join anchors come from socialLinks SoT, count not hardcoded', async () => {
+  it('Join section renders classic shape: heading + 2 prose paragraphs + single QQ CTA (EN)', async () => {
     const { container } = renderWithProviders(<About />, { route: '/about' })
     await screen.findByText('バンドリ北米華人コミュニティ')
     const join = container.querySelector('[data-testid="about-join"]')
-    const anchors = join.querySelectorAll('a.about-join-link')
-    // count derives from JOIN_LINKS, asserted via known channel set:
-    const hrefs = [...anchors].map((a) => a.getAttribute('href'))
-    expect(hrefs).toEqual([
-      QQ_GROUP_URL,
-      DISCORD_INVITE_URL,
-      X_PROFILE_URL,
-      `mailto:${CONTACT_EMAIL}`,
-    ])
-    expect(anchors[0].getAttribute('href')).toBe(QQ_GROUP_URL)
-    expect(anchors[1].getAttribute('href')).toBe(DISCORD_INVITE_URL)
-    expect(anchors[2].getAttribute('href')).toBe(X_PROFILE_URL)
-    expect(anchors[3].getAttribute('href').startsWith('mailto:')).toBe(true)
-    expect(anchors[3].getAttribute('href').endsWith(CONTACT_EMAIL)).toBe(true)
+    expect(join).not.toBeNull()
+    const heading = join.querySelector('h2')
+    expect(heading.textContent).toBe('Join Us')
+    const paragraphs = join.querySelectorAll('p')
+    expect(paragraphs.length).toBe(2)
+    expect(paragraphs[0].textContent).toContain('QQ group')
+    expect(paragraphs[1].textContent).toContain('NA expedition group')
+    const anchors = join.querySelectorAll('a')
+    expect(anchors.length).toBe(1)
+    const cta = anchors[0]
+    expect(cta.classList.contains('about-join-cta')).toBe(true)
+    expect(cta.getAttribute('href')).toBe(QQ_GROUP_URL)
+    expect(cta.getAttribute('target')).toBe('_blank')
+    expect(cta.getAttribute('rel')).toMatch(/noopener/)
+    expect(cta.getAttribute('rel')).toMatch(/noreferrer/)
+    expect(cta.textContent).toBe('Join QQ Group')
   })
 
-  it('Join externals carry target=_blank + rel; mailto carries neither', async () => {
+  it('Join section renders classic shape ZH: 加入我们 heading + QQ 群 CTA + 北美邦远征组 prose', async () => {
+    setLanguage('zh')
     const { container } = renderWithProviders(<About />, { route: '/about' })
     await screen.findByText('バンドリ北米華人コミュニティ')
     const join = container.querySelector('[data-testid="about-join"]')
-    const anchors = join.querySelectorAll('a.about-join-link')
-    for (let i = 0; i < 3; i++) {
-      expect(anchors[i].getAttribute('target')).toBe('_blank')
-      const rel = anchors[i].getAttribute('rel') || ''
-      expect(rel).toMatch(/noopener/)
-      expect(rel).toMatch(/noreferrer/)
-    }
-    expect(anchors[3].getAttribute('target')).toBeNull()
-    expect(anchors[3].getAttribute('rel')).toBeNull()
+    expect(join.querySelector('h2').textContent).toBe('加入我们')
+    const paragraphs = join.querySelectorAll('p')
+    expect(paragraphs.length).toBe(2)
+    expect(paragraphs[0].textContent).toContain('QQ 群')
+    expect(paragraphs[1].textContent).toContain('「北美邦远征组」')
+    const cta = join.querySelector('a.about-join-cta')
+    expect(cta).not.toBeNull()
+    expect(cta.getAttribute('href')).toBe(QQ_GROUP_URL)
+    expect(cta.textContent).toBe('加入 QQ 群')
   })
 
-  it('Join section: all 10 new i18n keys present + non-empty in both locales', () => {
-    const keys = [
+  it('Join section: no 4-tile artifacts left (no .about-join-link, no .about-join-list)', async () => {
+    const { container } = renderWithProviders(<About />, { route: '/about' })
+    await screen.findByText('バンドリ北米華人コミュニティ')
+    expect(container.querySelector('.about-join-link')).toBeNull()
+    expect(container.querySelector('.about-join-list')).toBeNull()
+    expect(container.querySelector('.about-join-intro')).toBeNull()
+    expect(container.querySelector('.ajl-name')).toBeNull()
+    expect(container.querySelector('.ajl-desc')).toBeNull()
+    expect(container.querySelector('.ajl-arrow')).toBeNull()
+  })
+
+  it('Join section: classic i18n keys present + non-empty in both locales; removed tile keys gone', () => {
+    const presentKeys = [
       'about.joinHeading',
+      'about.joinHelperTag',
+      'about.joinBody1',
+      'about.joinBody2',
+      'btn.joinQQ',
+    ]
+    for (const key of presentKeys) {
+      expect(typeof i18n.en[key], `en missing ${key}`).toBe('string')
+      expect(i18n.en[key].length, `en empty ${key}`).toBeGreaterThan(0)
+      expect(typeof i18n.zh[key], `zh missing ${key}`).toBe('string')
+      expect(i18n.zh[key].length, `zh empty ${key}`).toBeGreaterThan(0)
+    }
+    const removedKeys = [
       'about.joinIntro',
       'about.join.qqName',
       'about.join.qqDesc',
@@ -393,11 +414,9 @@ describe('<About />', () => {
       'about.join.emailName',
       'about.join.emailDesc',
     ]
-    for (const key of keys) {
-      expect(typeof i18n.en[key], `en missing ${key}`).toBe('string')
-      expect(i18n.en[key].length, `en empty ${key}`).toBeGreaterThan(0)
-      expect(typeof i18n.zh[key], `zh missing ${key}`).toBe('string')
-      expect(i18n.zh[key].length, `zh empty ${key}`).toBeGreaterThan(0)
+    for (const key of removedKeys) {
+      expect(i18n.en[key], `en still has removed key ${key}`).toBeUndefined()
+      expect(i18n.zh[key], `zh still has removed key ${key}`).toBeUndefined()
     }
   })
 })
