@@ -17,6 +17,13 @@ type AppContext = Context<AppType>;
 
 type AdminErrorStatus = 400 | 401 | 403 | 404 | 409 | 500;
 
+// Album bucket used when a submission has neither event_id nor event_label
+// (legacy pre-0009 rows only — post-0009 mutex prevents new rows). DB-stored
+// CN literal; frontend groups by exact-string equality on album. i18n key
+// gallery.albumFallback.other declared in src/data/i18n.json for future
+// render-time translation slice, NOT consumed at runtime by worker.
+const ALBUM_FALLBACK_OTHER = "其他";
+
 function adminError(
   c: AppContext,
   status: AdminErrorStatus,
@@ -283,9 +290,14 @@ export function buildAdminGallerySubmissionsRoutes() {
           caption: row.caption,
           takenAt: row.submittedAt,
           eventId: row.eventId,
-          // Without event_id, derive an album bucket so the CHECK constraint
-          // (event_id IS NOT NULL OR album IS NOT NULL) is satisfied.
-          album: row.eventId ? null : "submissions",
+          // Derive album bucket so CHECK (event_id NOT NULL OR album NOT NULL)
+          // holds. Three branches:
+          //  - event_id present  -> album NULL (per-event group via JOIN)
+          //  - event_label set   -> album = trimmed label (free-form group)
+          //  - both null         -> album = ALBUM_FALLBACK_OTHER (legacy only)
+          album: row.eventId
+            ? null
+            : (row.eventLabel?.trim() || ALBUM_FALLBACK_OTHER),
           // 0009: back-pointer so future surfaces can JOIN to fetch the
           // free-form event_label (kept on gallery_submissions, not copied).
           submissionId: submissionId,
