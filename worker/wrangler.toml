@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 GITHUB_CLIENT_ID = "Ov23liBzmTUNtJYieymD"
 R2_BUCKET_NAME = "bangdream-na-images"
 CDN_ORIGIN = "https://cdn.bangdream.org"
-ADMIN_GITHUB_LOGINS = "suhang56"
+ADMIN_GITHUB_LOGINS = "suhang56,SonodaMiyu"
 ALLOWED_ORIGINS = "https://bangdream.org,http://localhost:5173,http://localhost:4173"
 ADMIN_NOTIFICATION_EMAIL = "ops@bangdream.org"
 
