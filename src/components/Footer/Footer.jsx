@@ -48,6 +48,7 @@ const EXTERNAL_LINKS = [
   { to: X_PROFILE_URL, label: 'X @BandoriNACC ↗' },
   { to: XHS_URL, label: '小红书 @北美炸梦 ↗' },
   { to: FORUM_URL, label: `论坛 ${hostnameOf(FORUM_URL)} ↗` },
+  { to: 'https://bandori.fans', label: '资料库 bandori.fans ↗' },
 ]
 
 function subscribe(cb) {
